@@ -1384,6 +1384,11 @@ body::after {
     text-align: center;
   }
 
+  .slide[data-slide="founder"] .ea-wordmark--founder {
+    font-size: clamp(1.55rem, 7.8vw, 2.1rem);
+    gap: 0.05rem;
+  }
+
   .slide[data-slide="modules"] .slide-content,
   .slide[data-slide="infrastructure"] .slide-content,
   .slide[data-slide="positioning"] .slide-content {
