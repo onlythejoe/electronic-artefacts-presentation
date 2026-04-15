@@ -2,7 +2,7 @@
 const ANIM_DUR   = 850;   // ms — matches CSS --slide-dur
 const PARALLAX_S = 12;    // max parallax offset in px
 const PARALLAX_L = 0.055; // parallax lerp speed
-const LIGHT_THEME_SLIDES = new Set(['vestige', 'vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'next', 'open', 'closing', 'contact']);
+const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'next', 'open', 'closing', 'contact']);
 
 // ===== STATE =====
 let currentIndex = 0;
@@ -16,7 +16,22 @@ let navDragActive = false;
 let navDragPointerId = null;
 let sceneStartTimer = null;
 let sceneUnlockTimer = null;
+let resizeTimer = null;
+let mainRafId = null;
+let activeSlideEl = null;
+let activeContentEl = null;
+let activeTextNodes = [];
+let activeVestigeStageEl = null;
+let activeVestigeFloatersEl = null;
+let navTrackEl = null;
+let navIndicatorEl = null;
+let hoveredTextNode = null;
+let hoverProbeX = NaN;
+let hoverProbeY = NaN;
+let appAlive = true;
 const ACTION_HOVER_SELECTOR = '#nav-track, a, button, [role="button"]';
+const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow';
+const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 // ===== DOM =====
 const slideEls   = [...document.querySelectorAll('.slide')];
@@ -57,19 +72,14 @@ function isLightTheme() {
 }
 
 function applyTextMotion() {
-  const activeSlide = slideEls[currentIndex];
-  if (!activeSlide) return;
+  if (!HAS_FINE_POINTER || !activeContentEl || activeTextNodes.length === 0) return;
 
-  const content = activeSlide.querySelector('.slide-content');
-  if (!content) return;
-
-  const nodes = content.querySelectorAll('h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow');
   const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
   const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
 
-  nodes.forEach((node, index) => {
+  activeTextNodes.forEach((node, index) => {
     const depth = index + 1;
-    const hoverBoost = node.matches(':hover') ? 1.7 : 1;
+    const hoverBoost = hoveredTextNode && (node === hoveredTextNode || node.contains(hoveredTextNode)) ? 1.7 : 1;
     const tx = clamp(nx * 12 * depth * 0.42 * hoverBoost, -10, 10);
     const ty = clamp(ny * 10 * depth * 0.36 * hoverBoost, -8, 8);
     const rot = clamp(nx * depth * 1.2 * hoverBoost, -2.4, 2.4);
@@ -79,23 +89,35 @@ function applyTextMotion() {
   });
 }
 
+function refreshActiveSlideCache() {
+  activeSlideEl = slideEls[currentIndex] || null;
+  activeContentEl = activeSlideEl ? activeSlideEl.querySelector('.slide-content') : null;
+  const activeSlideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
+  activeTextNodes = activeContentEl && activeSlideKey !== 'founder'
+    ? [...activeContentEl.querySelectorAll('h2, p, a, .phase-timeline, .continuum-flow')]
+    : [];
+  activeVestigeStageEl = activeSlideEl ? activeSlideEl.querySelector('#vestiges-stage, #continuum-stage') : null;
+  activeVestigeFloatersEl = activeSlideEl ? activeSlideEl.querySelector('.vestiges-floaters') : null;
+  hoveredTextNode = null;
+  hoverProbeX = NaN;
+  hoverProbeY = NaN;
+}
+
 function restartLogoAnimation(slide) {
   if (!slide) return;
   const logo = slide.querySelector('.ea-wordmark');
   if (!logo) return;
 
   logo.classList.remove('is-animated');
-  void logo.offsetWidth;
-  logo.classList.add('is-animated');
+  requestAnimationFrame(() => {
+    if (slide === slideEls[currentIndex]) {
+      logo.classList.add('is-animated');
+    }
+  });
 }
 
 function updateVestigeMotion() {
-  const activeSlide = slideEls[currentIndex];
-  if (!activeSlide || !LIGHT_THEME_SLIDES.has(activeSlide.dataset.slide)) return;
-
-  const stage = activeSlide.querySelector('#vestiges-stage, #continuum-stage');
-  const floaters = activeSlide.querySelector('.vestiges-floaters');
-  if (!stage) return;
+  if (!HAS_FINE_POINTER || !activeSlideEl || !LIGHT_THEME_SLIDES.has(activeSlideEl.dataset.slide) || !activeVestigeStageEl) return;
 
   const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
   const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
@@ -105,14 +127,14 @@ function updateVestigeMotion() {
   const fx = clamp(nx * 10, -8, 8);
   const fy = clamp(ny * 8, -6, 6);
 
-  stage.style.setProperty('--vestige-x', `${x.toFixed(2)}px`);
-  stage.style.setProperty('--vestige-y', `${y.toFixed(2)}px`);
-  stage.style.setProperty('--vestige-scale', scale.toFixed(4));
+  activeVestigeStageEl.style.setProperty('--vestige-x', `${x.toFixed(2)}px`);
+  activeVestigeStageEl.style.setProperty('--vestige-y', `${y.toFixed(2)}px`);
+  activeVestigeStageEl.style.setProperty('--vestige-scale', scale.toFixed(4));
 
-  if (floaters) {
-    floaters.style.setProperty('--vestige-floaters-x', `${fx.toFixed(2)}px`);
-    floaters.style.setProperty('--vestige-floaters-y', `${fy.toFixed(2)}px`);
-    floaters.style.setProperty('--vestige-floaters-scale', (1 + Math.abs(ny) * 0.008).toFixed(4));
+  if (activeVestigeFloatersEl) {
+    activeVestigeFloatersEl.style.setProperty('--vestige-floaters-x', `${fx.toFixed(2)}px`);
+    activeVestigeFloatersEl.style.setProperty('--vestige-floaters-y', `${fy.toFixed(2)}px`);
+    activeVestigeFloatersEl.style.setProperty('--vestige-floaters-scale', (1 + Math.abs(ny) * 0.008).toFixed(4));
   }
 }
 
@@ -157,6 +179,7 @@ function applyClasses() {
     else if (i  <  currentIndex) el.classList.add('is-before');
     else                         el.classList.add('is-after');
   });
+  refreshActiveSlideCache();
   restartLogoAnimation(slideEls[currentIndex]);
 }
 
@@ -171,24 +194,24 @@ function initUI() {
   track.id = 'nav-track';
   track.innerHTML = '<div id="nav-indicator"></div>';
   navEl.appendChild(track);
+  navTrackEl = track;
+  navIndicatorEl = track.firstElementChild;
   track.addEventListener('pointerdown', onNavPointerDown);
   updateUI();
 }
 
 function updateUI() {
   numCurEl.textContent = String(currentIndex + 1).padStart(2, '0');
-  progressEl.style.width = ((currentIndex / (total - 1)) * 100) + '%';
-  const indicator = document.getElementById('nav-indicator');
-  const track     = document.getElementById('nav-track');
-  if (!indicator || !track) return;
-  const max = track.offsetHeight - 14;
-  indicator.style.top = ((currentIndex / (total - 1)) * max) + 'px';
+  const progress = total > 1 ? currentIndex / (total - 1) : 1;
+  progressEl.style.setProperty('--progress-scale', progress.toFixed(4));
+  if (!navIndicatorEl || !navTrackEl) return;
+  const max = navTrackEl.offsetHeight - 14;
+  navIndicatorEl.style.setProperty('--nav-y', (progress * max).toFixed(2) + 'px');
 }
 
 function getNavIndexFromClientY(clientY) {
-  const track = document.getElementById('nav-track');
-  if (!track) return currentIndex;
-  const rect = track.getBoundingClientRect();
+  if (!navTrackEl) return currentIndex;
+  const rect = navTrackEl.getBoundingClientRect();
   const ratio = clamp((clientY - rect.top) / rect.height, 0, 1);
   return Math.round(ratio * (total - 1));
 }
@@ -214,20 +237,30 @@ function onNavPointerMove(e) {
 
 function endNavDrag(e) {
   if (!navDragActive || (e.pointerId != null && e.pointerId !== navDragPointerId)) return;
-  const track = document.getElementById('nav-track');
   navDragActive = false;
   navDragPointerId = null;
-  if (track) track.classList.remove('is-dragging');
+  if (navTrackEl) navTrackEl.classList.remove('is-dragging');
 }
 
-function updateActionHoverState() {
-  const el = document.elementFromPoint(mouseX, mouseY);
-  const active = !!(el && el.closest(ACTION_HOVER_SELECTOR));
-  document.body.classList.toggle('is-action-hover', active);
+function updateHoverTargets(force = false) {
+  const x = Math.round(mouseX);
+  const y = Math.round(mouseY);
+  if (!force && x === hoverProbeX && y === hoverProbeY) return;
+
+  hoverProbeX = x;
+  hoverProbeY = y;
+
+  const el = document.elementFromPoint(x, y);
+  const activeActionEl = el && el.closest ? el.closest(ACTION_HOVER_SELECTOR) : null;
+  hoveredTextNode = activeContentEl && el && el.closest ? el.closest(TEXT_HOVER_SELECTOR) : null;
+  document.body.classList.toggle('is-action-hover', !!activeActionEl);
 }
 
 function clearActionHoverState() {
   document.body.classList.remove('is-action-hover');
+  hoveredTextNode = null;
+  hoverProbeX = NaN;
+  hoverProbeY = NaN;
 }
 
 
@@ -242,54 +275,55 @@ document.addEventListener('mousemove', e => {
   const cy = window.innerHeight / 2;
   plxTX = ((e.clientX - cx) / cx) * PARALLAX_S;
   plxTY = ((e.clientY - cy) / cy) * PARALLAX_S;
-  updateActionHoverState();
-});
+}, { passive: true });
 
-document.addEventListener('pointermove', onNavPointerMove);
+document.addEventListener('pointermove', onNavPointerMove, { passive: true });
 document.addEventListener('pointerup', endNavDrag);
 document.addEventListener('pointercancel', endNavDrag);
 document.addEventListener('mouseleave', clearActionHoverState);
 
 function animLoop() {
-  curX = lerp(curX, mouseX, 0.18);
-  curY = lerp(curY, mouseY, 0.18);
-  cursorEl.style.left = curX + 'px';
-  cursorEl.style.top  = curY + 'px';
+  if (!appAlive) return;
 
-  ringX = lerp(ringX, mouseX, 0.09);
-  ringY = lerp(ringY, mouseY, 0.09);
-  ringEl.style.left = ringX + 'px';
-  ringEl.style.top  = ringY + 'px';
+  if (HAS_FINE_POINTER) {
+    curX = lerp(curX, mouseX, 0.18);
+    curY = lerp(curY, mouseY, 0.18);
+    cursorEl.style.left = curX + 'px';
+    cursorEl.style.top  = curY + 'px';
+
+    ringX = lerp(ringX, mouseX, 0.09);
+    ringY = lerp(ringY, mouseY, 0.09);
+    ringEl.style.left = ringX + 'px';
+    ringEl.style.top  = ringY + 'px';
+  }
 
   plxX = lerp(plxX, plxTX, PARALLAX_L);
   plxY = lerp(plxY, plxTY, PARALLAX_L);
-  const activeContent = document.querySelector('.slide.is-active .slide-content');
-  if (activeContent) {
-    activeContent.style.transform = `translate(${plxX.toFixed(2)}px,${plxY.toFixed(2)}px)`;
+  if (activeContentEl) {
+    if (activeSlideEl && activeSlideEl.dataset.slide === 'founder') {
+      activeContentEl.style.transform = 'translate3d(0px, 0px, 0px)';
+    } else if (HAS_FINE_POINTER) {
+      activeContentEl.style.transform = `translate(${plxX.toFixed(2)}px,${plxY.toFixed(2)}px)`;
+    } else {
+      activeContentEl.style.transform = 'translate3d(0px, 0px, 0px)';
+    }
   }
 
+  if (HAS_FINE_POINTER) {
+    updateHoverTargets();
+  } else {
+    document.body.classList.remove('is-action-hover');
+  }
   applyTextMotion();
   updateVestigeMotion();
 
-  requestAnimationFrame(animLoop);
+  mainRafId = requestAnimationFrame(animLoop);
 }
 
 
 // =============================================
 // SHARED CANVAS HELPER
 // =============================================
-
-// Base class pattern — each scene extends this convention
-function makeCanvas(el) {
-  const ctx = el.getContext('2d');
-  const resize = () => {
-    el.width  = el.offsetWidth;
-    el.height = el.offsetHeight;
-  };
-  resize();
-  return { el, ctx, resize };
-}
-
 
 // =============================================
 // SCENE: GRAPH
@@ -807,7 +841,6 @@ class InfrastructureScene {
       driftX: rand(-8, 8),
       driftY: rand(-6, 6),
       size: 0.86 + (i % 2) * 0.06,
-      accent: 0.35 + slot.layer * 0.08,
       phase: rand(0, Math.PI * 2),
     }));
     this.packets = Array.from({ length: 4 }, (_, i) => ({
@@ -995,13 +1028,13 @@ class ModulesScene {
     this.raf     = null;
     this.t       = 0;
     this.modules = [
-      { label: 'Identity',  angle: -Math.PI * 0.42, delay: 0.0, lane: 0, accent: 0.95 },
-      { label: 'Workspace', angle: -Math.PI * 0.12, delay: 0.18, lane: 1, accent: 0.82 },
-      { label: 'Assets',    angle:  Math.PI * 0.14, delay: 0.36, lane: 2, accent: 0.68 },
-      { label: 'Programs',  angle:  Math.PI * 0.42, delay: 0.54, lane: 0, accent: 0.78 },
-      { label: 'Domotics',  angle:  Math.PI * 0.78, delay: 0.72, lane: 1, accent: 0.62 },
-      { label: 'Logistics', angle:  Math.PI * 1.06, delay: 0.90, lane: 2, accent: 0.74 },
-      { label: 'Flux',      angle:  Math.PI * 1.38, delay: 1.08, lane: 1, accent: 0.90 },
+      { label: 'Identity',  angle: -Math.PI * 0.42, delay: 0.0, lane: 0 },
+      { label: 'Workspace', angle: -Math.PI * 0.12, delay: 0.18, lane: 1 },
+      { label: 'Assets',    angle:  Math.PI * 0.14, delay: 0.36, lane: 2 },
+      { label: 'Programs',  angle:  Math.PI * 0.42, delay: 0.54, lane: 0 },
+      { label: 'Domotics',  angle:  Math.PI * 0.78, delay: 0.72, lane: 1 },
+      { label: 'Logistics', angle:  Math.PI * 1.06, delay: 0.90, lane: 2 },
+      { label: 'Flux',      angle:  Math.PI * 1.38, delay: 1.08, lane: 1 },
     ];
     this.pills = this.slideEl ? [...this.slideEl.querySelectorAll('.module-pill')] : [];
     this._resize();
@@ -1184,9 +1217,6 @@ class ModulesScene {
       pill.style.top = `${y}px`;
       pill.style.opacity = alpha.toFixed(3);
       pill.style.transform = `translate(-50%, -50%) translate(${bob.toFixed(2)}px, ${lift.toFixed(2)}px) scale(${scale.toFixed(3)})`;
-      pill.style.borderColor = `rgba(255,255,255,${(0.06 + mod.accent * 0.05 + p * 0.05).toFixed(3)})`;
-      pill.style.background = `rgba(255,255,255,${(0.025 + mod.accent * 0.01).toFixed(3)})`;
-      pill.style.color = `rgba(255,255,255,${(0.50 + p * 0.16).toFixed(3)})`;
     });
   }
 }
@@ -2559,9 +2589,30 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 window.addEventListener('resize', () => {
-  Object.values(scenes).forEach(s => s.resize && s.resize());
-  updateUI();
-});
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    Object.values(scenes).forEach(s => s.resize && s.resize());
+    updateUI();
+    resizeTimer = null;
+  }, 120);
+}, { passive: true });
+
+function cleanup() {
+  appAlive = false;
+  if (mainRafId != null) {
+    cancelAnimationFrame(mainRafId);
+    mainRafId = null;
+  }
+  clearTimeout(sceneStartTimer);
+  clearTimeout(sceneUnlockTimer);
+  clearTimeout(resizeTimer);
+  sceneStartTimer = null;
+  sceneUnlockTimer = null;
+  resizeTimer = null;
+  Object.values(scenes).forEach(scene => scene.stop && scene.stop());
+}
+
+window.addEventListener('beforeunload', cleanup);
 
 
 // =============================================
@@ -2574,7 +2625,8 @@ function init() {
   applyClasses();
   setThemeForSlide(slideEls[0].dataset.slide);
   startScene(slideEls[0].dataset.slide);
-  animLoop();
+  if (mainRafId != null) cancelAnimationFrame(mainRafId);
+  mainRafId = requestAnimationFrame(animLoop);
 }
 
 init();

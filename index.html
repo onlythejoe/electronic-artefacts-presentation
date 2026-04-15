@@ -8,21 +8,58 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <noscript>
+    <style>
+      html, body {
+        overflow: auto;
+        cursor: auto;
+      }
+      body::before,
+      body::after,
+      #cursor,
+      #cursor-ring,
+      #progress-bar,
+      #slide-nav,
+      #slide-counter {
+        display: none !important;
+      }
+      .slides {
+        position: static;
+        overflow: visible;
+      }
+      .slide {
+        position: relative;
+        inset: auto;
+        min-height: 100vh;
+        opacity: 1 !important;
+        transform: none !important;
+        pointer-events: auto;
+        transition: none !important;
+      }
+      .slide-canvas,
+      .vestiges-atmosphere {
+        display: none !important;
+      }
+      .slide-content {
+        transform: none !important;
+      }
+    </style>
+  </noscript>
 </head>
 <body>
 
 <!-- Custom cursor -->
-<div id="cursor"></div>
-<div id="cursor-ring"></div>
+<div id="cursor" aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
 
 <!-- UI chrome -->
-<div id="progress-bar"></div>
+<div id="progress-bar" aria-hidden="true"></div>
 <div id="slide-counter">
   <span id="num-current">01</span>
   <span class="sep">/</span>
   <span id="num-total">25</span>
 </div>
-<nav id="slide-nav"></nav>
+<nav id="slide-nav" aria-label="Slide navigation"></nav>
 
 <!-- Slides -->
 <div class="slides" id="slides">
