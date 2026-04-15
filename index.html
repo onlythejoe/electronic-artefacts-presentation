@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electronic Artefacts — SPACE</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- UI chrome -->
+<div id="progress-bar"></div>
+<div id="slide-counter">
+  <span id="num-current">01</span>
+  <span class="sep">/</span>
+  <span id="num-total">25</span>
+</div>
+<nav id="slide-nav"></nav>
+
+<!-- Slides -->
+<div class="slides" id="slides">
+
+  <!-- 00 -->
+  <section class="slide center has-canvas" data-slide="intro">
+    <canvas class="slide-canvas" id="canvas-intro"></canvas>
+    <div class="slide-content">
+      <h2>Bonjour, merci de me recevoir.</h2>
+      <p class="sub">Je vais partager une vision et voir si nous pouvons construire quelque chose ensemble.</p>
+    </div>
+  </section>
+
+  <!-- 01 -->
+  <section class="slide" data-slide="founder">
+    <div class="slide-content">
+      <div class="ea-wordmark ea-wordmark--founder" aria-label="Electronic Artefacts">
+        <span class="ea-electronic">electronic</span>
+        <span class="ea-artefacts">Artefacts</span>
+      </div>
+      <p>Fondateur &amp; CTO</p>
+      <p class="sub">Structure récente, pensée dès le départ pour une infrastructure scalable à grande échelle.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide" data-slide="execution">
+    <div class="slide-content">
+      <h2>Execution</h2>
+      <p>Conception · Architecture · Développement</p>
+      <p class="sub">Piloté seul pour avancer vite avec une cohérence forte.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide has-canvas" data-slide="rd">
+    <canvas class="slide-canvas" id="canvas-rd"></canvas>
+    <div class="slide-content">
+      <h2>R&amp;D Core</h2>
+      <p>ML · Multi-agents · Simulation</p>
+      <p class="sub">Pas encore des produits — l'infrastructure technologique.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide center has-canvas" data-slide="autonomy">
+    <canvas class="slide-canvas" id="canvas-autonomy"></canvas>
+    <div class="slide-content">
+      <h2>Autonomy</h2>
+      <p>Construire plus vite, mieux, sans dépendance.</p>
+    </div>
+  </section>
+
+  <!-- 05 — SPACE: animated graph -->
+  <section class="slide center has-canvas" data-slide="space">
+    <canvas class="slide-canvas" id="canvas-space"></canvas>
+    <div class="slide-content">
+      <h2>SPACE</h2>
+      <p class="tagline">A space for everything.</p>
+      <p class="sub">Inspired by reality. Designed to run it.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide has-canvas" data-slide="graphos">
+    <canvas class="slide-canvas" id="canvas-graphos"></canvas>
+    <div class="slide-content">
+      <h2>Graph OS</h2>
+      <p>Node · Edge · Context · Surface</p>
+      <p class="sub">A living operating system for any structure.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide center has-canvas" data-slide="unification">
+    <canvas class="slide-canvas" id="canvas-unification"></canvas>
+    <div class="slide-content">
+      <h2>Unification</h2>
+      <p>Un seul système. Une seule structure.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide has-canvas" data-slide="infrastructure">
+    <canvas class="slide-canvas" id="canvas-infrastructure"></canvas>
+    <div class="slide-content">
+      <h2>Infrastructure</h2>
+      <p>Primitives · Modules · Context</p>
+      <p class="sub">A shared base beneath everything else.</p>
+    </div>
+  </section>
+
+  <!-- 09 — Modules: orbiting blocks -->
+  <section class="slide has-canvas" data-slide="modules">
+    <canvas class="slide-canvas" id="canvas-modules"></canvas>
+    <div class="modules-orbits" aria-hidden="true">
+      <div class="module-pill" data-module="identity">Identity</div>
+      <div class="module-pill" data-module="workspace">Workspace</div>
+      <div class="module-pill" data-module="assets">Assets</div>
+      <div class="module-pill" data-module="programs">Programs</div>
+      <div class="module-pill" data-module="domotics">Domotics</div>
+      <div class="module-pill" data-module="logistics">Logistics</div>
+      <div class="module-pill" data-module="flux">Flux</div>
+    </div>
+    <div class="slide-content">
+      <h2>Modules</h2>
+      <p>Identity · Workspace · Assets · Programs · Domotics · Logistics · Flux</p>
+      <p class="sub">Composable capabilities attached to one shared core.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide has-canvas" data-slide="build">
+    <canvas class="slide-canvas" id="canvas-build"></canvas>
+    <div class="slide-content">
+      <h2>Build</h2>
+      <p>Installer, construire, étendre.</p>
+      <p class="sub">Ajouter des briques au fil des besoins.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide center has-canvas" data-slide="combination">
+    <canvas class="slide-canvas" id="canvas-combination"></canvas>
+    <div class="slide-content">
+      <h2>Combination</h2>
+      <p>La valeur vient de l'assemblage.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide" data-slide="usecases">
+    <canvas class="slide-canvas" id="canvas-usecases"></canvas>
+    <div class="slide-content">
+      <h2>Use cases</h2>
+      <p class="sub">Everything can be built.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide has-canvas" data-slide="physical">
+    <canvas class="slide-canvas" id="canvas-physical"></canvas>
+    <div class="slide-content">
+      <h2>Physical Layer</h2>
+      <p>Digital structure meeting the physical world.</p>
+      <p class="sub">Sensors · objects · space · behavior</p>
+    </div>
+  </section>
+
+  <!-- 14 — One system: convergence -->
+  <section class="slide center has-canvas" data-slide="onesystem">
+    <canvas class="slide-canvas" id="canvas-onesystem"></canvas>
+    <div class="slide-content">
+      <h2>One system.</h2>
+      <h2>One language.</h2>
+      <h2>One source of truth.</h2>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide center has-canvas" data-slide="rupture">
+    <canvas class="slide-canvas" id="canvas-rupture"></canvas>
+    <div class="slide-content">
+      <h2>La vraie rupture</h2>
+      <p>Passer d'outils fragmentés à une infrastructure unique.</p>
+    </div>
+  </section>
+
+  <!-- 16 — Vestiges: curation -->
+  <section class="slide vestiges-slide" data-slide="vestiges">
+    <div class="vestiges-atmosphere" aria-hidden="true"></div>
+    <canvas class="slide-canvas vestiges-canvas" id="canvas-vestiges" aria-hidden="true"></canvas>
+    <div class="vestiges-stage" id="vestiges-stage">
+      <div class="vestiges-floaters vestiges-floaters--back" aria-hidden="true">
+        <span class="vestiges-floater vestiges-floater--orb" style="--fx:-320px; --fy:-180px; --fs:0.74; --fd:21s; --fo:-5s;"></span>
+        <span class="vestiges-floater vestiges-floater--ring" style="--fx:290px; --fy:-220px; --fs:0.66; --fd:25s; --fo:-12s;"></span>
+        <span class="vestiges-floater vestiges-floater--shard" style="--fx:-360px; --fy:120px; --fs:0.62; --fd:23s; --fo:-9s;"></span>
+        <span class="vestiges-floater vestiges-floater--tablet" style="--fx:320px; --fy:160px; --fs:0.7; --fd:22s; --fo:-6s;"></span>
+        <span class="vestiges-floater vestiges-floater--fragment" style="--fx:0px; --fy:-250px; --fs:0.56; --fd:20s; --fo:-8s;"></span>
+        <span class="vestiges-floater vestiges-floater--shard" style="--fx:-120px; --fy:-40px; --fs:0.52; --fd:27s; --fo:-16s;"></span>
+        <span class="vestiges-floater vestiges-floater--orb" style="--fx:180px; --fy:30px; --fs:0.48; --fd:19s; --fo:-2s;"></span>
+      </div>
+      <div class="vestiges-floaters vestiges-floaters--front" aria-hidden="true">
+        <span class="vestiges-floater vestiges-floater--ring" style="--fx:-430px; --fy:-20px; --fs:0.52; --fd:18s; --fo:-10s;"></span>
+        <span class="vestiges-floater vestiges-floater--tablet" style="--fx:410px; --fy:-70px; --fs:0.48; --fd:20s; --fo:-6s;"></span>
+        <span class="vestiges-floater vestiges-floater--fragment" style="--fx:-250px; --fy:210px; --fs:0.46; --fd:19s; --fo:-14s;"></span>
+        <span class="vestiges-floater vestiges-floater--orb" style="--fx:240px; --fy:220px; --fs:0.44; --fd:24s; --fo:-4s;"></span>
+        <span class="vestiges-floater vestiges-floater--shard" style="--fx:0px; --fy:250px; --fs:0.42; --fd:26s; --fo:-11s;"></span>
+        <span class="vestiges-floater vestiges-floater--ring" style="--fx:0px; --fy:0px; --fs:0.4; --fd:30s; --fo:-18s;"></span>
+      </div>
+
+      <div class="vestiges-copy slide-content">
+        <div class="vestiges-brand">
+          <img class="vestiges-logo" src="assets/Logo_Vestiges.png" alt="Vestiges logo">
+          <p class="vestiges-kicker">Material archive</p>
+          <h2>Vestiges</h2>
+        </div>
+        <div class="vestiges-footer">
+          <p class="vestiges-pitch">Knowledge, craftsmanship, and the memory of matter.</p>
+          <p class="sub">A curated field of rare objects, fragments, and digital traces.</p>
+          <a class="vestiges-social" href="https://instagram.com/vestiges.world" target="_blank" rel="noreferrer">@vestiges.world</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide" data-slide="phases">
+    <div class="slide-content">
+      <h2>Phases</h2>
+      <div class="phase-timeline" aria-label="Phases du système">
+        <span class="phase-track" aria-hidden="true"></span>
+        <span class="phase-node phase-node--knowledge">
+          <strong>Knowledge</strong>
+          <em>Discovery</em>
+        </span>
+        <span class="phase-node phase-node--curation">
+          <strong>Curation</strong>
+          <em>Distillation</em>
+        </span>
+        <span class="phase-node phase-node--market">
+          <strong>Marketplace</strong>
+          <em>Premium flow</em>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide center" data-slide="continuum">
+    <canvas class="slide-canvas" id="canvas-continuum"></canvas>
+    <div class="vestiges-stage continuum-stage" id="continuum-stage">
+      <div class="vestiges-floaters vestiges-floaters--back" aria-hidden="true">
+        <span class="vestiges-floater vestiges-floater--orb" style="--fx:-320px; --fy:-180px; --fs:0.74; --fd:21s; --fo:-5s;"></span>
+        <span class="vestiges-floater vestiges-floater--ring" style="--fx:290px; --fy:-220px; --fs:0.66; --fd:25s; --fo:-12s;"></span>
+        <span class="vestiges-floater vestiges-floater--shard" style="--fx:-360px; --fy:120px; --fs:0.62; --fd:23s; --fo:-9s;"></span>
+        <span class="vestiges-floater vestiges-floater--tablet" style="--fx:320px; --fy:160px; --fs:0.7; --fd:22s; --fo:-6s;"></span>
+        <span class="vestiges-floater vestiges-floater--fragment" style="--fx:0px; --fy:-250px; --fs:0.56; --fd:20s; --fo:-8s;"></span>
+        <span class="vestiges-floater vestiges-floater--shard" style="--fx:-120px; --fy:-40px; --fs:0.52; --fd:27s; --fo:-16s;"></span>
+        <span class="vestiges-floater vestiges-floater--orb" style="--fx:180px; --fy:30px; --fs:0.48; --fd:19s; --fo:-2s;"></span>
+      </div>
+      <div class="vestiges-floaters vestiges-floaters--front" aria-hidden="true">
+        <span class="vestiges-floater vestiges-floater--ring" style="--fx:-430px; --fy:-20px; --fs:0.52; --fd:18s; --fo:-10s;"></span>
+        <span class="vestiges-floater vestiges-floater--tablet" style="--fx:410px; --fy:-70px; --fs:0.48; --fd:20s; --fo:-6s;"></span>
+        <span class="vestiges-floater vestiges-floater--fragment" style="--fx:-250px; --fy:210px; --fs:0.46; --fd:19s; --fo:-14s;"></span>
+        <span class="vestiges-floater vestiges-floater--orb" style="--fx:240px; --fy:220px; --fs:0.44; --fd:24s; --fo:-4s;"></span>
+        <span class="vestiges-floater vestiges-floater--shard" style="--fx:0px; --fy:250px; --fs:0.42; --fd:26s; --fo:-11s;"></span>
+        <span class="vestiges-floater vestiges-floater--ring" style="--fx:0px; --fy:0px; --fs:0.4; --fd:30s; --fo:-18s;"></span>
+    </div>
+      <div class="slide-content">
+        <div class="continuum-flow" aria-hidden="true">
+          <span class="continuum-word continuum-word--knowledge">Knowledge</span>
+          <span class="continuum-word continuum-word--desire">Desire</span>
+          <span class="continuum-word continuum-word--acquisition">Acquisition</span>
+        </div>
+        <p class="sub">Le passage d’une phase à l’autre reste fluide, continu, presque organique.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide has-canvas" data-slide="positioning">
+    <canvas class="slide-canvas" id="canvas-positioning"></canvas>
+    <div class="slide-content">
+      <h2>Positioning</h2>
+      <p>Haut de gamme · Sélectif</p>
+      <p class="sub">Œuvres certifiées, traçables, confiance globale</p>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide" data-slide="advantage">
+    <div class="slide-content">
+      <h2>Advantage</h2>
+      <p>Full-stack solo builder</p>
+      <p class="sub">Coûts réduits · Vitesse · Cohérence</p>
+    </div>
+  </section>
+
+  <!-- 21 -->
+  <section class="slide" data-slide="next">
+    <div class="slide-content">
+      <h2>Next</h2>
+      <p>Accélérer</p>
+      <p class="sub">Marketing · Communication · Acquisition</p>
+    </div>
+  </section>
+
+  <!-- 22 -->
+  <section class="slide" data-slide="open">
+    <div class="slide-content">
+      <h2>Open</h2>
+      <p>Collaborations</p>
+      <p class="sub">Produit · Stratégie · Développement</p>
+    </div>
+  </section>
+
+  <!-- 23 -->
+  <section class="slide center has-canvas" data-slide="closing">
+    <canvas class="slide-canvas" id="canvas-closing"></canvas>
+    <div class="slide-content">
+      <div class="ea-wordmark ea-wordmark--compact" aria-label="Electronic Artefacts">
+        <span class="ea-electronic">electronic</span>
+        <span class="ea-artefacts">Artefacts</span>
+      </div>
+      <p>Construire des systèmes qui n'existent pas encore.</p>
+      <p class="sub">Prêts à devenir des produits.</p>
+    </div>
+  </section>
+
+  <!-- 24 -->
+  <section class="slide center" data-slide="contact">
+    <div class="slide-content">
+      <h2>Let's connect</h2>
+      <p>Si cela vous parle, échangeons.</p>
+      <a class="contact-cta" href="mailto:electronic-artefacts@gmail.com">electronic-artefacts@gmail.com</a>
+      <p class="sub">Ou écrivez directement par mail pour une prise de contact rapide.</p>
+    </div>
+  </section>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
