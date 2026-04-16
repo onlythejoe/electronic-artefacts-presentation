@@ -2,7 +2,7 @@
 const ANIM_DUR   = 850;   // ms — matches CSS --slide-dur
 const PARALLAX_S = 12;    // max parallax offset in px
 const PARALLAX_L = 0.055; // parallax lerp speed
-const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'currentstate', 'next', 'open', 'closing', 'contact']);
+const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'currentstate', 'partnerships', 'businessmodel', 'next', 'open', 'closing', 'contact']);
 
 // ===== STATE =====
 let currentIndex = 0;
@@ -24,13 +24,33 @@ let activeTextNodes = [];
 let activeVestigeStageEl = null;
 let activeVestigeFloatersEl = null;
 let activeGraphosWindowEl = null;
+let activeBuildInteractiveEls = [];
+let activeIntroTitleEl = null;
 let draggedGraphosWindowEl = null;
 let navTrackEl = null;
 let navIndicatorEl = null;
+let graphosToggleNodesEl = null;
+let graphosToggleLinksEl = null;
+let graphosTypeFilterEl = null;
+let graphosSelectionInfoEl = null;
+let graphosContextMenuEl = null;
+let graphosColorPickerEl = null;
+let graphosColorWheelEl = null;
 let hoveredTextNode = null;
+let hoveredInfraLayer = null;
+let hoveredGraphosLayer = null;
+let hoveredBuildLayer = null;
+let selectedGraphosLayer = null;
+let selectedBuildLayer = null;
+let lastGraphosFocus = null;
+let lastGraphosSelected = null;
+let lastBuildFocus = null;
+let lastBuildSelected = null;
+let introTypewriter = null;
 let hoverProbeX = NaN;
 let hoverProbeY = NaN;
 let appAlive = true;
+let mistBg = null;
 const graphosWindowState = {
   x: null,
   y: null,
@@ -39,8 +59,15 @@ const graphosWindowState = {
   dragging: false,
   pointerId: null,
 };
-const ACTION_HOVER_SELECTOR = '#nav-track, a, button, [role="button"]';
-const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow';
+const INTRO_TYPEWRITER_PHRASES = [
+  'Bonjour, merci de prendre un moment.',
+  'Bonsoir, merci de prendre un moment.',
+  'Bonjour, bonsoir.',
+  'Merci de prendre un instant.',
+  'Une vision à partager.',
+];
+const ACTION_HOVER_SELECTOR = '#nav-track, a, button, select, [role="button"], .infra-card, .infra-step, .module-card, .modules-feature, .build-card, .build-step, .build-surface, .build-assets, .graphos-window__header, .graphos-window__body, .graphos-window__chip, .graphos-context-menu, .graphos-context-menu__item, .graphos-color-picker';
+const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 // ===== DOM =====
@@ -48,11 +75,23 @@ const slideEls   = [...document.querySelectorAll('.slide')];
 const total      = slideEls.length;
 const cursorEl   = document.getElementById('cursor');
 const ringEl     = document.getElementById('cursor-ring');
+const mistCanvasEl = document.getElementById('mist-bg');
 const progressEl = document.getElementById('progress-bar');
 const numCurEl   = document.getElementById('num-current');
 const numTotEl   = document.getElementById('num-total');
 const navEl      = document.getElementById('slide-nav');
+const graphosWindowEl = document.querySelector('.graphos-window');
 const graphosWindowHandleEl = document.querySelector('.graphos-window__header');
+const graphosWindowBodyEl = document.querySelector('.graphos-window__body');
+const graphosFeedEl = document.querySelector('.graphos-window__feed');
+const graphosRowEls = graphosFeedEl ? [...graphosFeedEl.querySelectorAll('.graphos-row')] : [];
+graphosToggleNodesEl = document.getElementById('graphos-toggle-nodes');
+graphosToggleLinksEl = document.getElementById('graphos-toggle-links');
+graphosTypeFilterEl = document.getElementById('graphos-type-filter');
+graphosSelectionInfoEl = document.getElementById('graphos-selection-info');
+graphosContextMenuEl = document.getElementById('graphos-context-menu');
+graphosColorPickerEl = document.getElementById('graphos-color-picker');
+graphosColorWheelEl = document.getElementById('graphos-color-wheel');
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -74,8 +113,259 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+class MistBackground {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.light = false;
+    this.lastFrame = 0;
+    this.ambientParticles = [];
+    this.burstParticles = [];
+    this.pointer = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.5,
+      vx: 0,
+      vy: 0,
+      lastMove: 0,
+    };
+    this._resize();
+    this.setTheme(isLightTheme());
+  }
+
+  _resize() {
+    this.w = this.canvas.offsetWidth || window.innerWidth || 1;
+    this.h = this.canvas.offsetHeight || window.innerHeight || 1;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    this.canvas.width = Math.max(1, Math.floor(this.w * this.dpr));
+    this.canvas.height = Math.max(1, Math.floor(this.h * this.dpr));
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+
+    this.baseCount = HAS_FINE_POINTER
+      ? clamp(Math.round((this.w * this.h) / 16000), 110, 180)
+      : clamp(Math.round((this.w * this.h) / 32000), 36, 72);
+
+    if (this.ambientParticles.length < this.baseCount) {
+      this._seedAmbient(this.baseCount - this.ambientParticles.length);
+    } else if (this.ambientParticles.length > this.baseCount) {
+      this.ambientParticles.length = this.baseCount;
+    }
+  }
+
+  resize() {
+    this._resize();
+  }
+
+  setTheme(light) {
+    this.light = !!light;
+  }
+
+  dispose() {
+    this.ambientParticles.length = 0;
+    this.burstParticles.length = 0;
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  onPointerMove(x, y, now = performance.now()) {
+    const px = this.pointer.x;
+    const py = this.pointer.y;
+    const dt = Math.max(1, now - (this.pointer.lastMove || now));
+    this.pointer.vx = lerp(this.pointer.vx, ((x - px) / dt) * 16, 0.35);
+    this.pointer.vy = lerp(this.pointer.vy, ((y - py) / dt) * 16, 0.35);
+    this.pointer.x = x;
+    this.pointer.y = y;
+    this.pointer.lastMove = now;
+
+    if (HAS_FINE_POINTER && Math.random() < 0.28) {
+      this._emitBurst(x, y, 1 + (Math.random() < 0.18 ? 1 : 0), {
+        force: 0.82,
+        sizeMul: 0.85,
+        alphaMul: 0.92,
+        lifeMul: 0.92,
+        vx: this.pointer.vx,
+        vy: this.pointer.vy,
+      });
+    }
+  }
+
+  onLeave() {
+    this.pointer.vx = 0;
+    this.pointer.vy = 0;
+  }
+
+  _seedAmbient(count) {
+    for (let i = 0; i < count; i++) {
+      this.ambientParticles.push(this._makeAmbient());
+    }
+  }
+
+  _makeAmbient() {
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(0.018, 0.065);
+    return {
+      kind: 'ambient',
+      x: rand(-20, this.w + 20),
+      y: rand(-20, this.h + 20),
+      vx: Math.cos(angle) * speed * 0.7,
+      vy: Math.sin(angle) * speed * 0.55 - rand(0.012, 0.03),
+      size: rand(0.45, 1.4),
+      blur: rand(2.4, 7.5),
+      alpha: rand(0.028, 0.085),
+      drift: rand(0.45, 1.25),
+      phase: rand(0, Math.PI * 2),
+      life: rand(0, 2000),
+    };
+  }
+
+  _makeBurst(x, y, opts = {}) {
+    const angle = rand(-Math.PI, Math.PI);
+    const speed = rand(0.10, 0.52) * (opts.force || 1);
+    return {
+      kind: 'burst',
+      x: x + rand(-7, 7),
+      y: y + rand(-7, 7),
+      vx: Math.cos(angle) * speed + (opts.vx || 0) * 0.07,
+      vy: Math.sin(angle) * speed + (opts.vy || 0) * 0.07 - rand(0.02, 0.12),
+      size: rand(0.42, 1.45) * (opts.sizeMul || 1),
+      blur: rand(3.5, 8.5),
+      alpha: rand(0.045, 0.12) * (opts.alphaMul || 1),
+      drift: rand(0.5, 1.0),
+      phase: rand(0, Math.PI * 2),
+      life: 0,
+      ttl: rand(48, 118) * (opts.lifeMul || 1),
+    };
+  }
+
+  _emitBurst(x, y, count, opts = {}) {
+    for (let i = 0; i < count; i++) {
+      if (this.burstParticles.length > 96) this.burstParticles.shift();
+      this.burstParticles.push(this._makeBurst(x, y, opts));
+    }
+  }
+
+  _drawParticle(p, time, rgb) {
+    const ctx = this.ctx;
+    const lifeT = p.kind === 'burst' ? clamp(p.life / p.ttl, 0, 1) : 0;
+    const fade = p.kind === 'burst'
+      ? Math.sin(Math.PI * Math.max(0, 1 - lifeT)) * (1 - lifeT)
+      : 1;
+    const alpha = p.alpha * (p.kind === 'burst' ? fade : 1);
+    if (alpha <= 0.001) return;
+
+    const pulse = p.kind === 'ambient'
+      ? 0.92 + Math.sin(time * 0.00018 + p.phase) * 0.06
+      : 0.94 + Math.sin(time * 0.0018 + p.phase) * 0.07;
+    const radius = p.size * pulse;
+    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius + p.blur);
+    const innerAlpha = alpha * (this.light ? 1.22 : 1.05);
+    const midAlpha = innerAlpha * 0.52;
+    gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${innerAlpha})`);
+    gradient.addColorStop(0.36, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${midAlpha})`);
+    gradient.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0)`);
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius + p.blur, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  tick(time) {
+    const ctx = this.ctx;
+    const dt = this.lastFrame ? clamp((time - this.lastFrame) / 16.67, 0.5, 2.5) : 1;
+    this.lastFrame = time;
+
+    const idle = time - this.pointer.lastMove;
+    const pointerActive = HAS_FINE_POINTER && idle < 1800;
+    const rgb = this.light ? [0, 0, 0] : [255, 255, 255];
+
+    if (pointerActive && Math.random() < 0.22 * dt) {
+      this._emitBurst(this.pointer.x, this.pointer.y, 1, {
+        force: 0.74,
+        sizeMul: 0.8,
+        alphaMul: 0.85,
+        lifeMul: 0.9,
+        vx: this.pointer.vx,
+        vy: this.pointer.vy,
+      });
+    }
+
+    ctx.clearRect(0, 0, this.w, this.h);
+    ctx.globalCompositeOperation = this.light ? 'source-over' : 'screen';
+
+    for (let i = 0; i < this.ambientParticles.length; i++) {
+      const p = this.ambientParticles[i];
+      p.life += dt;
+
+      const dx = p.x - this.pointer.x;
+      const dy = p.y - this.pointer.y;
+      const dist = Math.hypot(dx, dy);
+      if (pointerActive && dist < 240) {
+        const falloff = 1 - dist / 240;
+        const push = falloff * falloff * 0.14 * dt;
+        const inv = dist > 0.001 ? 1 / dist : 0;
+        p.vx += dx * inv * push;
+        p.vy += dy * inv * push;
+      }
+
+      p.vx += Math.sin((time * 0.00028) + p.phase) * 0.0018 * p.drift * dt;
+      p.vy += Math.cos((time * 0.00022) + p.phase) * 0.0012 * p.drift * dt - 0.0007 * dt;
+      p.vx *= 0.993;
+      p.vy *= 0.994;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      const pad = 18;
+      if (p.x < -pad) p.x = this.w + pad;
+      if (p.x > this.w + pad) p.x = -pad;
+      if (p.y < -pad) p.y = this.h + pad;
+      if (p.y > this.h + pad) p.y = -pad;
+
+      this._drawParticle(p, time, rgb);
+    }
+
+    for (let i = this.burstParticles.length - 1; i >= 0; i--) {
+      const p = this.burstParticles[i];
+      p.life += dt;
+      p.vx *= 0.985;
+      p.vy *= 0.986;
+      p.vy -= 0.0012 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (p.life >= p.ttl) {
+        this.burstParticles.splice(i, 1);
+        continue;
+      }
+
+      this._drawParticle(p, time, rgb);
+    }
+
+    if (pointerActive) {
+      const glow = ctx.createRadialGradient(this.pointer.x, this.pointer.y, 0, this.pointer.x, this.pointer.y, 130);
+      if (this.light) {
+        glow.addColorStop(0, 'rgba(0,0,0,0.03)');
+        glow.addColorStop(0.42, 'rgba(0,0,0,0.01)');
+      } else {
+        glow.addColorStop(0, 'rgba(255,255,255,0.06)');
+        glow.addColorStop(0.42, 'rgba(255,255,255,0.02)');
+      }
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(this.pointer.x, this.pointer.y, 130, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+if (mistCanvasEl) {
+  mistBg = new MistBackground(mistCanvasEl);
+}
+
 function setThemeForSlide(key) {
-  document.body.dataset.theme = LIGHT_THEME_SLIDES.has(key) ? 'light' : 'dark';
+  const isLight = LIGHT_THEME_SLIDES.has(key);
+  document.body.dataset.theme = isLight ? 'light' : 'dark';
+  if (mistBg) mistBg.setTheme(isLight);
 }
 
 function isLightTheme() {
@@ -107,14 +397,41 @@ function refreshActiveSlideCache() {
   activeContentEl = activeSlideEl ? activeSlideEl.querySelector('.slide-content') : null;
   const activeSlideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
   activeTextNodes = activeContentEl && activeSlideKey !== 'founder'
-    ? [...activeContentEl.querySelectorAll('h2, p, a, .phase-timeline, .continuum-flow')]
+    ? [...activeContentEl.querySelectorAll('h2, p, a, .phase-timeline, .continuum-flow, .infra-card, .infra-step')]
     : [];
+  activeIntroTitleEl = activeSlideEl && activeSlideKey === 'intro'
+    ? activeSlideEl.querySelector('[data-intro-type]')
+    : null;
   activeVestigeStageEl = activeSlideEl ? activeSlideEl.querySelector('#vestiges-stage, #continuum-stage') : null;
   activeVestigeFloatersEl = activeSlideEl ? activeSlideEl.querySelector('.vestiges-floaters') : null;
   activeGraphosWindowEl = activeSlideEl ? activeSlideEl.querySelector('.graphos-window') : null;
+  activeBuildInteractiveEls = activeSlideEl && activeSlideKey === 'build'
+    ? [...activeSlideEl.querySelectorAll('.build-step, .build-card, .build-surface, .build-assets')]
+    : [];
+  activeBuildInteractiveEls.forEach(el => {
+    el.classList.remove('is-active');
+    el.setAttribute('aria-pressed', 'false');
+  });
   hoveredTextNode = null;
+  hoveredInfraLayer = null;
+  hoveredGraphosLayer = null;
+  hoveredBuildLayer = null;
+  selectedGraphosLayer = null;
+  selectedBuildLayer = null;
+  lastGraphosFocus = null;
+  lastGraphosSelected = null;
+  lastBuildFocus = null;
+  lastBuildSelected = null;
+  delete document.body.dataset.infraFocus;
+  delete document.body.dataset.graphosFocus;
+  delete document.body.dataset.graphosSelected;
+  delete document.body.dataset.buildFocus;
+  delete document.body.dataset.buildSelected;
   hoverProbeX = NaN;
   hoverProbeY = NaN;
+  if (!activeIntroTitleEl && introTypewriter) {
+    introTypewriter.stop();
+  }
 }
 
 function restartLogoAnimation(slide) {
@@ -128,6 +445,26 @@ function restartLogoAnimation(slide) {
       logo.classList.add('is-animated');
     }
   });
+}
+
+function syncIntroTypingState(slide) {
+  if (!introTypewriter) {
+    introTypewriter = new IntroTypewriter(INTRO_TYPEWRITER_PHRASES);
+  }
+
+  const introTitle = slide && slide.dataset.slide === 'intro'
+    ? (activeIntroTitleEl || slide.querySelector('[data-intro-type]'))
+    : null;
+  introTypewriter.bind(introTitle);
+
+  if (introTitle && slide === slideEls[currentIndex]) {
+    introTypewriter.restart(performance.now());
+  } else {
+    introTypewriter.stop();
+    if (introTitle) {
+      introTitle.textContent = INTRO_TYPEWRITER_PHRASES[0];
+    }
+  }
 }
 
 function updateVestigeMotion() {
@@ -196,6 +533,7 @@ function applyClasses() {
   });
   refreshActiveSlideCache();
   restartLogoAnimation(slideEls[currentIndex]);
+  syncIntroTypingState(slideEls[currentIndex]);
   syncGraphosWindowPosition();
 }
 
@@ -258,6 +596,149 @@ function endNavDrag(e) {
   if (navTrackEl) navTrackEl.classList.remove('is-dragging');
 }
 
+function syncGraphosFocusState() {
+  const focus = hoveredGraphosLayer || selectedGraphosLayer || null;
+  if (focus !== lastGraphosFocus) {
+    lastGraphosFocus = focus;
+    if (focus) {
+      document.body.dataset.graphosFocus = focus;
+    } else {
+      delete document.body.dataset.graphosFocus;
+    }
+  }
+
+  if (selectedGraphosLayer !== lastGraphosSelected) {
+    lastGraphosSelected = selectedGraphosLayer;
+    if (selectedGraphosLayer) {
+      document.body.dataset.graphosSelected = selectedGraphosLayer;
+    } else {
+      delete document.body.dataset.graphosSelected;
+    }
+
+    graphosRowEls.forEach(row => {
+      row.setAttribute('aria-pressed', selectedGraphosLayer === row.dataset.layer ? 'true' : 'false');
+    });
+  }
+}
+
+function syncBuildFocusState() {
+  const focus = hoveredBuildLayer || selectedBuildLayer || null;
+  if (focus !== lastBuildFocus) {
+    lastBuildFocus = focus;
+    if (focus) {
+      document.body.dataset.buildFocus = focus;
+    } else {
+      delete document.body.dataset.buildFocus;
+    }
+  }
+
+  if (selectedBuildLayer !== lastBuildSelected) {
+    lastBuildSelected = selectedBuildLayer;
+    if (selectedBuildLayer) {
+      document.body.dataset.buildSelected = selectedBuildLayer;
+    } else {
+      delete document.body.dataset.buildSelected;
+    }
+
+    activeBuildInteractiveEls.forEach(el => {
+      el.setAttribute('aria-pressed', selectedBuildLayer === el.dataset.layer ? 'true' : 'false');
+      el.classList.toggle('is-active', selectedBuildLayer === el.dataset.layer);
+    });
+  }
+}
+
+class IntroTypewriter {
+  constructor(phrases) {
+    this.phrases = phrases;
+    this.el = null;
+    this.active = false;
+    this.index = 0;
+    this.charIndex = 0;
+    this.phase = 'idle';
+    this.nextStepAt = 0;
+  }
+
+  bind(el) {
+    this.el = el || null;
+  }
+
+  restart(now = performance.now()) {
+    if (!this.el || !this.phrases.length) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.el.textContent = this.phrases[0];
+      this.active = false;
+      this.phase = 'idle';
+      return;
+    }
+
+    this.active = true;
+    this.index = 0;
+    this.charIndex = 0;
+    this.phase = 'typing';
+    this.el.textContent = '';
+    this.nextStepAt = now + 180;
+  }
+
+  stop() {
+    this.active = false;
+    this.phase = 'idle';
+  }
+
+  tick(now) {
+    if (!this.active || !this.el || !this.phrases.length) return;
+    if (now < this.nextStepAt) return;
+
+    const phrase = this.phrases[this.index];
+    if (this.phase === 'typing') {
+      this.charIndex = Math.min(this.charIndex + 1, phrase.length);
+      this.el.textContent = phrase.slice(0, this.charIndex);
+
+      if (this.charIndex >= phrase.length) {
+        this.phase = 'holding';
+        this.nextStepAt = now + rand(1900, 2800);
+      } else {
+        const char = phrase[this.charIndex - 1];
+        this.nextStepAt = now + this._typingDelay(char);
+      }
+      return;
+    }
+
+    if (this.phase === 'holding') {
+      this.phase = 'erasing';
+      this.nextStepAt = now + 200;
+      return;
+    }
+
+    if (this.phase === 'erasing') {
+      this.charIndex = Math.max(0, this.charIndex - 1);
+      this.el.textContent = phrase.slice(0, this.charIndex);
+
+      if (this.charIndex <= 0) {
+        this.index = (this.index + 1) % this.phrases.length;
+        this.phase = 'typing';
+        this.nextStepAt = now + 260;
+      } else {
+        const char = phrase[this.charIndex - 1];
+        this.nextStepAt = now + this._eraseDelay(char);
+      }
+    }
+  }
+
+  _typingDelay(char) {
+    if (!char) return 34;
+    if (/\s/.test(char)) return 44;
+    if (/[,.!?]/.test(char)) return 140;
+    return rand(24, 42);
+  }
+
+  _eraseDelay(char) {
+    if (!char) return 16;
+    if (/\s/.test(char)) return 14;
+    if (/[,.!?]/.test(char)) return 22;
+    return 14;
+  }
+}
+
 function updateHoverTargets(force = false) {
   const x = Math.round(mouseX);
   const y = Math.round(mouseY);
@@ -269,12 +750,34 @@ function updateHoverTargets(force = false) {
   const el = document.elementFromPoint(x, y);
   const activeActionEl = el && el.closest ? el.closest(ACTION_HOVER_SELECTOR) : null;
   hoveredTextNode = activeContentEl && el && el.closest ? el.closest(TEXT_HOVER_SELECTOR) : null;
+  hoveredInfraLayer = activeSlideEl && activeSlideEl.dataset.slide === 'infrastructure' && hoveredTextNode && hoveredTextNode.dataset
+    ? hoveredTextNode.dataset.layer || null
+    : null;
+  hoveredGraphosLayer = activeSlideEl && activeSlideEl.dataset.slide === 'graphos' && el && el.closest
+    ? (el.closest('.graphos-row')?.dataset.layer || (!selectedGraphosLayer && el.closest('.graphos-window') ? 'context' : null))
+    : null;
+  hoveredBuildLayer = activeSlideEl && activeSlideEl.dataset.slide === 'build' && el && el.closest
+    ? (el.closest('.build-step, .build-card, .build-surface, .build-assets')?.dataset.layer || null)
+    : null;
+  if (hoveredInfraLayer) {
+    document.body.dataset.infraFocus = hoveredInfraLayer;
+  } else {
+    delete document.body.dataset.infraFocus;
+  }
+  syncGraphosFocusState();
+  syncBuildFocusState();
   document.body.classList.toggle('is-action-hover', !!activeActionEl);
 }
 
 function clearActionHoverState() {
   document.body.classList.remove('is-action-hover');
   hoveredTextNode = null;
+  hoveredInfraLayer = null;
+  hoveredGraphosLayer = null;
+  hoveredBuildLayer = null;
+  delete document.body.dataset.infraFocus;
+  syncGraphosFocusState();
+  syncBuildFocusState();
   hoverProbeX = NaN;
   hoverProbeY = NaN;
 }
@@ -353,6 +856,14 @@ function endGraphosWindowDrag(e) {
   draggedGraphosWindowEl = null;
 }
 
+function toggleBuildSelection(target) {
+  if (!target) return;
+  const nextLayer = target.dataset.layer || null;
+  if (!nextLayer) return;
+  selectedBuildLayer = selectedBuildLayer === nextLayer ? null : nextLayer;
+  syncBuildFocusState();
+}
+
 
 // =============================================
 // CURSOR + PARALLAX LOOP
@@ -365,6 +876,7 @@ document.addEventListener('mousemove', e => {
   const cy = window.innerHeight / 2;
   plxTX = ((e.clientX - cx) / cx) * PARALLAX_S;
   plxTY = ((e.clientY - cy) / cy) * PARALLAX_S;
+  if (mistBg) mistBg.onPointerMove(e.clientX, e.clientY, performance.now());
 }, { passive: true });
 
 document.addEventListener('pointermove', onNavPointerMove, { passive: true });
@@ -373,13 +885,49 @@ document.addEventListener('pointerup', endNavDrag);
 document.addEventListener('pointerup', endGraphosWindowDrag);
 document.addEventListener('pointercancel', endNavDrag);
 document.addEventListener('pointercancel', endGraphosWindowDrag);
-document.addEventListener('mouseleave', clearActionHoverState);
+document.addEventListener('mouseleave', () => {
+  clearActionHoverState();
+  if (mistBg) mistBg.onLeave();
+});
 
 if (graphosWindowHandleEl) {
   graphosWindowHandleEl.addEventListener('pointerdown', beginGraphosWindowDrag);
 }
 
-function animLoop() {
+if (graphosFeedEl) {
+  graphosFeedEl.addEventListener('click', e => {
+    const row = e.target.closest('.graphos-row');
+    if (!row || !graphosFeedEl.contains(row)) return;
+    const nextLayer = row.dataset.layer || null;
+    selectedGraphosLayer = selectedGraphosLayer === nextLayer ? null : nextLayer;
+    syncGraphosFocusState();
+  });
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-scroll-next]');
+  if (!btn || !activeSlideEl || activeSlideEl.dataset.slide !== 'intro') return;
+  e.preventDefault();
+  goTo(currentIndex + 1, { force: true });
+});
+
+document.addEventListener('click', e => {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'build') return;
+  const target = e.target.closest('.build-step, .build-card, .build-surface, .build-assets');
+  if (!target || !activeSlideEl.contains(target)) return;
+  toggleBuildSelection(target);
+});
+
+document.addEventListener('keydown', e => {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'build') return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const target = e.target.closest('.build-step, .build-card, .build-surface, .build-assets');
+  if (!target || !activeSlideEl.contains(target)) return;
+  e.preventDefault();
+  toggleBuildSelection(target);
+});
+
+function animLoop(time) {
   if (!appAlive) return;
 
   if (HAS_FINE_POINTER) {
@@ -411,8 +959,12 @@ function animLoop() {
   } else {
     document.body.classList.remove('is-action-hover');
   }
+  if (introTypewriter) {
+    introTypewriter.tick(time || performance.now());
+  }
   applyTextMotion();
   updateVestigeMotion();
+  if (mistBg) mistBg.tick(time || performance.now());
 
   mainRafId = requestAnimationFrame(animLoop);
 }
@@ -1029,6 +1581,18 @@ class InfrastructureScene {
     return { x: nx * depth, y: ny * depth };
   }
 
+  _getFocusLayer() {
+    if (hoveredGraphosLayer) return hoveredGraphosLayer;
+    if (hoveredInfraLayer) return hoveredInfraLayer;
+    const ny = this.h ? mouseY / this.h : 0.5;
+    const nx = this.w ? mouseX / this.w : 0.5;
+    if (ny < 0.34) return 'node';
+    if (nx > 0.68) return 'surface';
+    if (ny > 0.70) return 'context';
+    if (nx < 0.42) return 'group';
+    return 'edge';
+  }
+
   _quadPoint(a, b, c, t) {
     const mt = 1 - t;
     return {
@@ -1060,7 +1624,7 @@ class InfrastructureScene {
     ctx.restore();
   }
 
-  _drawBackground() {
+  _drawBackground(focusLayer) {
     const { ctx } = this;
     const bg = ctx.createRadialGradient(
       this.w * 0.5,
@@ -1076,7 +1640,8 @@ class InfrastructureScene {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.028)';
+    const gridAlpha = focusLayer === 'core' ? 0.04 : focusLayer === 'surface' ? 0.03 : 0.028;
+    ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
     ctx.lineWidth = 1;
     for (let i = 0; i < 5; i++) {
       const y = this.h * 0.18 + i * (this.h * 0.11);
@@ -1094,8 +1659,9 @@ class InfrastructureScene {
     }
   }
 
-  _drawSurfaceWindow() {
+  _drawSurfaceWindow(focusLayer) {
     const { ctx } = this;
+    const focused = focusLayer === 'surface';
     const drift = this._parallax(14);
     const wobbleX = Math.sin(this.t * 0.18 + this.surfaceWindow.phase) * 4;
     const wobbleY = Math.cos(this.t * 0.14 + this.surfaceWindow.phase) * 2.5;
@@ -1106,20 +1672,20 @@ class InfrastructureScene {
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate((Math.sin(this.t * 0.08 + this.surfaceWindow.phase) + (mouseX / this.w - 0.5)) * 0.006);
+    ctx.rotate((Math.sin(this.t * 0.08 + this.surfaceWindow.phase) + (mouseX / this.w - 0.5)) * (focused ? 0.009 : 0.006));
 
     const fill = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
-    fill.addColorStop(0, 'rgba(255,255,255,0.12)');
-    fill.addColorStop(0.35, 'rgba(255,255,255,0.06)');
-    fill.addColorStop(1, 'rgba(255,255,255,0.03)');
+    fill.addColorStop(0, focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)');
+    fill.addColorStop(0.35, focused ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)');
+    fill.addColorStop(1, focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)');
     ctx.fillStyle = fill;
     roundRect(ctx, -w / 2, -h / 2, w, h, 24);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.16)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)';
     roundRect(ctx, -w / 2 + 1, -h / 2 + 1, w - 2, 26, 20);
     ctx.fill();
 
@@ -1128,14 +1694,14 @@ class InfrastructureScene {
     ['#fff', '#fff', '#fff'].forEach((_, i) => {
       ctx.beginPath();
       ctx.arc(-w / 2 + 16 + i * 10, chromeY, 1.8, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.45 - i * 0.08})`;
+      ctx.fillStyle = `rgba(255,255,255,${0.45 - i * 0.08 + (focused ? 0.06 : 0)})`;
       ctx.fill();
     });
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.70)' : 'rgba(255,255,255,0.56)';
     ctx.fillText('public surface', -w / 2 + 58, chromeY + 0.4);
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
     roundRect(ctx, -w / 2 + 42, -h / 2 + 8, w - 58, 12, 6);
     ctx.fill();
 
@@ -1154,10 +1720,10 @@ class InfrastructureScene {
     ctx.fillStyle = hero;
     ctx.fillRect(padX, padY, innerW, innerH);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.10)';
     roundRect(ctx, padX + 10, padY + 10, innerW * 0.58, 20, 10);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)';
     roundRect(ctx, padX + 10, padY + 38, innerW * 0.82, 9, 4.5);
     ctx.fill();
     roundRect(ctx, padX + 10, padY + 54, innerW * 0.52, 9, 4.5);
@@ -1168,10 +1734,10 @@ class InfrastructureScene {
       const cw = innerW * (0.28 - i * 0.02);
       const cx = padX + 10 + i * (cw + 10);
       const cy = cardY + Math.sin(this.t * 0.7 + this.surfaceWindow.phase + i) * 1.5;
-      ctx.fillStyle = `rgba(255,255,255,${0.08 + i * 0.02})`;
+      ctx.fillStyle = `rgba(255,255,255,${0.08 + i * 0.02 + (focused ? 0.03 : 0)})`;
       roundRect(ctx, cx, cy, cw, 26, 11);
       ctx.fill();
-      ctx.fillStyle = `rgba(255,255,255,0.20)`;
+      ctx.fillStyle = focused ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.20)';
       roundRect(ctx, cx + 8, cy + 7, cw * 0.6, 4, 2);
       ctx.fill();
     }
@@ -1181,8 +1747,9 @@ class InfrastructureScene {
     ctx.restore();
   }
 
-  _drawContextBand() {
+  _drawContextBand(focusLayer) {
     const { ctx } = this;
+    const focused = focusLayer === 'context' || focusLayer === 'intents';
     const drift = this._parallax(10);
     const x = this.contextBand.x + drift.x * 0.2;
     const y = this.contextBand.y + drift.y * 0.12;
@@ -1194,9 +1761,9 @@ class InfrastructureScene {
 
     ctx.save();
     roundRect(ctx, x, y, w, h, 26);
-    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.065)' : 'rgba(255,255,255,0.045)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.clip();
@@ -1215,9 +1782,9 @@ class InfrastructureScene {
 
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
     ctx.fillText('Context', x + 16, y + 18);
-    ctx.fillStyle = 'rgba(255,255,255,0.42)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.56)' : 'rgba(255,255,255,0.42)';
     ctx.fillText('global registry', x + w - 96, y + 18);
 
     for (let i = -1; i < rows; i++) {
@@ -1225,7 +1792,7 @@ class InfrastructureScene {
       const entry = this.contextEntries[entryIndex];
       const rowY = y + 42 + i * rowH - scroll;
       if (rowY < y + 28 || rowY > y + h - 12) continue;
-      const alpha = 0.10 + 0.20 * (1 - Math.abs((rowY - (y + h / 2)) / (h / 2)));
+      const alpha = (focused ? 0.14 : 0.10) + 0.20 * (1 - Math.abs((rowY - (y + h / 2)) / (h / 2)));
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
       ctx.beginPath();
       ctx.arc(x + 16, rowY, 1.7, 0, Math.PI * 2);
@@ -1239,8 +1806,9 @@ class InfrastructureScene {
     ctx.restore();
   }
 
-  _drawIntents(coreNodes) {
+  _drawIntents(coreNodes, focusLayer) {
     const { ctx } = this;
+    const focused = focusLayer === 'intents' || focusLayer === 'modules';
     const drift = this._parallax(8);
     const bandY = this.contextBand.y + drift.y * 0.12;
     const bandBottom = bandY + this.contextBand.h;
@@ -1254,11 +1822,11 @@ class InfrastructureScene {
     // Intent spine: the action corridor from semantics into the core.
     const spine = ctx.createLinearGradient(spineX, spineTop, spineX, spineBottom);
     spine.addColorStop(0, 'rgba(255,255,255,0)');
-    spine.addColorStop(0.28, 'rgba(255,255,255,0.12)');
-    spine.addColorStop(0.75, 'rgba(255,255,255,0.18)');
+    spine.addColorStop(0.28, focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)');
+    spine.addColorStop(0.75, focused ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.18)');
     spine.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.strokeStyle = spine;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = focused ? 1.2 : 1;
     ctx.beginPath();
     ctx.moveTo(spineX, spineTop);
     ctx.lineTo(spineX, spineBottom);
@@ -1287,11 +1855,11 @@ class InfrastructureScene {
       const pulse = (this.t * intent.speed + intent.phase) % 1;
       const pt = this._quadPoint(start, control, end, pulse);
       const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 22);
-      glow.addColorStop(0, 'rgba(255,255,255,0.22)');
+      glow.addColorStop(0, focused ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.22)');
       glow.addColorStop(1, 'rgba(255,255,255,0)');
 
-      ctx.strokeStyle = `rgba(255,255,255,${0.035 + index * 0.005})`;
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = `rgba(255,255,255,${(focused ? 0.055 : 0.035) + index * 0.005})`;
+      ctx.lineWidth = focused ? 1.0 : 0.8;
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
@@ -1304,23 +1872,24 @@ class InfrastructureScene {
 
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, 1.4, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.30 + 0.28 * Math.sin(intent.phase + pulse * Math.PI * 2) ** 2})`;
+      ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.40 : 0.30) + 0.28 * Math.sin(intent.phase + pulse * Math.PI * 2) ** 2})`;
       ctx.fill();
     });
 
     ctx.restore();
   }
 
-  _drawCore(coreNodes) {
+  _drawCore(coreNodes, focusLayer) {
     const { ctx } = this;
+    const focused = focusLayer === 'core';
     const drift = this._parallax(6);
     const x = this.core.x + drift.x * 0.1;
     const y = this.core.y + drift.y * 0.08;
     const r = this.core.r;
 
     const coreGlow = ctx.createRadialGradient(x, y - r * 0.2, 0, x, y, r * 2.7);
-    coreGlow.addColorStop(0, 'rgba(255,255,255,0.12)');
-    coreGlow.addColorStop(0.7, 'rgba(255,255,255,0.04)');
+    coreGlow.addColorStop(0, focused ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.12)');
+    coreGlow.addColorStop(0.7, focused ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)');
     coreGlow.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = coreGlow;
     ctx.beginPath();
@@ -1329,17 +1898,17 @@ class InfrastructureScene {
 
     ctx.save();
     roundRect(ctx, x - r, y - r, r * 2, r * 2, r * 1.2);
-    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.048)' : 'rgba(255,255,255,0.035)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-    ctx.lineWidth = 1.1;
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.21)' : 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = focused ? 1.3 : 1.1;
     ctx.stroke();
     ctx.clip();
 
     // Internal canonical graph: only nodes and edges live here.
     const nodes = this.coreLayout.map((layout, index) => ({
-      x: x + layout.ox * r * 0.80 + Math.sin(this.t * 0.7 + layout.ox * 9 + index) * layout.wobble,
-      y: y + layout.oy * r * 0.80 + Math.cos(this.t * 0.64 + layout.oy * 7 + index) * layout.wobble * 0.78,
+      x: x + layout.ox * r * 0.80 + Math.sin(this.t * 0.7 + layout.ox * 9 + index) * layout.wobble * (focused ? 1.16 : 1),
+      y: y + layout.oy * r * 0.80 + Math.cos(this.t * 0.64 + layout.oy * 7 + index) * layout.wobble * 0.78 * (focused ? 1.16 : 1),
       r: layout.r,
       phase: index * 0.7,
     }));
@@ -1352,10 +1921,10 @@ class InfrastructureScene {
       if (!na || !nb) return;
       const gradient = ctx.createLinearGradient(na.x, na.y, nb.x, nb.y);
       gradient.addColorStop(0, 'rgba(255,255,255,0)');
-      gradient.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+      gradient.addColorStop(0.5, focused ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.12)');
       gradient.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = 0.75;
+      ctx.lineWidth = focused ? 0.95 : 0.75;
       ctx.beginPath();
       ctx.moveTo(na.x, na.y);
       ctx.lineTo(nb.x, nb.y);
@@ -1365,17 +1934,17 @@ class InfrastructureScene {
 
     nodes.forEach((node, index) => {
       const pulse = 0.5 + 0.5 * Math.sin(this.t * 1.4 + node.phase);
-      const size = node.r * (0.86 + pulse * 0.38);
+      const size = node.r * (0.86 + pulse * (focused ? 0.44 : 0.38));
       ctx.beginPath();
       ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.18 + pulse * 0.38})`;
+      ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.22 : 0.18) + pulse * (focused ? 0.42 : 0.38)})`;
       ctx.fill();
 
       if (index === 0) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, size + 5, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
+        ctx.lineWidth = focused ? 1.15 : 1;
         ctx.stroke();
       }
     });
@@ -1405,13 +1974,14 @@ class InfrastructureScene {
     ctx.restore();
   }
 
-  _drawSurfaceSchematic() {
+  _drawSurfaceSchematic(focusLayer) {
     const { ctx } = this;
     const isCompact = this.w < 920;
+    const focused = focusLayer === 'surface';
     const drift = this._parallax(18);
     const baseX = this.w * (isCompact ? 0.78 : 0.83) + drift.x * 0.16;
     const baseY = this.h * (isCompact ? 0.11 : 0.13) + drift.y * 0.16;
-    const scale = isCompact ? 0.85 : 1;
+    const scale = (isCompact ? 0.85 : 1) * (focused ? 1.05 : 1);
     const hoverDx = mouseX - baseX;
     const hoverDy = mouseY - baseY;
     const hover = clamp(1 - Math.hypot(hoverDx, hoverDy) / 240, 0, 1);
@@ -1424,8 +1994,8 @@ class InfrastructureScene {
 
     // Very light floating field behind the diagram.
     const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, 120);
-    bg.addColorStop(0, `rgba(255,255,255,${0.10 + hover * 0.05})`);
-    bg.addColorStop(0.65, 'rgba(255,255,255,0.03)');
+    bg.addColorStop(0, `rgba(255,255,255,${(focused ? 0.14 : 0.10) + hover * 0.05})`);
+    bg.addColorStop(0.65, focused ? 'rgba(255,255,255,0.045)' : 'rgba(255,255,255,0.03)');
     bg.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = bg;
     ctx.beginPath();
@@ -1433,7 +2003,7 @@ class InfrastructureScene {
     ctx.fill();
 
     // Surface rail.
-    ctx.strokeStyle = `rgba(255,255,255,${0.40 + hover * 0.20})`;
+    ctx.strokeStyle = `rgba(255,255,255,${(focused ? 0.48 : 0.40) + hover * 0.20})`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(-34, -10);
@@ -1445,13 +2015,13 @@ class InfrastructureScene {
 
     // Surface node.
     ctx.beginPath();
-    ctx.arc(56, -10, 3.4 + hover * 0.8, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${0.78 + hover * 0.10})`;
+    ctx.arc(56, -10, 3.4 + hover * 0.8 + (focused ? 0.4 : 0), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.84 : 0.78) + hover * 0.10})`;
     ctx.fill();
 
     // Link into the graph.
     const link = ctx.createLinearGradient(44, -10, 36, 32);
-    link.addColorStop(0, `rgba(255,255,255,${0.34 + hover * 0.12})`);
+    link.addColorStop(0, `rgba(255,255,255,${(focused ? 0.40 : 0.34) + hover * 0.12})`);
     link.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.strokeStyle = link;
     ctx.lineWidth = 1;
@@ -1472,7 +2042,7 @@ class InfrastructureScene {
     edges.forEach(([a, b]) => {
       const na = nodes[a];
       const nb = nodes[b];
-      ctx.strokeStyle = `rgba(255,255,255,${0.22 + hover * 0.10})`;
+      ctx.strokeStyle = `rgba(255,255,255,${(focused ? 0.28 : 0.22) + hover * 0.10})`;
       ctx.lineWidth = 0.8;
       ctx.beginPath();
       ctx.moveTo(na.x, na.y);
@@ -1483,7 +2053,7 @@ class InfrastructureScene {
       const pulse = 0.5 + 0.5 * Math.sin(this.t * 1.4 + index * 0.8);
       ctx.beginPath();
       ctx.arc(node.x, node.y, node.r + pulse * 0.65, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.42 + pulse * 0.20 + hover * 0.10})`;
+      ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.48 : 0.42) + pulse * 0.20 + hover * 0.10})`;
       ctx.fill();
     });
 
@@ -1493,7 +2063,7 @@ class InfrastructureScene {
     // Tiny action hint: the diagram feels present but stays discreet.
     const beam = ctx.createLinearGradient(-18, 14, 62, 70);
     beam.addColorStop(0, 'rgba(255,255,255,0)');
-    beam.addColorStop(0.5, `rgba(255,255,255,${0.08 + hover * 0.06})`);
+    beam.addColorStop(0.5, `rgba(255,255,255,${(focused ? 0.12 : 0.08) + hover * 0.06})`);
     beam.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.strokeStyle = beam;
     ctx.lineWidth = 0.8;
@@ -1507,43 +2077,52 @@ class InfrastructureScene {
 
   _draw() {
     const { ctx } = this;
+    const focusLayer = this._getFocusLayer();
     ctx.clearRect(0, 0, this.w, this.h);
 
-    this._drawBackground();
+    this._drawBackground(focusLayer);
 
     // Surface projects the system.
-    this._drawSurfaceWindow();
+    this._drawSurfaceWindow(focusLayer);
 
     // Context sits between surface and core, carrying the global registry.
-    this._drawContextBand();
+    this._drawContextBand(focusLayer);
 
     // Modules are in the middle layer, same conceptual band as context.
     this.modules.forEach((module, index) => {
       const drift = this._parallax(12);
-      const x = module.baseX + drift.x * module.depth * 0.18 + Math.sin(this.t * 0.7 + module.phase) * 3.2;
-      const y = module.baseY + drift.y * module.depth * 0.14 + Math.cos(this.t * 0.6 + module.phase) * 2.2;
+      const moduleBoost = focusLayer === 'modules' ? 1.14 : focusLayer === 'intents' ? 1.08 : 1;
+      const isActive = this.activeModuleIndex === index;
+      const hasActive = this.activeModuleIndex >= 0;
+      const dim = hasActive && !isActive ? 0.70 : 1;
+      const x = module.baseX + drift.x * module.depth * 0.18 + Math.sin(this.t * 0.7 + module.phase) * 3.2 * moduleBoost;
+      const y = module.baseY + drift.y * module.depth * 0.14 + Math.cos(this.t * 0.6 + module.phase) * 2.2 * moduleBoost;
       const w = module.w;
       const h = module.h;
 
       ctx.save();
+      ctx.globalAlpha = dim;
       ctx.translate(x, y);
-      ctx.rotate((Math.sin(this.t * 0.15 + module.phase) + (mouseX / this.w - 0.5)) * 0.01);
+      ctx.rotate((Math.sin(this.t * 0.15 + module.phase) + (mouseX / this.w - 0.5)) * (focusLayer === 'modules' ? 0.014 : 0.01) * (isActive ? 1.16 : 1));
 
-      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillStyle = focusLayer === 'modules' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)';
+      if (isActive) {
+        ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      }
       roundRect(ctx, -w / 2, -h / 2, w, h, h / 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.strokeStyle = isActive ? 'rgba(255,255,255,0.24)' : focusLayer === 'modules' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.14)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255,255,255,0.20)';
+      ctx.fillStyle = isActive ? module.color : focusLayer === 'modules' ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.20)';
       ctx.beginPath();
-      ctx.arc(-w / 2 + 14, 0, 1.8, 0, Math.PI * 2);
+      ctx.arc(-w / 2 + 14, 0, isActive ? 2.2 : 1.8, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.font = '500 10px Inter, sans-serif';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.fillStyle = isActive ? 'rgba(255,255,255,0.92)' : focusLayer === 'modules' ? 'rgba(255,255,255,0.86)' : 'rgba(255,255,255,0.72)';
       ctx.fillText(module.label, -w / 2 + 24, 0.3);
       ctx.restore();
 
@@ -1552,10 +2131,10 @@ class InfrastructureScene {
       const tetherY1 = y + h / 2;
       const tetherY2 = this.contextBand.y + this.contextBand.h * 0.18;
       const tether = ctx.createLinearGradient(tetherX, tetherY1, tetherX, tetherY2);
-      tether.addColorStop(0, 'rgba(255,255,255,0.12)');
+      tether.addColorStop(0, isActive ? module.color : 'rgba(255,255,255,0.12)');
       tether.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.strokeStyle = tether;
-      ctx.lineWidth = 0.8;
+      ctx.lineWidth = isActive ? 1.05 : 0.8;
       ctx.beginPath();
       ctx.moveTo(tetherX, tetherY1);
       ctx.lineTo(tetherX, tetherY2);
@@ -1569,10 +2148,10 @@ class InfrastructureScene {
     }));
 
     // Intents route through the semantic layer into the core graph.
-    this._drawIntents(coreNodes);
+    this._drawIntents(coreNodes, focusLayer);
 
     // The canonical core graph remains the visual anchor.
-    this._drawCore(coreNodes);
+    this._drawCore(coreNodes, focusLayer);
 
     // Subtle surface-to-context projection beam.
     const surfaceBeamX = this.surfaceWindow.x;
@@ -1590,7 +2169,7 @@ class InfrastructureScene {
     ctx.stroke();
 
     // Foreground schematic: a tiny public surface → node → edge diagram.
-    this._drawSurfaceSchematic();
+    this._drawSurfaceSchematic(focusLayer);
   }
 }
 
@@ -1603,15 +2182,20 @@ class ModulesScene {
     this.raf     = null;
     this.t       = 0;
     this.modules = [
-      { label: 'Identity',  angle: -Math.PI * 0.42, delay: 0.0, lane: 0 },
-      { label: 'Workspace', angle: -Math.PI * 0.12, delay: 0.18, lane: 1 },
-      { label: 'Assets',    angle:  Math.PI * 0.14, delay: 0.36, lane: 2 },
-      { label: 'Programs',  angle:  Math.PI * 0.42, delay: 0.54, lane: 0 },
-      { label: 'Domotics',  angle:  Math.PI * 0.78, delay: 0.72, lane: 1 },
-      { label: 'Logistics', angle:  Math.PI * 1.06, delay: 0.90, lane: 2 },
-      { label: 'Flux',      angle:  Math.PI * 1.38, delay: 1.08, lane: 1 },
+      { label: 'Identity',  angle: -Math.PI * 0.42, delay: 0.0, lane: 0, color: '#7ca0ff', status: 'included' },
+      { label: 'Workspace', angle: -Math.PI * 0.12, delay: 0.18, lane: 1, color: '#9fe4ff', status: 'included' },
+      { label: 'Assets',    angle:  Math.PI * 0.14, delay: 0.36, lane: 2, color: '#f4c26f', status: 'available' },
+      { label: 'Programs',  angle:  Math.PI * 0.42, delay: 0.54, lane: 0, color: '#a8f0c7', status: 'available' },
+      { label: 'Domotics',  angle:  Math.PI * 0.78, delay: 0.72, lane: 1, color: '#e0b4ff', status: 'bridge' },
+      { label: 'Logistics', angle:  Math.PI * 1.06, delay: 0.90, lane: 2, color: '#ffc59d', status: 'available' },
+      { label: 'Flux',      angle:  Math.PI * 1.38, delay: 1.08, lane: 1, color: '#c9d0ff', status: 'experimental' },
     ];
+    this.cardEls = this.slideEl ? [...this.slideEl.querySelectorAll('.module-card')] : [];
+    this.featureEl = this.slideEl ? this.slideEl.querySelector('.modules-feature') : null;
+    this.activeModuleIndex = -1;
     this.pills = this.slideEl ? [...this.slideEl.querySelectorAll('.module-pill')] : [];
+    this._applyModuleAccents();
+    this._bindModuleCards();
     this._resize();
   }
 
@@ -1625,6 +2209,61 @@ class ModulesScene {
     this.outerR = Math.min(this.w, this.h) * 0.28;
   }
 
+  _applyModuleAccents() {
+    this.pills.forEach((pill, index) => {
+      const mod = this.modules[index];
+      if (!pill || !mod) return;
+      pill.style.setProperty('--module-accent', mod.color);
+    });
+  }
+
+  _bindModuleCards() {
+    this.cardEls.forEach((card, index) => {
+      const activate = () => this._setActiveModule(index);
+      const clear = () => {
+        if (this.activeModuleIndex === index) {
+          this._setActiveModule(-1);
+        }
+      };
+      card.addEventListener('pointerenter', activate);
+      card.addEventListener('pointerleave', clear);
+      card.addEventListener('focus', activate);
+      card.addEventListener('blur', clear);
+    });
+
+    if (this.featureEl) {
+      this.featureEl.addEventListener('pointerenter', () => this._setActiveModule(-1));
+      this.featureEl.addEventListener('pointerleave', () => this._setActiveModule(-1));
+    }
+
+    if (this.slideEl) {
+      this.slideEl.addEventListener('pointerleave', () => this._setActiveModule(-1));
+    }
+
+    this._syncModuleState();
+  }
+
+  _setActiveModule(index) {
+    const next = Number.isInteger(index) ? index : -1;
+    if (this.activeModuleIndex === next) return;
+    this.activeModuleIndex = next;
+    this._syncModuleState();
+  }
+
+  _syncModuleState() {
+    this.cardEls.forEach((card, index) => {
+      card.classList.toggle('is-active', index === this.activeModuleIndex);
+    });
+
+    this.pills.forEach((pill, index) => {
+      pill.classList.toggle('is-active', index === this.activeModuleIndex);
+    });
+
+    if (this.featureEl) {
+      this.featureEl.classList.toggle('is-active', this.activeModuleIndex < 0);
+    }
+  }
+
   start() {
     if (this.running) return;
     this.running = true;
@@ -1636,6 +2275,7 @@ class ModulesScene {
     this.running = false;
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
     this.ctx.clearRect(0, 0, this.w, this.h);
+    this._setActiveModule(-1);
   }
 
   resize() { this._resize(); }
@@ -1777,6 +2417,8 @@ class ModulesScene {
       const mod = this.modules[i];
       if (!mod) return;
 
+      const isActive = this.activeModuleIndex === i;
+      const hasActive = this.activeModuleIndex >= 0;
       const p = easeOutCubic((this.t - mod.delay) / 1.05);
       const orbit = mod.angle + this.t * (0.18 + mod.lane * 0.018);
       const phaseLift = Math.sin(this.t * 1.45 + i * 0.8) * 10;
@@ -1785,9 +2427,10 @@ class ModulesScene {
       const y = this.cy + Math.sin(orbit) * radius * 0.88 + Math.cos(orbit * 1.1) * 7;
       const bob = Math.sin(this.t * 1.1 + i) * 1.4;
       const lift = Math.cos(this.t * 0.8 + i) * 0.9;
-      const scale = 0.96 + mod.lane * 0.025 + p * 0.02;
-      const alpha = 0.12 + p * 0.72;
+      const scale = (0.96 + mod.lane * 0.025 + p * 0.02) * (isActive ? 1.06 : 1);
+      const alpha = (0.12 + p * 0.72) * (hasActive && !isActive ? 0.72 : 1);
 
+      pill.classList.toggle('is-active', isActive);
       pill.style.left = `${x}px`;
       pill.style.top = `${y}px`;
       pill.style.opacity = alpha.toFixed(3);
@@ -2248,9 +2891,10 @@ class GraphOSScene {
     });
   }
 
-  _drawGroupShell(group, index) {
+  _drawGroupShell(group, index, focusLayer) {
     const members = this.nodes.filter(n => n.group === index);
     if (!members.length) return;
+    const focused = focusLayer === 'group' || focusLayer === 'context';
 
     const xs = members.map(n => n.x);
     const ys = members.map(n => n.y);
@@ -2268,63 +2912,65 @@ class GraphOSScene {
     const h = Math.min(Math.max(maxY - minY, 84), availableH);
 
     this.ctx.save();
-    this.ctx.fillStyle = `rgba(255,255,255,${0.022 + index * 0.008})`;
+    this.ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.034 : 0.022) + index * 0.008})`;
     roundRect(this.ctx, x, y, w, h, 26);
     this.ctx.fill();
-    this.ctx.strokeStyle = `rgba(255,255,255,${0.085 + index * 0.03})`;
+    this.ctx.strokeStyle = `rgba(255,255,255,${(focused ? 0.13 : 0.085) + index * 0.03})`;
     this.ctx.lineWidth = 1;
     this.ctx.stroke();
-    this.ctx.fillStyle = 'rgba(255,255,255,0.48)';
+    this.ctx.fillStyle = focused ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.48)';
     this.ctx.font = '500 11px Inter, sans-serif';
     this.ctx.fillText(group.name, x + 16, y + 18);
     this.ctx.restore();
   }
 
-  _drawProjectionCard(card, index) {
+  _drawProjectionCard(card, index, focusLayer) {
+    const focused = focusLayer === 'surface';
     const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.7 + card.phase);
     const x = card.x + Math.sin(this.t * 0.45 + card.phase) * 4;
     const y = card.y + Math.cos(this.t * 0.4 + card.phase) * 3;
-    const alpha = 0.16 + pulse * 0.08;
+    const alpha = (focused ? 0.22 : 0.16) + pulse * (focused ? 0.10 : 0.08);
 
     this.ctx.save();
     this.ctx.translate(x, y);
-    this.ctx.fillStyle = `rgba(0,0,0,${0.20 + index * 0.03})`;
+    this.ctx.fillStyle = `rgba(0,0,0,${(focused ? 0.24 : 0.20) + index * 0.03})`;
     roundRect(this.ctx, -card.w / 2, -card.h / 2, card.w, card.h, 14);
     this.ctx.fill();
     this.ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
     this.ctx.lineWidth = 1;
     this.ctx.stroke();
 
-    this.ctx.fillStyle = `rgba(255,255,255,${0.16 + pulse * 0.04})`;
+    this.ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.22 : 0.16) + pulse * 0.04})`;
     roundRect(this.ctx, -card.w / 2 + 10, -card.h / 2 + 8, card.w - 20, 7, 4);
     this.ctx.fill();
 
-    this.ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    this.ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
     this.ctx.font = '500 10px Inter, sans-serif';
     this.ctx.fillText(card.title, -card.w / 2 + 10, -card.h / 2 + 28);
 
     for (let i = 0; i < card.lines; i++) {
       const lineY = -card.h / 2 + 36 + i * 9;
-      this.ctx.fillStyle = `rgba(255,255,255,${0.12 + i * 0.03})`;
+      this.ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.16 : 0.12) + i * 0.03})`;
       roundRect(this.ctx, -card.w / 2 + 10, lineY, card.w * (0.48 + i * 0.08), 3, 1.5);
       this.ctx.fill();
     }
     this.ctx.restore();
   }
 
-  _drawLabel(text, x, y, accent) {
+  _drawLabel(text, x, y, accent, focusLayer) {
     const { ctx } = this;
+    const focused = focusLayer && text.toLowerCase().includes(focusLayer);
     ctx.save();
     ctx.font = '500 12px Inter, sans-serif';
     const w = ctx.measureText(text).width + 18;
     const h = 24;
-    ctx.fillStyle = `rgba(255,255,255,${0.06 + accent * 0.08})`;
+    ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.1 : 0.06) + accent * 0.08})`;
     roundRect(ctx, x, y, w, h, 12);
     ctx.fill();
-    ctx.strokeStyle = `rgba(255,255,255,${0.10 + accent * 0.12})`;
+    ctx.strokeStyle = `rgba(255,255,255,${(focused ? 0.16 : 0.10) + accent * 0.12})`;
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = `rgba(255,255,255,${0.52 + accent * 0.24})`;
+    ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.72 : 0.52) + accent * 0.24})`;
     ctx.fillText(text, x + 9, y + 16);
     ctx.restore();
   }
@@ -2332,6 +2978,7 @@ class GraphOSScene {
   _draw() {
     const { ctx, nodes, t } = this;
     const { edgeAlpha, nodeAlpha } = this.opts;
+    const focusLayer = this._getFocusLayer();
     ctx.clearRect(0, 0, this.w, this.h);
 
     const base = ctx.createLinearGradient(0, 0, 0, this.h);
@@ -2374,23 +3021,24 @@ class GraphOSScene {
     ctx.strokeStyle = 'rgba(255,255,255,0.16)';
     ctx.stroke();
 
-    this.groups.forEach((group, index) => this._drawGroupShell(group, index));
+    this.groups.forEach((group, index) => this._drawGroupShell(group, index, focusLayer));
 
     // Edges.
     const threshold = Math.min(this.w, this.h) * this.opts.thresh;
+    const edgeFocusBoost = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.12 : 1;
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx = nodes[j].x - nodes[i].x;
         const dy = nodes[j].y - nodes[i].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < threshold) {
-          const a = (1 - dist / threshold) * edgeAlpha;
+          const a = (1 - dist / threshold) * edgeAlpha * edgeFocusBoost;
           const gradient = ctx.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
           gradient.addColorStop(0, `rgba(255,255,255,0)`);
           gradient.addColorStop(0.5, `rgba(255,255,255,${a})`);
           gradient.addColorStop(1, `rgba(255,255,255,0)`);
           ctx.strokeStyle = gradient;
-          ctx.lineWidth = 0.7;
+          ctx.lineWidth = focusLayer === 'edge' ? 0.95 : 0.7;
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -2402,9 +3050,10 @@ class GraphOSScene {
     // Nodes.
     nodes.forEach(n => {
       const pulse = 0.5 + 0.5 * Math.sin(t * 1.4 + n.phase);
-      const alpha = nodeAlpha[0] + nodeAlpha[1] * pulse;
+      const nodeBoost = focusLayer === 'node' ? 1.22 : focusLayer === 'group' ? 1.08 : 1;
+      const alpha = (nodeAlpha[0] + nodeAlpha[1] * pulse) * nodeBoost;
       ctx.beginPath();
-      ctx.arc(n.x, n.y, n.r * (0.9 + pulse * 0.45), 0, Math.PI * 2);
+      ctx.arc(n.x, n.y, n.r * (0.9 + pulse * 0.45) * nodeBoost, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
       ctx.fill();
     });
@@ -2428,24 +3077,25 @@ class GraphOSScene {
     });
     ctx.restore();
 
-    this.surfaceCards.forEach((card, index) => this._drawProjectionCard(card, index));
+    this.surfaceCards.forEach((card, index) => this._drawProjectionCard(card, index, focusLayer));
 
     // Labels placed relative to nodes.
     this.labels.forEach((label, index) => {
       const n = nodes[label.node % nodes.length];
       const drift = Math.sin(t * 0.9 + index) * 4;
-      this._drawLabel(label.text, n.x + label.dx + drift, n.y + label.dy, 0.8);
+      this._drawLabel(label.text, n.x + label.dx + drift, n.y + label.dy, 0.8, focusLayer);
     });
 
     // Context streams.
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
+    const streamBoost = focusLayer === 'context' ? 1.6 : focusLayer === 'surface' ? 0.9 : 1;
     this.streams.forEach((stream, i) => {
       const y = stream.y + Math.sin(t * 1.1 + stream.phase) * 2;
       const phase = (t * stream.speed + i * 60) % (this.w + 120);
       const grad = ctx.createLinearGradient(0, y, this.w, y);
       grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+      grad.addColorStop(0.5, `rgba(255,255,255,${0.12 * streamBoost})`);
       grad.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.strokeStyle = grad;
       ctx.lineWidth = 1;
@@ -2458,15 +3108,634 @@ class GraphOSScene {
         const x = (phase + j * 160) % (this.w + 120) - 60;
         ctx.beginPath();
         ctx.arc(x, y, 1.2 + j * 0.1, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.12 + j * 0.03})`;
+        ctx.fillStyle = `rgba(255,255,255,${(0.12 + j * 0.03) * streamBoost})`;
         ctx.fill();
       }
     });
     ctx.restore();
 
     // Surface label.
-    this._drawLabel('Surface', this.w * 0.75, this.surfaceY - 40, 0.5);
-    this._drawLabel('Context', this.w * 0.08, this.contextY - 8, 0.8);
+    this._drawLabel('Surface', this.w * 0.75, this.surfaceY - 40, 0.5, focusLayer);
+    this._drawLabel('Context', this.w * 0.08, this.contextY - 8, 0.8, focusLayer);
+  }
+}
+
+
+// =============================================
+// SCENE: BUILD
+// Surface Studio, programs, context, canonical core,
+// modules, and assets as one construction system.
+// =============================================
+
+class BuildScene {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.running = false;
+    this.raf = null;
+    this.t = 0;
+    this.surface = null;
+    this.contextBand = null;
+    this.core = null;
+    this.registry = [];
+    this.coreLayout = [];
+    this.coreEdges = [];
+    this.modules = [];
+    this.programCaps = [];
+    this.assetChips = [];
+    this._resize();
+    this._init();
+  }
+
+  _resize() {
+    this.w = this.canvas.width = this.canvas.offsetWidth;
+    this.h = this.canvas.height = this.canvas.offsetHeight;
+    this.surface = {
+      x: this.w * 0.70,
+      y: this.h * 0.18,
+      w: clamp(this.w * 0.34, 280, 440),
+      h: clamp(this.h * 0.22, 170, 226),
+      phase: rand(0, Math.PI * 2),
+    };
+    this.contextBand = {
+      x: this.w * 0.10,
+      y: this.h * 0.44,
+      w: this.w * 0.80,
+      h: clamp(this.h * 0.16, 116, 168),
+      phase: rand(0, Math.PI * 2),
+    };
+    this.core = {
+      x: this.w * 0.53,
+      y: this.h * 0.74,
+      r: clamp(Math.min(this.w, this.h) * 0.15, 88, 156),
+      phase: rand(0, Math.PI * 2),
+    };
+  }
+
+  _init() {
+    this.registry = [
+      { key: 'type', value: 'node semantics' },
+      { key: 'policy', value: 'shared rules' },
+      { key: 'scope', value: 'module boundary' },
+      { key: 'routing', value: 'relation path' },
+      { key: 'state', value: 'live memory' },
+      { key: 'semantics', value: 'global registry' },
+      { key: 'intent', value: 'surface action' },
+      { key: 'contracts', value: 'interface type' },
+      { key: 'metadata', value: 'graph context' },
+      { key: 'linkage', value: 'node relation' },
+      { key: 'projection', value: 'surface output' },
+    ];
+
+    this.coreLayout = [
+      { ox: 0.00, oy: 0.00, r: 4.9, wobble: 1.02 },
+      { ox: -0.26, oy: -0.16, r: 2.9, wobble: 0.84 },
+      { ox: 0.24, oy: -0.18, r: 2.8, wobble: 0.80 },
+      { ox: -0.34, oy: 0.18, r: 2.5, wobble: 0.74 },
+      { ox: 0.18, oy: 0.23, r: 2.6, wobble: 0.76 },
+      { ox: 0.00, oy: -0.36, r: 2.2, wobble: 0.70 },
+      { ox: 0.40, oy: 0.07, r: 2.2, wobble: 0.68 },
+      { ox: -0.14, oy: 0.40, r: 2.1, wobble: 0.66 },
+    ];
+    this.coreEdges = [
+      [0, 1], [0, 2], [0, 3], [0, 4],
+      [1, 5], [2, 5], [1, 3], [2, 4],
+      [3, 7], [4, 6], [6, 7],
+    ];
+
+    const moduleLabels = ['Identity', 'Workspace', 'Domotics', 'Logistics', 'Flux'];
+    this.modules = moduleLabels.map((label, index) => ({
+      label,
+      angle: (index / moduleLabels.length) * Math.PI * 2 - Math.PI / 2,
+      radius: 108 + (index % 2) * 14,
+      speed: 0.24 + index * 0.03,
+      phase: rand(0, Math.PI * 2),
+    }));
+
+    this.programCaps = [
+      { label: 'Compose', t: 0.18, phase: rand(0, Math.PI * 2) },
+      { label: 'Route', t: 0.54, phase: rand(0, Math.PI * 2) },
+      { label: 'Publish', t: 0.82, phase: rand(0, Math.PI * 2) },
+    ];
+
+    this.assetChips = [
+      { label: '.glb', kind: '3D', x: this.w * 0.78, y: this.h * 0.75, w: 52, h: 26, phase: rand(0, Math.PI * 2) },
+      { label: '.pdf', kind: 'Doc', x: this.w * 0.84, y: this.h * 0.70, w: 52, h: 26, phase: rand(0, Math.PI * 2) },
+      { label: '.png', kind: 'Image', x: this.w * 0.72, y: this.h * 0.82, w: 56, h: 26, phase: rand(0, Math.PI * 2) },
+      { label: '.mp4', kind: 'Video', x: this.w * 0.87, y: this.h * 0.80, w: 56, h: 26, phase: rand(0, Math.PI * 2) },
+      { label: '.md', kind: 'Text', x: this.w * 0.76, y: this.h * 0.88, w: 48, h: 26, phase: rand(0, Math.PI * 2) },
+      { label: '.csv', kind: 'Data', x: this.w * 0.84, y: this.h * 0.90, w: 50, h: 26, phase: rand(0, Math.PI * 2) },
+    ];
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.t = 0;
+    this._init();
+    this._loop();
+  }
+
+  stop() {
+    this.running = false;
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  resize() {
+    this._resize();
+    this._init();
+  }
+
+  _loop() {
+    if (!this.running) return;
+    this.t += 0.0056;
+    this._draw();
+    this.raf = requestAnimationFrame(() => this._loop());
+  }
+
+  _parallax(depth) {
+    const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
+    const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
+    return { x: nx * depth, y: ny * depth };
+  }
+
+  _quadPoint(a, b, c, t) {
+    const mt = 1 - t;
+    return {
+      x: mt * mt * a.x + 2 * mt * t * b.x + t * t * c.x,
+      y: mt * mt * a.y + 2 * mt * t * b.y + t * t * c.y,
+    };
+  }
+
+  _getFocusLayer() {
+    if (hoveredBuildLayer) return hoveredBuildLayer;
+    if (selectedBuildLayer) return selectedBuildLayer;
+    const ny = this.h ? mouseY / this.h : 0.5;
+    const nx = this.w ? mouseX / this.w : 0.5;
+    if (ny < 0.30) return 'surface';
+    if (nx < 0.42 && ny < 0.56) return 'programs';
+    if (ny < 0.60) return 'context';
+    if (nx > 0.70 && ny > 0.56) return 'assets';
+    if (ny > 0.70) return 'modules';
+    return 'nodes';
+  }
+
+  _drawTag(text, x, y, accent = 0.5, align = 'left') {
+    const { ctx } = this;
+    ctx.save();
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    const padX = 10;
+    const w = ctx.measureText(text).width + padX * 2;
+    const h = 22;
+    const px = align === 'center' ? x - w / 2 : x;
+    const py = y - h / 2;
+    ctx.fillStyle = `rgba(255,255,255,${0.05 + accent * 0.06})`;
+    roundRect(ctx, px, py, w, h, h / 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${0.08 + accent * 0.12})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = `rgba(255,255,255,${0.56 + accent * 0.24})`;
+    ctx.fillText(text, px + padX, y + 0.4);
+    ctx.restore();
+  }
+
+  _drawBackground(focusLayer) {
+    const { ctx } = this;
+    const bg = ctx.createRadialGradient(
+      this.w * 0.58,
+      this.h * 0.34,
+      0,
+      this.w * 0.5,
+      this.h * 0.52,
+      Math.max(this.w, this.h) * 0.95,
+    );
+    bg.addColorStop(0, 'rgba(8,8,10,1)');
+    bg.addColorStop(0.68, 'rgba(4,4,6,1)');
+    bg.addColorStop(1, 'rgba(2,2,3,1)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, this.w, this.h);
+
+    const gridAlpha = focusLayer === 'nodes' ? 0.04 : focusLayer === 'surface' ? 0.036 : 0.028;
+    ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+      const yy = this.h * 0.14 + i * (this.h * 0.11);
+      ctx.beginPath();
+      ctx.moveTo(this.w * 0.06, yy);
+      ctx.lineTo(this.w * 0.94, yy);
+      ctx.stroke();
+    }
+    for (let i = -3; i <= 3; i++) {
+      const xx = this.w * 0.5 + i * (this.w * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(xx, this.h * 0.14);
+      ctx.lineTo(xx + this.w * 0.04, this.h * 0.86);
+      ctx.stroke();
+    }
+  }
+
+  _drawSurface(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'surface';
+    const drift = this._parallax(14);
+    const wobbleX = Math.sin(this.t * 0.2 + this.surface.phase) * 4.2;
+    const wobbleY = Math.cos(this.t * 0.16 + this.surface.phase) * 2.8;
+    const x = this.surface.x + drift.x * 0.26 + wobbleX;
+    const y = this.surface.y + drift.y * 0.18 + wobbleY;
+    const w = this.surface.w;
+    const h = this.surface.h;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((Math.sin(this.t * 0.08 + this.surface.phase) + (mouseX / this.w - 0.5)) * (focused ? 0.009 : 0.006));
+
+    const fill = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
+    fill.addColorStop(0, focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)');
+    fill.addColorStop(0.35, focused ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)');
+    fill.addColorStop(1, focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)');
+    ctx.fillStyle = fill;
+    roundRect(ctx, -w / 2, -h / 2, w, h, 24);
+    ctx.fill();
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)';
+    roundRect(ctx, -w / 2 + 1, -h / 2 + 1, w - 2, 26, 20);
+    ctx.fill();
+
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.56)';
+    ctx.fillText('Surface Studio', -w / 2 + 56, -h / 2 + 14);
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
+    roundRect(ctx, -w / 2 + 41, -h / 2 + 8, w - 58, 12, 6);
+    ctx.fill();
+
+    const padX = -w / 2 + 16;
+    const padY = -h / 2 + 34;
+    const innerW = w - 32;
+    const innerH = h - 48;
+    ctx.save();
+    roundRect(ctx, padX, padY, innerW, innerH, 18);
+    ctx.clip();
+
+    const hero = ctx.createLinearGradient(padX, padY, padX + innerW, padY + innerH);
+    hero.addColorStop(0, 'rgba(255,255,255,0.08)');
+    hero.addColorStop(1, 'rgba(255,255,255,0.02)');
+    ctx.fillStyle = hero;
+    ctx.fillRect(padX, padY, innerW, innerH);
+
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.10)';
+    roundRect(ctx, padX + 10, padY + 10, innerW * 0.58, 20, 10);
+    ctx.fill();
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)';
+    roundRect(ctx, padX + 10, padY + 38, innerW * 0.82, 9, 4.5);
+    ctx.fill();
+    roundRect(ctx, padX + 10, padY + 54, innerW * 0.52, 9, 4.5);
+    ctx.fill();
+
+    const cardY = padY + innerH - 50;
+    for (let i = 0; i < 3; i++) {
+      const cw = innerW * (0.28 - i * 0.02);
+      const cx = padX + 10 + i * (cw + 10);
+      const cy = cardY + Math.sin(this.t * 0.7 + this.surface.phase + i) * 1.5;
+      ctx.fillStyle = `rgba(255,255,255,${0.08 + i * 0.02 + (focused ? 0.03 : 0)})`;
+      roundRect(ctx, cx, cy, cw, 26, 11);
+      ctx.fill();
+      ctx.fillStyle = focused ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.20)';
+      roundRect(ctx, cx + 8, cy + 7, cw * 0.6, 4, 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    this._drawTag('Surface', x, y + h / 2 + 22, 0.62, 'center');
+    ctx.restore();
+  }
+
+  _drawPrograms(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'programs' || focusLayer === 'relations';
+    const drift = this._parallax(10);
+    const start = {
+      x: this.surface.x + drift.x * 0.2,
+      y: this.surface.y + this.surface.h * 0.48 + drift.y * 0.12,
+    };
+    const end = {
+      x: this.core.x + drift.x * 0.08,
+      y: this.core.y - this.core.r * 1.02,
+    };
+    const control = {
+      x: lerp(start.x, end.x, 0.5) + Math.sin(this.t * 0.7 + this.surface.phase) * 18,
+      y: lerp(start.y, end.y, 0.48) - 28 + Math.cos(this.t * 0.6 + this.surface.phase) * 8,
+    };
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    const spine = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+    spine.addColorStop(0, 'rgba(255,255,255,0)');
+    spine.addColorStop(0.2, focused ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.10)');
+    spine.addColorStop(0.78, focused ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.16)');
+    spine.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = spine;
+    ctx.lineWidth = focused ? 1.3 : 1;
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+    ctx.stroke();
+
+    this.programCaps.forEach((cap, index) => {
+      const pulse = (this.t * 0.18 + cap.phase) % 1;
+      const pt = this._quadPoint(start, control, end, pulse);
+      const lw = 56 + index * 2;
+      const lh = 22;
+      ctx.save();
+      ctx.translate(pt.x, pt.y);
+      ctx.fillStyle = `rgba(255,255,255,${focused ? 0.11 : 0.08})`;
+      roundRect(ctx, -lw / 2, -lh / 2, lw, lh, lh / 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${focused ? 0.20 : 0.12})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = focused ? 'rgba(255,255,255,0.84)' : 'rgba(255,255,255,0.66)';
+      ctx.font = '500 10px Inter, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cap.label, -lw / 2 + 10, 0.2);
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, focused ? 1.9 : 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${focused ? 0.38 : 0.24})`;
+      ctx.fill();
+    });
+
+    this._drawTag('Programs', lerp(start.x, end.x, 0.34), lerp(start.y, end.y, 0.27), 0.78, 'center');
+    ctx.restore();
+  }
+
+  _drawContextBand(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'context';
+    const drift = this._parallax(10);
+    const x = this.contextBand.x + drift.x * 0.16;
+    const y = this.contextBand.y + drift.y * 0.10;
+    const w = this.contextBand.w;
+    const h = this.contextBand.h;
+    const rowH = 18;
+    const rows = Math.ceil(h / rowH) + 4;
+    const scroll = (this.t * 18) % rowH;
+
+    ctx.save();
+    roundRect(ctx, x, y, w, h, 26);
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.070)' : 'rgba(255,255,255,0.046)';
+    ctx.fill();
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.clip();
+
+    const fill = ctx.createLinearGradient(x, y, x + w, y + h);
+    fill.addColorStop(0, 'rgba(255,255,255,0.02)');
+    fill.addColorStop(0.5, 'rgba(255,255,255,0.06)');
+    fill.addColorStop(1, 'rgba(255,255,255,0.03)');
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(x, y, w, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(x, y + h - 1, w, 1);
+
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
+    ctx.fillText('Context', x + 16, y + 18);
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.54)' : 'rgba(255,255,255,0.42)';
+    ctx.fillText('type in context', x + w - 108, y + 18);
+
+    for (let i = -1; i < rows; i++) {
+      const entryIndex = ((i + Math.floor(this.t * 1.6)) % this.registry.length + this.registry.length) % this.registry.length;
+      const entry = this.registry[entryIndex];
+      const rowY = y + 42 + i * rowH - scroll;
+      if (rowY < y + 28 || rowY > y + h - 12) continue;
+      const alpha = (focused ? 0.14 : 0.10) + 0.22 * (1 - Math.abs((rowY - (y + h / 2)) / (h / 2)));
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(x + 16, rowY, 1.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.62 + alpha * 0.72})`;
+      ctx.fillText(entry.key.toUpperCase(), x + 28, rowY);
+      ctx.fillStyle = `rgba(255,255,255,${0.34 + alpha * 0.55})`;
+      ctx.fillText(entry.value, x + w * 0.48, rowY);
+    }
+
+    ctx.restore();
+  }
+
+  _drawCore(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'nodes' || focusLayer === 'relations';
+    const drift = this._parallax(7);
+    const x = this.core.x + drift.x * 0.1;
+    const y = this.core.y + drift.y * 0.08;
+    const r = this.core.r;
+
+    const glow = ctx.createRadialGradient(x, y - r * 0.18, 0, x, y, r * 2.7);
+    glow.addColorStop(0, focused ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.12)');
+    glow.addColorStop(0.7, focused ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)');
+    glow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    roundRect(ctx, x - r, y - r, r * 2, r * 2, r * 1.2);
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.050)' : 'rgba(255,255,255,0.036)';
+    ctx.fill();
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = focused ? 1.2 : 1;
+    ctx.stroke();
+    ctx.clip();
+
+    const nodes = this.coreLayout.map((layout, index) => ({
+      x: x + layout.ox * r * 0.80 + Math.sin(this.t * 0.7 + layout.ox * 9 + index) * layout.wobble * (focused ? 1.12 : 1),
+      y: y + layout.oy * r * 0.80 + Math.cos(this.t * 0.64 + layout.oy * 7 + index) * layout.wobble * 0.78 * (focused ? 1.12 : 1),
+      r: layout.r,
+      phase: index * 0.7,
+    }));
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    this.coreEdges.forEach(([a, b]) => {
+      const na = nodes[a];
+      const nb = nodes[b];
+      if (!na || !nb) return;
+      const gradient = ctx.createLinearGradient(na.x, na.y, nb.x, nb.y);
+      gradient.addColorStop(0, 'rgba(255,255,255,0)');
+      gradient.addColorStop(0.5, focused ? 'rgba(255,255,255,0.17)' : 'rgba(255,255,255,0.12)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = focused ? 0.95 : 0.75;
+      ctx.beginPath();
+      ctx.moveTo(na.x, na.y);
+      ctx.lineTo(nb.x, nb.y);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    nodes.forEach((node, index) => {
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * 1.35 + node.phase);
+      const size = node.r * (0.88 + pulse * (focused ? 0.44 : 0.38));
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${(focused ? 0.22 : 0.18) + pulse * (focused ? 0.42 : 0.38)})`;
+      ctx.fill();
+
+      if (index === 0) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
+        ctx.lineWidth = focused ? 1.15 : 1;
+        ctx.stroke();
+      }
+    });
+
+    ctx.restore();
+
+    this._drawTag('Core', x, y - r - 28, 0.86, 'center');
+
+    ctx.save();
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    const legendX = x - r * 0.46;
+    const legendY = y + r * 0.47;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(legendX, legendY, 2.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText('Node', legendX + 9, legendY + 0.4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(legendX + 42, legendY);
+    ctx.lineTo(legendX + 70, legendY);
+    ctx.stroke();
+    ctx.fillText('Edge', legendX + 76, legendY + 0.4);
+    ctx.restore();
+  }
+
+  _drawModules(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'modules';
+    const drift = this._parallax(6);
+    const x = this.core.x + drift.x * 0.1;
+    const y = this.core.y + drift.y * 0.08;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    this.modules.forEach((module, index) => {
+      const angle = module.angle + this.t * module.speed + module.phase * 0.1;
+      const px = x + Math.cos(angle) * module.radius;
+      const py = y + Math.sin(angle) * module.radius * 0.74;
+      const w = 76 + module.label.length * 2.1;
+      const h = 24;
+      const alpha = focused ? 0.14 : 0.08;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(px, py);
+      ctx.strokeStyle = `rgba(255,255,255,${alpha + index * 0.01})`;
+      ctx.lineWidth = focused ? 1 : 0.75;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.fillStyle = `rgba(255,255,255,${focused ? 0.12 : 0.08})`;
+      roundRect(ctx, -w / 2, -h / 2, w, h, h / 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${focused ? 0.22 : 0.14})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = focused ? 'rgba(255,255,255,0.86)' : 'rgba(255,255,255,0.64)';
+      ctx.font = '500 10px Inter, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(module.label, -w / 2 + 10, 0.2);
+      ctx.restore();
+    });
+    ctx.restore();
+
+    this._drawTag('Modules', x - this.core.r * 0.05, y + this.core.r + 28, 0.76, 'center');
+  }
+
+  _drawAssets(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'assets';
+    const drift = this._parallax(12);
+    const baseX = this.w * 0.78 + drift.x * 0.14;
+    const baseY = this.h * 0.79 + drift.y * 0.12;
+    const target = {
+      x: this.core.x + drift.x * 0.08,
+      y: this.core.y + this.core.r * 0.18,
+    };
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    this.assetChips.forEach((chip, index) => {
+      const x = chip.x + Math.sin(this.t * 0.55 + chip.phase + index) * 6 + drift.x * 0.04;
+      const y = chip.y + Math.cos(this.t * 0.48 + chip.phase + index) * 4 + drift.y * 0.04;
+      const alpha = focused ? 0.14 : 0.08;
+      const line = ctx.createLinearGradient(target.x, target.y, x, y);
+      line.addColorStop(0, 'rgba(255,255,255,0)');
+      line.addColorStop(1, `rgba(255,255,255,${alpha})`);
+      ctx.strokeStyle = line;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(target.x, target.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = `rgba(255,255,255,${focused ? 0.12 : 0.08})`;
+      roundRect(ctx, -chip.w / 2, -chip.h / 2, chip.w, chip.h, 13);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${focused ? 0.22 : 0.14})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = focused ? 'rgba(255,255,255,0.86)' : 'rgba(255,255,255,0.66)';
+      ctx.font = '500 10px Inter, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(chip.label, -chip.w / 2 + 9, 0.2);
+      ctx.fillStyle = focused ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.34)';
+      ctx.fillText(chip.kind, chip.w / 2 - 24, 0.2);
+      ctx.restore();
+    });
+    ctx.restore();
+
+    this._drawTag('Assets', baseX, baseY + 36, 0.78, 'center');
+  }
+
+  _draw() {
+    const { ctx } = this;
+    const focusLayer = this._getFocusLayer();
+    ctx.clearRect(0, 0, this.w, this.h);
+
+    this._drawBackground(focusLayer);
+
+    // Surface and program spine live behind the core graph so the hierarchy reads top → bottom.
+    this._drawSurface(focusLayer);
+    this._drawContextBand(focusLayer);
+    this._drawPrograms(focusLayer);
+    this._drawCore(focusLayer);
+    this._drawModules(focusLayer);
+    this._drawAssets(focusLayer);
   }
 }
 
@@ -3326,6 +4595,1862 @@ class PhysicalLayerScene {
 
 
 // =============================================
+// SCENE: GRAPHOS LIVE
+// Live node graph editor adapted for the deck.
+// =============================================
+
+const GRAPHOS_LIVE = {
+  CORE_RATIO: 0.25,
+  CORE_PADDING: 8,
+  INNER_PADDING: 12,
+  SIZE_LERP: 0.08,
+  SIZE_LERP_CHILD: 0.1,
+  MAX_RADIUS: 140,
+  MIN_CHILD_RADIUS: 8,
+  ARC_DENSITY: 0.6,
+  LINK_HIT_RADIUS: 6,
+  STORAGE_KEY: 'electronic-artefacts.graphos.live.v1',
+};
+
+const GRAPHOS_LIVE_COLORS = [
+  '#7ca0ff',
+  '#9fe4ff',
+  '#f3f6ff',
+  '#ffd18e',
+  '#9ae6c7',
+  '#c3b2ff',
+  '#ff9bc8',
+];
+
+class GraphOSLiveNode {
+  constructor(x, y, opts = {}) {
+    this.id = opts.id || (crypto?.randomUUID?.() || `graphos-${Math.random().toString(36).slice(2)}`);
+    this.x = x;
+    this.y = y;
+    this.r = opts.r ?? 10;
+    this.targetR = opts.targetR ?? this.r;
+    this.baseR = opts.baseR ?? this.r;
+    this.maxRadius = opts.maxRadius ?? GRAPHOS_LIVE.MAX_RADIUS;
+    this.innerPadding = opts.innerPadding ?? GRAPHOS_LIVE.INNER_PADDING;
+    this.emptyPaddingBoost = opts.emptyPaddingBoost ?? 0;
+    this.vx = opts.vx ?? 0;
+    this.vy = opts.vy ?? 0;
+    this.maxSpeed = opts.maxSpeed ?? 6;
+    this.friction = opts.friction ?? 0.88;
+    this.children = [];
+    this.parent = null;
+    this.hover = false;
+    this.hoverFactor = 0;
+    this.selected = false;
+    this.isContainedPreview = false;
+    this.createdAt = opts.createdAt ?? Date.now();
+    this.name = opts.name ?? 'Node';
+    this.color = opts.color ?? '#5a78ff';
+    this.type = opts.type ?? null;
+    this.showCore = opts.showCore ?? true;
+    this.orbitAngle = opts.orbitAngle ?? Math.random() * Math.PI * 2;
+    this.orbitSpeed = opts.orbitSpeed ?? (0.0015 + Math.random() * 0.003);
+    this.orbitTilt = opts.orbitTilt ?? (0.6 + Math.random() * 0.4);
+    this.depth = opts.depth ?? 0;
+    this.displayRadius = this.r;
+  }
+
+  addChild(node) {
+    let current = this;
+    while (current) {
+      if (current === node) return;
+      current = current.parent;
+    }
+
+    if (node.parent) {
+      node.parent.removeChild(node);
+    }
+
+    node.parent = this;
+    this.children.push(node);
+  }
+
+  removeChild(node) {
+    this.children = this.children.filter(n => n !== node);
+    node.parent = null;
+  }
+
+  serialize() {
+    return {
+      id: this.id,
+      x: this.x,
+      y: this.y,
+      r: this.r,
+      baseR: this.baseR,
+      createdAt: this.createdAt,
+      parentId: this.parent ? this.parent.id : null,
+      name: this.name,
+      color: this.color,
+      showCore: this.showCore,
+      type: this.type,
+    };
+  }
+
+  update(scene) {
+    const lerpFactor = this.parent ? GRAPHOS_LIVE.SIZE_LERP_CHILD : GRAPHOS_LIVE.SIZE_LERP;
+    this.r += (this.targetR - this.r) * lerpFactor;
+
+    const targetHover = this.hover ? 1 : 0;
+    this.hoverFactor += (targetHover - this.hoverFactor) * 0.06;
+
+    if (this.children.length === 0) {
+      this.targetR = this.baseR + this.emptyPaddingBoost;
+    } else {
+      let maxChildExtent = 0;
+      this.children.forEach(child => {
+        const childDist = scene.dist(child.x, child.y, this.x, this.y);
+        maxChildExtent = Math.max(maxChildExtent, childDist + child.r);
+      });
+
+      const requiredRadius = maxChildExtent + this.innerPadding;
+      this.targetR = Math.max(this.baseR, Math.min(requiredRadius, this.maxRadius));
+    }
+
+    if (this.selected && this.children.length > 0) {
+      this.targetR *= 1.12;
+    }
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    const speed = Math.hypot(this.vx, this.vy);
+    if (speed > this.maxSpeed) {
+      this.vx = (this.vx / speed) * this.maxSpeed;
+      this.vy = (this.vy / speed) * this.maxSpeed;
+    }
+
+    this.vx *= this.friction;
+    this.vy *= this.friction;
+
+    const margin = this.r;
+    if (this.x < margin) {
+      this.x = margin;
+      this.vx *= -0.3;
+    }
+    if (this.x > scene.w - margin) {
+      this.x = scene.w - margin;
+      this.vx *= -0.3;
+    }
+    if (this.y < margin) {
+      this.y = margin;
+      this.vy *= -0.3;
+    }
+    if (this.y > scene.h - margin) {
+      this.y = scene.h - margin;
+      this.vy *= -0.3;
+    }
+
+    if (!this.children.length) return;
+
+    const innerCoreRadius = this.r * GRAPHOS_LIVE.CORE_RATIO;
+    const minAllowedBase = this.showCore ? innerCoreRadius + GRAPHOS_LIVE.CORE_PADDING : GRAPHOS_LIVE.CORE_PADDING;
+    const maxAllowedBase = Math.max(minAllowedBase + 8, this.r - this.innerPadding);
+    const childCount = this.children.length;
+    const clusterColumns = Math.max(1, Math.ceil(Math.sqrt(childCount || 1)));
+
+    this.children.forEach((child, index) => {
+      child.orbitAngle += child.orbitSpeed;
+
+      const minAllowed = minAllowedBase + child.r;
+      const maxAllowed = Math.max(minAllowed + 4, maxAllowedBase - child.r);
+      const midRadius = (minAllowed + maxAllowed) * 0.5;
+      const arcPerChild = (2 * Math.PI * Math.max(midRadius, 1)) / Math.max(1, childCount);
+      const maxChildDiameter = arcPerChild * GRAPHOS_LIVE.ARC_DENSITY;
+      child.targetR = Math.max(
+        GRAPHOS_LIVE.MIN_CHILD_RADIUS,
+        Math.min(child.baseR, maxChildDiameter * 0.5),
+      );
+
+      let targetX;
+      let targetY;
+
+      if (this.showCore) {
+        child.depth = this.depth + 1;
+        const targetRadius = Math.max(minAllowed, (minAllowed + maxAllowed) * 0.5);
+        targetX = this.x + Math.cos(child.orbitAngle) * targetRadius;
+        targetY = this.y + Math.sin(child.orbitAngle) * targetRadius * child.orbitTilt;
+      } else {
+        child.depth = this.depth + 1;
+        const columns = clusterColumns;
+        const rows = Math.max(1, Math.ceil(childCount / columns));
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const baseSpacing = Math.min(this.r * 0.35, Math.max(child.r * 2.5, 12));
+        const maxSpan = Math.max(12, maxAllowed - minAllowed);
+        const perSlot = columns <= 1 ? maxSpan : maxSpan / (columns - 1);
+        const spacingCap = Math.min(this.r * 0.45, Math.max(6, perSlot));
+        const clusterSpacing = Math.min(baseSpacing, spacingCap);
+        const startX = this.x - ((columns - 1) * clusterSpacing) * 0.5;
+        const startY = this.y - ((rows - 1) * clusterSpacing) * 0.5;
+        targetX = startX + col * clusterSpacing;
+        targetY = startY + row * clusterSpacing;
+      }
+
+      child.vx += (targetX - child.x) * 0.06;
+      child.vy += (targetY - child.y) * 0.06;
+
+      const d = scene.dist(child.x, child.y, this.x, this.y);
+      if (d > 0) {
+        const nx = (child.x - this.x) / d;
+        const ny = (child.y - this.y) / d;
+
+        if (d > maxAllowed) {
+          const tx = this.x + nx * maxAllowed;
+          const ty = this.y + ny * maxAllowed;
+          child.vx += (tx - child.x) * 0.25;
+          child.vy += (ty - child.y) * 0.25;
+        }
+
+        if (d < minAllowed) {
+          const tx = this.x + nx * minAllowed;
+          const ty = this.y + ny * minAllowed;
+          child.vx += (tx - child.x) * 0.25;
+          child.vy += (ty - child.y) * 0.25;
+        }
+      }
+    });
+  }
+
+  draw(ctx, focusLayer) {
+    ctx.save();
+
+    const focusBoost = focusLayer === 'node' ? 1.18 : 1;
+    ctx.globalAlpha = (0.56 + (this.depth + 1) * 0.16) * focusBoost;
+
+    const selectionScale = this.selected
+      ? (this.children.length > 0 ? 1.12 : 1.04)
+      : 1;
+    const hoverScale = (1 + this.hoverFactor * 0.08) * selectionScale;
+    const dynamicRadius = this.r * hoverScale;
+    const depthScale = 0.78 + (this.depth + 1) * 0.11;
+    const adjustedRadius = dynamicRadius * depthScale;
+    const outerRingFactor = this.children.length > 0 ? 1 : 0.72;
+    const displayRadius = adjustedRadius * outerRingFactor;
+    this.displayRadius = displayRadius;
+
+    const glow = 0.5 + this.hoverFactor * 1.15 + (this.selected ? 0.45 : 0);
+    ctx.shadowColor = 'rgba(255,255,255,0.18)';
+    ctx.shadowBlur = glow;
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, displayRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+    ctx.lineWidth = 0.9 + this.hoverFactor * 0.55 + (this.selected ? 0.15 : 0);
+    ctx.stroke();
+
+    if (this.color) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, displayRadius * 0.98, 0, Math.PI * 2);
+      ctx.strokeStyle = this.color;
+      ctx.globalAlpha = 0.14 + this.hoverFactor * 0.08 + (this.selected ? 0.06 : 0);
+      ctx.lineWidth = 1.2 + this.hoverFactor * 0.35;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.shadowBlur = 0;
+
+    if (this.showCore && this.color) {
+      const coreRadius = displayRadius * GRAPHOS_LIVE.CORE_RATIO * (1 + this.hoverFactor * 0.15);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, coreRadius, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, coreRadius * 1.2, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${0.08 + this.hoverFactor * 0.2 + (this.selected ? 0.08 : 0)})`;
+      ctx.lineWidth = 1 + this.hoverFactor * 0.8;
+      ctx.stroke();
+    }
+
+    if (this.children.length > 0) {
+      ctx.globalAlpha = 0.12 + this.hoverFactor * 0.08;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, displayRadius * 0.62, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = 'rgba(207, 216, 255, 0.9)';
+    ctx.font = '500 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.name, this.x, this.y + displayRadius + 14);
+
+    if (this.type) {
+      ctx.font = '500 9px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.42)';
+      ctx.fillText(this.type, this.x, this.y - displayRadius - 12);
+    }
+
+    ctx.restore();
+  }
+}
+
+class GraphOSLiveScene {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.running = false;
+    this.raf = null;
+    this.t = 0;
+    this.w = 0;
+    this.h = 0;
+    this.nodes = [];
+    this.links = [];
+    this.view = { showNodes: true, showLinks: true, activeType: null };
+    this.selectedNodes = new Set();
+    this.selectedLink = null;
+    this.hoveredNode = null;
+    this.hoveredLink = null;
+    this.draggedNode = null;
+    this.dragPointerId = null;
+    this.contextTarget = null;
+    this.pickingColor = false;
+    this.surfacePreview = null;
+    this.surfacePreviewHover = false;
+    this.draggedSurfacePreview = false;
+    this.surfaceDragPointerId = null;
+    this.surfaceDragOffsetX = 0;
+    this.surfaceDragOffsetY = 0;
+    this.contextRibbon = null;
+    this.intentLanes = [];
+    this.coreNode = null;
+    this._bound = {
+      contextMenu: e => this._onContextMenu(e),
+      bodyMouseDown: e => this._onBodyMouseDown(e),
+      canvasDown: e => this._onPointerDown(e),
+      canvasMove: e => this._onPointerMove(e),
+      pointerUp: e => this._onPointerUp(e),
+      pointerCancel: e => this._onPointerCancel(e),
+      keyDown: e => this._onKeyDown(e),
+      globalDown: e => this._onGlobalDown(e),
+      colorWheelMove: e => this._onColorWheelMove(e),
+      colorWheelDown: e => this._onColorWheelDown(e),
+      colorWheelUp: () => this._endColorPick(),
+      toggleNodes: () => {
+        this.view.showNodes = !this.view.showNodes;
+        this._refreshUi();
+      },
+      toggleLinks: () => {
+        this.view.showLinks = !this.view.showLinks;
+        this._refreshUi();
+      },
+      typeFilter: () => {
+        this.view.activeType = graphosTypeFilterEl && graphosTypeFilterEl.value ? graphosTypeFilterEl.value : null;
+        this._refreshUi();
+      },
+    };
+
+    this._bindUi();
+    this._buildColorWheel();
+    this._resize();
+    this._loadGraph();
+    if (!this.nodes.length) {
+      this._seedGraph();
+    }
+    this._syncCoreNode();
+    this._refreshTypeFilter();
+    this._refreshUi();
+    this._setSelection([]);
+  }
+
+  _isActive() {
+    return activeSlideEl && activeSlideEl.dataset.slide === 'graphos';
+  }
+
+  _bindUi() {
+    const stopPropagation = e => e.stopPropagation();
+    const stopSlideGestures = el => {
+      if (!el) return;
+      el.addEventListener('wheel', stopPropagation, { passive: true });
+      el.addEventListener('touchstart', stopPropagation, { passive: true });
+      el.addEventListener('touchmove', stopPropagation, { passive: true });
+      el.addEventListener('touchend', stopPropagation, { passive: true });
+    };
+
+    stopSlideGestures(graphosWindowEl);
+    stopSlideGestures(graphosWindowBodyEl);
+    stopSlideGestures(graphosContextMenuEl);
+    stopSlideGestures(graphosColorPickerEl);
+
+    if (graphosContextMenuEl) {
+      graphosContextMenuEl.addEventListener('pointerdown', e => e.stopPropagation());
+    }
+
+    if (graphosColorPickerEl) {
+      graphosColorPickerEl.addEventListener('pointerdown', e => e.stopPropagation());
+    }
+
+    if (graphosToggleNodesEl) {
+      graphosToggleNodesEl.addEventListener('click', this._bound.toggleNodes);
+    }
+
+    if (graphosToggleLinksEl) {
+      graphosToggleLinksEl.addEventListener('click', this._bound.toggleLinks);
+    }
+
+    if (graphosTypeFilterEl) {
+      graphosTypeFilterEl.addEventListener('change', this._bound.typeFilter);
+    }
+
+    if (graphosColorWheelEl) {
+      graphosColorWheelEl.addEventListener('pointermove', this._bound.colorWheelMove);
+      graphosColorWheelEl.addEventListener('pointerdown', this._bound.colorWheelDown);
+    }
+
+    document.addEventListener('contextmenu', this._bound.contextMenu, true);
+    document.addEventListener('keydown', this._bound.keyDown);
+    window.addEventListener('mousedown', this._bound.globalDown);
+    window.addEventListener('mouseup', this._bound.pointerUp);
+    window.addEventListener('mouseup', this._bound.colorWheelUp);
+    window.addEventListener('pointerup', this._bound.pointerUp);
+    window.addEventListener('pointercancel', this._bound.pointerCancel);
+    this.canvas.addEventListener('pointerdown', this._bound.canvasDown);
+    this.canvas.addEventListener('pointermove', this._bound.canvasMove);
+    this.canvas.addEventListener('pointerleave', () => {
+      if (!this.draggedSurfacePreview) {
+        this.surfacePreviewHover = false;
+      }
+      if (!this.draggedNode) {
+        this._clearHoverState();
+      }
+    });
+  }
+
+  _buildColorWheel() {
+    if (!graphosColorWheelEl) return;
+    const wheelCtx = graphosColorWheelEl.getContext('2d');
+    const radius = 70;
+    const image = wheelCtx.createImageData(140, 140);
+
+    for (let y = 0; y < 140; y++) {
+      for (let x = 0; x < 140; x++) {
+        const dx = x - radius;
+        const dy = y - radius;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= radius) {
+          const angle = Math.atan2(dy, dx);
+          const hue = (angle * 180 / Math.PI + 360) % 360;
+          const sat = dist / radius;
+          const [r, g, b] = this._hslToRgb(hue / 360, sat, 0.5);
+          const i = (y * 140 + x) * 4;
+          image.data[i] = r;
+          image.data[i + 1] = g;
+          image.data[i + 2] = b;
+          image.data[i + 3] = 255;
+        }
+      }
+    }
+
+    wheelCtx.putImageData(image, 0, 0);
+  }
+
+  _hslToRgb(h, s, l) {
+    let r;
+    let g;
+    let b;
+
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  }
+
+  _rgbToHex(r, g, b) {
+    return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  _resize() {
+    this.w = this.canvas.width = this.canvas.offsetWidth;
+    this.h = this.canvas.height = this.canvas.offsetHeight;
+    const prevSurface = this.surfacePreview;
+    const surfaceW = clamp(this.w * 0.19, 190, 280);
+    const surfaceH = clamp(this.h * 0.18, 126, 170);
+    this.surfacePreview = prevSurface ? {
+      ...prevSurface,
+      x: clamp(prevSurface.x, surfaceW * 0.5 + 24, this.w - surfaceW * 0.5 - 24),
+      y: clamp(prevSurface.y, surfaceH * 0.5 + 24, this.h - surfaceH * 0.5 - 24),
+      w: surfaceW,
+      h: surfaceH,
+    } : {
+      x: this.w * 0.77,
+      y: this.h * 0.24,
+      w: surfaceW,
+      h: surfaceH,
+      phase: Math.random() * Math.PI * 2,
+    };
+    this.contextRibbon = {
+      y: this.h * 0.82,
+      phase: Math.random() * Math.PI * 2,
+    };
+    this.intentLanes = [
+      { phase: Math.random() * Math.PI * 2, kind: 'surface' },
+      { phase: Math.random() * Math.PI * 2, kind: 'context' },
+      { phase: Math.random() * Math.PI * 2, kind: 'surface' },
+      { phase: Math.random() * Math.PI * 2, kind: 'context' },
+    ];
+  }
+
+  _syncCoreNode() {
+    this.coreNode = this.nodes.find(node => node.type === 'core' && !node.parent) || this.nodes.find(node => node.type === 'core') || this.nodes[0] || null;
+  }
+
+  _seedGraph() {
+    const cx = this.w * 0.52;
+    const cy = this.h * 0.63;
+    const core = this.createNode(cx, cy, {
+      name: 'Core',
+      type: 'core',
+      color: '#7ca0ff',
+      baseR: 28,
+      r: 28,
+      showCore: true,
+      maxRadius: 180,
+      depth: 0,
+    });
+    const publicNode = this.createNode(cx + 126, cy - 74, {
+      name: 'Public',
+      type: 'public',
+      color: '#f4f7ff',
+      baseR: 14,
+      r: 14,
+    });
+    const userNode = this.createNode(cx - 66, cy - 54, {
+      name: 'User',
+      type: 'user',
+      color: '#9fe4ff',
+      baseR: 13,
+      r: 13,
+    });
+    const workspaceNode = this.createNode(cx + 12, cy - 22, {
+      name: 'Workspace',
+      type: 'workspace',
+      color: '#ffd18e',
+      baseR: 12,
+      r: 12,
+    });
+    const surfaceNode = this.createNode(this.w * 0.82, this.h * 0.27, {
+      name: 'Surface',
+      type: 'surface',
+      color: '#ffffff',
+      baseR: 13,
+      r: 13,
+      showCore: true,
+    });
+    const contextNode = this.createNode(this.w * 0.18, this.h * 0.29, {
+      name: 'Context',
+      type: 'context',
+      color: '#c3b2ff',
+      baseR: 12,
+      r: 12,
+    });
+    const intentNode = this.createNode(this.w * 0.50, this.h * 0.84, {
+      name: 'Intent',
+      type: 'intent',
+      color: '#9ae6c7',
+      baseR: 11,
+      r: 11,
+    });
+
+    core.addChild(publicNode);
+    core.addChild(userNode);
+    core.addChild(workspaceNode);
+
+    this.links.push(
+      { a: core, b: surfaceNode },
+      { a: contextNode, b: core },
+      { a: intentNode, b: core },
+      { a: publicNode, b: surfaceNode },
+      { a: userNode, b: contextNode },
+    );
+
+    this._syncCoreNode();
+  }
+
+  createNode(x, y, opts = {}) {
+    const node = new GraphOSLiveNode(x, y, {
+      color: opts.color || randChoice(GRAPHOS_LIVE_COLORS),
+      ...opts,
+    });
+    this.nodes.push(node);
+    return node;
+  }
+
+  cloneNodeForDuplicate(source) {
+    if (!source) return null;
+    const copy = this.createNode(source.x + 26, source.y + 18, {
+      name: source.name,
+      color: source.color,
+      type: source.type,
+      baseR: source.baseR,
+      r: source.r,
+      targetR: source.targetR,
+      maxRadius: source.maxRadius,
+      innerPadding: source.innerPadding,
+      emptyPaddingBoost: source.emptyPaddingBoost,
+      showCore: source.showCore,
+      orbitAngle: source.orbitAngle + 0.5,
+      orbitSpeed: source.orbitSpeed,
+      orbitTilt: source.orbitTilt,
+      createdAt: source.createdAt,
+    });
+    return copy;
+  }
+
+  serializeNodes() {
+    return this.nodes.map(node => node.serialize());
+  }
+
+  serializeLinks() {
+    return this.links.map(link => ({
+      a: link.a?.id ?? null,
+      b: link.b?.id ?? null,
+    }));
+  }
+
+  saveGraph() {
+    try {
+      const payload = {
+        nodes: this.serializeNodes(),
+        links: this.serializeLinks(),
+        surfacePreview: this.surfacePreview ? {
+          x: this.surfacePreview.x,
+          y: this.surfacePreview.y,
+        } : null,
+      };
+      localStorage.setItem(GRAPHOS_LIVE.STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.warn('GraphOS live persistence failed:', error);
+    }
+  }
+
+  _loadGraph() {
+    let raw = null;
+    try {
+      raw = localStorage.getItem(GRAPHOS_LIVE.STORAGE_KEY);
+    } catch (error) {
+      console.warn('GraphOS live storage read failed:', error);
+      return;
+    }
+
+    if (!raw) return;
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      console.warn('GraphOS live storage parse failed:', error);
+      return;
+    }
+
+    const graphData = Array.isArray(parsed) ? { nodes: parsed, links: [] } : parsed;
+    const nodeItems = Array.isArray(graphData.nodes) ? graphData.nodes : [];
+    const linkItems = Array.isArray(graphData.links) ? graphData.links : [];
+
+    this.nodes.length = 0;
+    this.links.length = 0;
+
+    const byId = new Map();
+    nodeItems.forEach(item => {
+      const node = new GraphOSLiveNode(item.x ?? this.w * 0.5, item.y ?? this.h * 0.5, {
+        id: item.id,
+        x: item.x,
+        y: item.y,
+        r: item.r ?? item.baseR ?? 10,
+        baseR: item.baseR ?? item.r ?? 10,
+        createdAt: item.createdAt,
+        name: item.name,
+        color: item.color,
+        showCore: item.showCore ?? true,
+        type: item.type,
+      });
+      node.targetR = node.r;
+      node.vx = 0;
+      node.vy = 0;
+      this.nodes.push(node);
+      byId.set(node.id, node);
+    });
+
+    nodeItems.forEach(item => {
+      if (!item.parentId) return;
+      const child = byId.get(item.id);
+      const parent = byId.get(item.parentId);
+      if (!child || !parent || child === parent) return;
+      parent.addChild(child);
+    });
+
+    linkItems.forEach(item => {
+      const a = byId.get(item.a);
+      const b = byId.get(item.b);
+      if (!a || !b) return;
+      this.links.push({ a, b });
+    });
+
+    if (graphData.surfacePreview && Number.isFinite(graphData.surfacePreview.x) && Number.isFinite(graphData.surfacePreview.y)) {
+      this.surfacePreview.x = clamp(graphData.surfacePreview.x, this.surfacePreview.w * 0.5 + 24, this.w - this.surfacePreview.w * 0.5 - 24);
+      this.surfacePreview.y = clamp(graphData.surfacePreview.y, this.surfacePreview.h * 0.5 + 24, this.h - this.surfacePreview.h * 0.5 - 24);
+    }
+  }
+
+  _refreshTypeFilter() {
+    if (!graphosTypeFilterEl) return;
+
+    const types = new Set();
+    this.nodes.forEach(node => {
+      if (node.type) types.add(node.type);
+    });
+
+    const current = this.view.activeType;
+    graphosTypeFilterEl.innerHTML = '';
+
+    const all = document.createElement('option');
+    all.value = '';
+    all.textContent = 'All';
+    graphosTypeFilterEl.appendChild(all);
+
+    [...types].sort().forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      graphosTypeFilterEl.appendChild(option);
+    });
+
+    graphosTypeFilterEl.value = current || '';
+  }
+
+  _refreshUi() {
+    if (graphosToggleNodesEl) {
+      graphosToggleNodesEl.style.opacity = this.view.showNodes ? '1' : '0.38';
+      graphosToggleNodesEl.setAttribute('aria-pressed', this.view.showNodes ? 'true' : 'false');
+    }
+    if (graphosToggleLinksEl) {
+      graphosToggleLinksEl.style.opacity = this.view.showLinks ? '1' : '0.38';
+      graphosToggleLinksEl.setAttribute('aria-pressed', this.view.showLinks ? 'true' : 'false');
+    }
+    if (graphosSelectionInfoEl) {
+      const selectedCount = this.selectedNodes.size;
+      if (selectedCount === 1) {
+        const node = [...this.selectedNodes][0];
+        graphosSelectionInfoEl.textContent = `${node.name || 'Node'} · 1 selected`;
+      } else if (selectedCount > 1) {
+        graphosSelectionInfoEl.textContent = `${selectedCount} selected`;
+      } else if (this.selectedLink) {
+        const label = `${this.selectedLink.a?.name || 'Node'} ↔ ${this.selectedLink.b?.name || 'Node'}`;
+        graphosSelectionInfoEl.textContent = label;
+      } else {
+        graphosSelectionInfoEl.textContent = `${this.nodes.length} nodes · ${this.links.length} links`;
+      }
+    }
+
+    if (graphosTypeFilterEl) {
+      graphosTypeFilterEl.value = this.view.activeType || '';
+    }
+  }
+
+  _setSelection(nodes = [], link = null) {
+    this.selectedNodes.forEach(node => { node.selected = false; });
+    this.selectedNodes.clear();
+    nodes.filter(Boolean).forEach(node => {
+      this.selectedNodes.add(node);
+      node.selected = true;
+    });
+    this.selectedLink = link;
+    this._refreshUi();
+  }
+
+  _toggleNodeSelection(node) {
+    if (!node) return;
+    if (this.selectedNodes.has(node)) {
+      this.selectedNodes.delete(node);
+      node.selected = false;
+    } else {
+      this.selectedNodes.add(node);
+      node.selected = true;
+    }
+    this.selectedLink = null;
+    this._refreshUi();
+  }
+
+  _selectSingle(node) {
+    if (!node) {
+      this._setSelection([]);
+      return;
+    }
+    this._setSelection([node]);
+  }
+
+  _setLinkSelection(link) {
+    this._setSelection([], link || null);
+  }
+
+  _removeLinksForNode(node) {
+    for (let i = this.links.length - 1; i >= 0; i--) {
+      const link = this.links[i];
+      if (link.a === node || link.b === node) {
+        if (this.selectedLink === link) {
+          this.selectedLink = null;
+        }
+        this.links.splice(i, 1);
+      }
+    }
+  }
+
+  _deleteNodes(nodesToDelete) {
+    const targets = Array.from(nodesToDelete || []).filter(Boolean);
+    if (!targets.length) return;
+
+    targets.forEach(node => {
+      this._removeLinksForNode(node);
+      if (node.parent) {
+        node.parent.removeChild(node);
+      }
+      node.children.slice().forEach(child => node.removeChild(child));
+      node.selected = false;
+      this.selectedNodes.delete(node);
+      const index = this.nodes.indexOf(node);
+      if (index !== -1) {
+        this.nodes.splice(index, 1);
+      }
+    });
+
+    this._syncCoreNode();
+    this._refreshTypeFilter();
+    this.saveGraph();
+    this._refreshUi();
+  }
+
+  _deleteLink(link) {
+    if (!link) return;
+    const index = this.links.indexOf(link);
+    if (index === -1) return;
+    this.links.splice(index, 1);
+    if (this.selectedLink === link) {
+      this.selectedLink = null;
+    }
+    this.saveGraph();
+    this._refreshUi();
+  }
+
+  _getCanvasPoint(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = rect.width ? this.w / rect.width : 1;
+    const scaleY = rect.height ? this.h / rect.height : 1;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }
+
+  _getSurfacePreviewPose() {
+    if (!this.surfacePreview) return null;
+    const driftX = Math.sin(this.t * 0.18 + this.surfacePreview.phase) * 4;
+    const driftY = Math.cos(this.t * 0.14 + this.surfacePreview.phase) * 2.5;
+    return {
+      x: this.surfacePreview.x + driftX,
+      y: this.surfacePreview.y + driftY,
+      w: this.surfacePreview.w,
+      h: this.surfacePreview.h,
+      driftX,
+      driftY,
+    };
+  }
+
+  _isPointInSurfacePreview(x, y) {
+    const pose = this._getSurfacePreviewPose();
+    if (!pose) return false;
+    const paddingX = pose.w * 0.5;
+    const paddingY = pose.h * 0.5;
+    return Math.abs(x - pose.x) <= paddingX && Math.abs(y - pose.y) <= paddingY;
+  }
+
+  _beginSurfacePreviewDrag(x, y, e, pose) {
+    if (!pose) return false;
+    this.draggedSurfacePreview = true;
+    this.surfaceDragPointerId = e.pointerId;
+    this.surfaceDragOffsetX = x - pose.x;
+    this.surfaceDragOffsetY = y - pose.y;
+    this.canvas.setPointerCapture?.(e.pointerId);
+    return true;
+  }
+
+  _updateSurfacePreviewDrag(e) {
+    if (!this.draggedSurfacePreview || (e.pointerId != null && e.pointerId !== this.surfaceDragPointerId)) return;
+    const { x, y } = this._getCanvasPoint(e);
+    if (!this.surfacePreview) return;
+    const halfW = this.surfacePreview.w * 0.5;
+    const halfH = this.surfacePreview.h * 0.5;
+    this.surfacePreview.x = clamp(x - this.surfaceDragOffsetX, halfW + 24, this.w - halfW - 24);
+    this.surfacePreview.y = clamp(y - this.surfaceDragOffsetY, halfH + 24, this.h - halfH - 24);
+  }
+
+  _endSurfacePreviewDrag(e) {
+    if (!this.draggedSurfacePreview) return false;
+    if (e && 'pointerId' in e && e.pointerId !== this.surfaceDragPointerId) return false;
+    this.draggedSurfacePreview = false;
+    this.surfaceDragPointerId = null;
+    this.surfaceDragOffsetX = 0;
+    this.surfaceDragOffsetY = 0;
+    this.saveGraph();
+    return true;
+  }
+
+  dist(ax, ay, bx, by) {
+    return Math.hypot(ax - bx, ay - by);
+  }
+
+  _getNodeHitRadius(node) {
+    if (!node) return 0;
+    if (node.showCore) {
+      return node.r * GRAPHOS_LIVE.CORE_RATIO;
+    }
+    const display = node.displayRadius || node.r;
+    return Math.max(display, node.r * 0.6);
+  }
+
+  _getNodeCoreAt(x, y, exclude = null) {
+    const ordered = [...this.nodes].reverse();
+    return ordered.find(node => {
+      if (node === exclude) return false;
+      const hitRadius = this._getNodeHitRadius(node);
+      return this.dist(node.x, node.y, x, y) < hitRadius;
+    }) || null;
+  }
+
+  _getNodeAt(x, y, exclude = null) {
+    return this._getNodeCoreAt(x, y, exclude) || this._getContainingNodeAt(x, y, exclude);
+  }
+
+  _getContainingNodeAt(x, y, exclude = null) {
+    const ordered = [...this.nodes].sort((a, b) => a.r - b.r);
+    return ordered.find(node => {
+      if (node === exclude) return false;
+      let current = node;
+      while (current) {
+        if (current === exclude) return false;
+        current = current.parent;
+      }
+      return this.dist(node.x, node.y, x, y) < node.r;
+    }) || null;
+  }
+
+  _pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) {
+      return this.dist(px, py, x1, y1);
+    }
+    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + dx * t;
+    const projY = y1 + dy * t;
+    return this.dist(px, py, projX, projY);
+  }
+
+  _getLinkAt(x, y) {
+    return this.links.find(link => {
+      if (!link || !link.a || !link.b) return false;
+      if (!this.nodes.includes(link.a) || !this.nodes.includes(link.b)) return false;
+
+      const minX = Math.min(link.a.x, link.b.x) - GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      const maxX = Math.max(link.a.x, link.b.x) + GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      if (x < minX || x > maxX) return false;
+
+      const minY = Math.min(link.a.y, link.b.y) - GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      const maxY = Math.max(link.a.y, link.b.y) + GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      if (y < minY || y > maxY) return false;
+
+      const distance = this._pointToSegmentDistance(x, y, link.a.x, link.a.y, link.b.x, link.b.y);
+      return distance <= GRAPHOS_LIVE.LINK_HIT_RADIUS;
+    }) || null;
+  }
+
+  _getLinkEndpoint(node, other) {
+    if (!node) return { x: 0, y: 0 };
+    if (!other || node.showCore) {
+      return { x: node.x, y: node.y };
+    }
+    const dx = other.x - node.x;
+    const dy = other.y - node.y;
+    const distance = Math.hypot(dx, dy) || 0.0001;
+    const radius = node.displayRadius || node.r || 0;
+    const offset = Math.max(radius, 0);
+    return {
+      x: node.x + (dx / distance) * offset,
+      y: node.y + (dy / distance) * offset,
+    };
+  }
+
+  _clearHoverState() {
+    this.hoveredNode = null;
+    this.hoveredLink = null;
+    this.nodes.forEach(node => { node.hover = false; node.isContainedPreview = false; });
+  }
+
+  _updateHover(x, y) {
+    this._clearHoverState();
+    this.hoveredNode = this._getNodeCoreAt(x, y) || this._getContainingNodeAt(x, y);
+    if (this.hoveredNode) {
+      this.hoveredNode.hover = true;
+    } else {
+      this.hoveredLink = this._getLinkAt(x, y);
+    }
+  }
+
+  _detachIfOutsideParent(node) {
+    if (!node || !node.parent) return;
+    if (!this._isInsideMembrane(node, node.parent)) {
+      node.parent.removeChild(node);
+      this.saveGraph();
+      this._syncCoreNode();
+    }
+  }
+
+  _isInsideMembrane(node, parent) {
+    const margin = 4;
+    const maxDistance = Math.max(0, parent.r - 6);
+    return this.dist(node.x, node.y, parent.x, parent.y) <= maxDistance;
+  }
+
+  _updateContainmentPreview(dragged = null) {
+    this.nodes.forEach(node => { node.isContainedPreview = false; });
+    if (!dragged) return;
+    const target = this._getContainingNodeAt(dragged.x, dragged.y, dragged);
+    if (target) target.isContainedPreview = true;
+  }
+
+  _beginContextMenu(node, link, x, y, e, extraItems = []) {
+    this.contextTarget = node || null;
+    if (node) {
+      const deleteSelection = this.selectedNodes.size > 1 && this.selectedNodes.has(node);
+      const items = [...extraItems];
+
+      items.push(
+        {
+          label: node.type ? `Type: ${node.type}` : 'Set type',
+          action: () => {
+            const newType = prompt('Set node type:', node.type || '');
+            node.type = newType || null;
+            this.saveGraph();
+            this._refreshTypeFilter();
+            this._refreshUi();
+          },
+        },
+        {
+          label: node.showCore ? 'Hide core' : 'Show core',
+          action: () => {
+            node.showCore = !node.showCore;
+            this.saveGraph();
+            this._refreshUi();
+          },
+        },
+        {
+          label: 'Rename node',
+          action: () => {
+            const newName = prompt('Rename node:', node.name);
+            if (newName) {
+              node.name = newName;
+              this.saveGraph();
+              this._refreshUi();
+            }
+          },
+        },
+        {
+          label: deleteSelection ? 'Delete selected nodes' : 'Delete node',
+          action: () => {
+            if (deleteSelection) {
+              this._deleteNodes(Array.from(this.selectedNodes));
+            } else {
+              this._deleteNodes([node]);
+            }
+          },
+        },
+      );
+
+      this._showMenu(e.clientX, e.clientY, items);
+      return;
+    }
+
+    if (link) {
+      this._showMenu(e.clientX, e.clientY, [
+        {
+          label: `Delete link (${link.a?.name || 'Node'} ↔ ${link.b?.name || 'Node'})`,
+          action: () => this._deleteLink(link),
+        },
+      ]);
+      return;
+    }
+
+    const items = [];
+    if (this.selectedNodes.size > 0) {
+      items.push({
+        label: this.selectedNodes.size > 1 ? 'Delete selected nodes' : 'Delete selected node',
+        action: () => this._deleteNodes(Array.from(this.selectedNodes)),
+      });
+    }
+
+    items.push({
+      label: 'Create node',
+      action: () => {
+        const created = this.createNode(x, y, {
+          name: 'Node',
+          type: null,
+          color: randChoice(GRAPHOS_LIVE_COLORS),
+          baseR: 12,
+          r: 12,
+        });
+        this._selectSingle(created);
+        this._refreshTypeFilter();
+        this.saveGraph();
+      },
+    });
+
+    this._showMenu(e.clientX, e.clientY, items);
+  }
+
+  _showMenu(x, y, items) {
+    if (!graphosContextMenuEl) return;
+
+    graphosContextMenuEl.innerHTML = '';
+
+    if (this.contextTarget) {
+      const header = document.createElement('div');
+      header.className = 'graphos-context-menu__header';
+
+      const swatch = document.createElement('button');
+      swatch.type = 'button';
+      swatch.className = 'graphos-context-menu__swatch';
+      swatch.style.background = this.contextTarget.color;
+      swatch.title = 'Change node color';
+      swatch.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        this._openColorPicker(e.clientX, e.clientY);
+      });
+
+      const coreToggle = document.createElement('button');
+      coreToggle.type = 'button';
+      coreToggle.className = 'graphos-context-menu__toggle';
+      coreToggle.textContent = this.contextTarget.showCore ? 'Hide core' : 'Show core';
+      coreToggle.addEventListener('click', e => {
+        e.stopPropagation();
+        this.contextTarget.showCore = !this.contextTarget.showCore;
+        this.saveGraph();
+        this._refreshUi();
+        this._hideMenu();
+      });
+
+      const nameBlock = document.createElement('div');
+      nameBlock.className = 'graphos-context-menu__name';
+      nameBlock.textContent = this.contextTarget.name;
+      nameBlock.title = 'Rename node';
+      nameBlock.addEventListener('click', e => {
+        e.stopPropagation();
+        const newName = prompt('Rename node:', this.contextTarget.name);
+        if (newName) {
+          this.contextTarget.name = newName;
+          this.saveGraph();
+          this._refreshUi();
+          this._hideMenu();
+        }
+      });
+
+      header.appendChild(swatch);
+      header.appendChild(coreToggle);
+      header.appendChild(nameBlock);
+      graphosContextMenuEl.appendChild(header);
+    }
+
+    items.forEach(item => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'graphos-context-menu__item';
+      button.textContent = item.label;
+      button.addEventListener('click', () => {
+        item.action();
+        this._hideMenu();
+      });
+      graphosContextMenuEl.appendChild(button);
+    });
+
+    graphosContextMenuEl.hidden = false;
+    graphosContextMenuEl.style.left = `${x}px`;
+    graphosContextMenuEl.style.top = `${y}px`;
+
+    requestAnimationFrame(() => {
+      const rect = graphosContextMenuEl.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        graphosContextMenuEl.style.left = `${Math.max(8, window.innerWidth - rect.width - 8)}px`;
+      }
+      if (rect.bottom > window.innerHeight) {
+        graphosContextMenuEl.style.top = `${Math.max(8, window.innerHeight - rect.height - 8)}px`;
+      }
+    });
+  }
+
+  _hideMenu() {
+    if (!graphosContextMenuEl) return;
+    graphosContextMenuEl.hidden = true;
+  }
+
+  _openColorPicker(x, y) {
+    if (!graphosColorPickerEl || !graphosColorWheelEl) return;
+    this.pickingColor = true;
+    graphosColorPickerEl.hidden = false;
+    graphosColorPickerEl.style.left = `${x - 70}px`;
+    graphosColorPickerEl.style.top = `${y - 70}px`;
+  }
+
+  _endColorPick() {
+    if (!this.pickingColor) return;
+    this.pickingColor = false;
+    if (graphosColorPickerEl) {
+      graphosColorPickerEl.hidden = true;
+    }
+    if (this.contextTarget) {
+      this.saveGraph();
+    }
+  }
+
+  _onColorWheelMove(e) {
+    if (!this.pickingColor || !this.contextTarget || !graphosColorWheelEl) return;
+
+    const rect = graphosColorWheelEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) return;
+
+    const wheelCtx = graphosColorWheelEl.getContext('2d');
+    const data = wheelCtx.getImageData(x, y, 1, 1).data;
+    this.contextTarget.color = this._rgbToHex(data[0], data[1], data[2]);
+    if (graphosContextMenuEl) {
+      const swatch = graphosContextMenuEl.querySelector('.graphos-context-menu__swatch');
+      if (swatch) swatch.style.background = this.contextTarget.color;
+    }
+  }
+
+  _onColorWheelDown(e) {
+    if (!this.pickingColor) return;
+    this._onColorWheelMove(e);
+    e.preventDefault();
+  }
+
+  _onBodyMouseDown(e) {
+    if (graphosContextMenuEl && !graphosContextMenuEl.contains(e.target)) {
+      this._hideMenu();
+    }
+    if (graphosColorPickerEl && !graphosColorPickerEl.contains(e.target)) {
+      this._endColorPick();
+    }
+  }
+
+  _onGlobalDown(e) {
+    if (!graphosContextMenuEl) return;
+    if (!graphosContextMenuEl.contains(e.target)) {
+      this._hideMenu();
+    }
+    if (graphosColorPickerEl && !graphosColorPickerEl.contains(e.target)) {
+      this._endColorPick();
+    }
+  }
+
+  _onContextMenu(e) {
+    if (!this._isActive()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === 'function') {
+      e.stopImmediatePropagation();
+    }
+
+    const { x, y } = this._getCanvasPoint(e);
+    const node = this._getNodeAt(x, y);
+    const link = node ? null : this._getLinkAt(x, y);
+    this.selectedLink = node ? null : link;
+    this.contextTarget = node || null;
+
+    if (node) {
+      const extraItems = [];
+      if (this.selectedNodes.size >= 2) {
+        extraItems.push({
+          label: 'Link selected nodes',
+          action: () => {
+            const arr = Array.from(this.selectedNodes);
+            for (let i = 0; i < arr.length; i++) {
+              for (let j = i + 1; j < arr.length; j++) {
+                const a = arr[i];
+                const b = arr[j];
+                const exists = this.links.find(l => (l.a === a && l.b === b) || (l.a === b && l.b === a));
+                if (!exists) {
+                  this.links.push({ a, b });
+                }
+              }
+            }
+            this.saveGraph();
+            this._refreshUi();
+          },
+        });
+      }
+
+      this._beginContextMenu(node, null, e.clientX, e.clientY, e, extraItems);
+      return;
+    }
+
+    if (link) {
+      this._beginContextMenu(null, link, e.clientX, e.clientY, e);
+      return;
+    }
+
+    const items = [];
+    if (this.selectedNodes.size > 0) {
+      items.push({
+        label: this.selectedNodes.size > 1 ? 'Delete selected nodes' : 'Delete selected node',
+        action: () => this._deleteNodes(Array.from(this.selectedNodes)),
+      });
+    }
+    items.push({
+      label: 'Create node',
+      action: () => {
+        const created = this.createNode(x, y, {
+          name: 'Node',
+          type: null,
+          color: randChoice(GRAPHOS_LIVE_COLORS),
+          baseR: 12,
+          r: 12,
+        });
+        this._selectSingle(created);
+        this._refreshTypeFilter();
+        this.saveGraph();
+      },
+    });
+    this._showMenu(e.clientX, e.clientY, items);
+  }
+
+  _onPointerDown(e) {
+    if (!this._isActive() || e.button === 2) return;
+    const { x, y } = this._getCanvasPoint(e);
+    const clickedNode = this._getNodeAt(x, y);
+    let clicked = clickedNode;
+
+    if (e.altKey && clickedNode) {
+      const duplicate = this.cloneNodeForDuplicate(clickedNode);
+      if (duplicate) {
+        clicked = duplicate;
+        this._refreshTypeFilter();
+        this.saveGraph();
+      }
+    }
+
+    const clickedLink = clicked ? null : this._getLinkAt(x, y);
+    if (clickedLink) {
+      this._setLinkSelection(clickedLink);
+      return;
+    }
+
+    if (!clicked && this._isPointInSurfacePreview(x, y)) {
+      this._selectSingle(null);
+      this._hideMenu();
+      if (this._beginSurfacePreviewDrag(x, y, e, this._getSurfacePreviewPose())) {
+        return;
+      }
+    }
+
+    if (e.shiftKey && clicked) {
+      this._toggleNodeSelection(clicked);
+      return;
+    }
+
+    if (clicked) {
+      this._selectSingle(clicked);
+      this.draggedNode = clicked;
+      this.dragPointerId = e.pointerId;
+      this.draggedNode.vx = 0;
+      this.draggedNode.vy = 0;
+      this.canvas.setPointerCapture?.(e.pointerId);
+      return;
+    }
+
+    this._setSelection([]);
+    this._hideMenu();
+  }
+
+  _onPointerMove(e) {
+    if (!this._isActive()) return;
+    const { x, y } = this._getCanvasPoint(e);
+
+    this.surfacePreviewHover = this._isPointInSurfacePreview(x, y);
+
+    if (this.draggedSurfacePreview) {
+      if (e.pointerId != null && e.pointerId !== this.surfaceDragPointerId) return;
+      this._updateSurfacePreviewDrag(e);
+      this._updateHover(x, y);
+      return;
+    }
+
+    if (this.draggedNode) {
+      if (e.pointerId != null && e.pointerId !== this.dragPointerId) return;
+      this.draggedNode.vx += (x - this.draggedNode.x) * 0.2;
+      this.draggedNode.vy += (y - this.draggedNode.y) * 0.2;
+      this._detachIfOutsideParent(this.draggedNode);
+      this._updateContainmentPreview(this.draggedNode);
+      this._updateHover(x, y);
+      return;
+    }
+
+    this._updateHover(x, y);
+  }
+
+  _onPointerUp(e) {
+    if (this.draggedSurfacePreview) {
+      if (e.pointerId != null && e.pointerId !== this.surfaceDragPointerId) return;
+      this._endSurfacePreviewDrag(e);
+      this.surfacePreviewHover = false;
+      this._refreshUi();
+      return;
+    }
+
+    if (!this.draggedNode) {
+      if (this.pickingColor) {
+        this._endColorPick();
+      }
+      return;
+    }
+
+    if (e.pointerId != null && e.pointerId !== this.dragPointerId) return;
+
+    const { x, y } = this._getCanvasPoint(e);
+    const target = this._getContainingNodeAt(x, y, this.draggedNode);
+    if (target && target !== this.draggedNode) {
+      let current = target;
+      let isCycle = false;
+      while (current) {
+        if (current === this.draggedNode) {
+          isCycle = true;
+          break;
+        }
+        current = current.parent;
+      }
+
+      if (!isCycle) {
+        target.addChild(this.draggedNode);
+      }
+    }
+
+    this.saveGraph();
+    this.nodes.forEach(node => { node.isContainedPreview = false; });
+    this.draggedNode.vx *= 0.2;
+    this.draggedNode.vy *= 0.2;
+    this.draggedNode = null;
+    this.dragPointerId = null;
+    this._syncCoreNode();
+    this._refreshUi();
+  }
+
+  _onPointerCancel(e) {
+    if (this.draggedSurfacePreview && e.pointerId != null && e.pointerId !== this.surfaceDragPointerId) return;
+    if (this.draggedSurfacePreview) {
+      this.draggedSurfacePreview = false;
+      this.surfaceDragPointerId = null;
+      this.surfaceDragOffsetX = 0;
+      this.surfaceDragOffsetY = 0;
+      this.surfacePreviewHover = false;
+    }
+    if (this.draggedNode && e.pointerId != null && e.pointerId !== this.dragPointerId) return;
+    this.draggedNode = null;
+    this.dragPointerId = null;
+    this.nodes.forEach(node => { node.isContainedPreview = false; });
+    this._hideMenu();
+    this._endColorPick();
+  }
+
+  _onKeyDown(e) {
+    if (!this._isActive()) return;
+
+    if (this.selectedNodes.size > 0 && (e.key === 'Delete' || (!e.metaKey && !e.ctrlKey && e.key === 'Backspace'))) {
+      e.preventDefault();
+      this._deleteNodes(Array.from(this.selectedNodes));
+      return;
+    }
+
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'Backspace') {
+      e.preventDefault();
+      this.clearGraphStorage();
+      this.nodes.length = 0;
+      this.links.length = 0;
+      this._seedGraph();
+      this._syncCoreNode();
+      this._refreshTypeFilter();
+      this._refreshUi();
+    }
+  }
+
+  clearGraphStorage() {
+    try {
+      localStorage.removeItem(GRAPHOS_LIVE.STORAGE_KEY);
+    } catch (error) {
+      console.warn('GraphOS live storage clear failed:', error);
+    }
+  }
+
+  _getFocusLayer() {
+    if (hoveredGraphosLayer) return hoveredGraphosLayer;
+    if (selectedGraphosLayer) return selectedGraphosLayer;
+    if (this.surfacePreviewHover || this.draggedSurfacePreview) return 'surface';
+    if (this.hoveredLink) return 'edge';
+    if (this.hoveredNode) return 'node';
+
+    const ny = this.h ? mouseY / this.h : 0.5;
+    const nx = this.w ? mouseX / this.w : 0.5;
+    if (ny < 0.30) return 'surface';
+    if (ny > 0.72) return 'context';
+    if (nx < 0.38) return 'group';
+    if (nx > 0.66) return 'edge';
+    return 'node';
+  }
+
+  _drawBackground(focusLayer) {
+    const { ctx } = this;
+    const bg = ctx.createRadialGradient(
+      this.w * 0.52,
+      this.h * 0.44,
+      0,
+      this.w * 0.5,
+      this.h * 0.48,
+      Math.max(this.w, this.h) * 0.92,
+    );
+    bg.addColorStop(0, 'rgba(10,10,14,1)');
+    bg.addColorStop(0.72, 'rgba(6,6,8,1)');
+    bg.addColorStop(1, 'rgba(2,2,3,1)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, this.w, this.h);
+
+    const gridAlpha = focusLayer === 'context' ? 0.045 : focusLayer === 'surface' ? 0.032 : 0.024;
+    ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < 5; i++) {
+      const y = this.h * 0.18 + i * (this.h * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(this.w * 0.06, y);
+      ctx.lineTo(this.w * 0.94, y);
+      ctx.stroke();
+    }
+
+    for (let i = -3; i <= 3; i++) {
+      const x = this.w * 0.5 + i * (this.w * 0.11);
+      ctx.beginPath();
+      ctx.moveTo(x, this.h * 0.12);
+      ctx.lineTo(x + this.w * 0.03, this.h * 0.84);
+      ctx.stroke();
+    }
+  }
+
+  _drawSurfacePreview(focusLayer) {
+    const { ctx } = this;
+    const pose = this._getSurfacePreviewPose();
+    if (!pose) return;
+
+    const focused = focusLayer === 'surface';
+    const hovered = this.surfacePreviewHover;
+    const dragging = this.draggedSurfacePreview;
+    const x = pose.x;
+    const y = pose.y;
+    const w = pose.w;
+    const h = pose.h;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((Math.sin(this.t * 0.08 + this.surfacePreview.phase) + (mouseX / Math.max(this.w, 1) - 0.5)) * (focused ? 0.009 : 0.006));
+    if (dragging) {
+      ctx.scale(1.015, 1.015);
+    } else if (hovered) {
+      ctx.scale(1.008, 1.008);
+    }
+
+    const fill = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
+    fill.addColorStop(0, dragging ? 'rgba(255,255,255,0.20)' : focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)');
+    fill.addColorStop(0.35, dragging ? 'rgba(255,255,255,0.10)' : focused ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)');
+    fill.addColorStop(1, dragging ? 'rgba(255,255,255,0.06)' : focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)');
+    ctx.fillStyle = fill;
+    roundRect(ctx, -w / 2, -h / 2, w, h, 24);
+    ctx.fill();
+    ctx.strokeStyle = dragging ? 'rgba(124,160,255,0.30)' : focused ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = dragging ? 'rgba(124,160,255,0.15)' : focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)';
+    roundRect(ctx, -w / 2 + 1, -h / 2 + 1, w - 2, 26, 20);
+    ctx.fill();
+
+    ['#fff', '#fff', '#fff'].forEach((_, i) => {
+      ctx.beginPath();
+      ctx.arc(-w / 2 + 16 + i * 10, -h / 2 + 13, 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.45 - i * 0.08 + (focused || hovered ? 0.06 : 0) + (dragging ? 0.03 : 0)})`;
+      ctx.fill();
+    });
+
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = dragging ? 'rgba(255,255,255,0.78)' : focused || hovered ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.56)';
+    ctx.fillText('public surface', -w / 2 + 58, -h / 2 + 13.4);
+    ctx.fillStyle = dragging ? 'rgba(124,160,255,0.22)' : focused || hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
+    roundRect(ctx, -w / 2 + 42, -h / 2 + 8, w - 58, 12, 6);
+    ctx.fill();
+
+    const padX = -w / 2 + 16;
+    const padY = -h / 2 + 34;
+    const innerW = w - 32;
+    const innerH = h - 48;
+    ctx.save();
+    roundRect(ctx, padX, padY, innerW, innerH, 18);
+    ctx.clip();
+
+    const hero = ctx.createLinearGradient(padX, padY, padX + innerW, padY + innerH);
+    hero.addColorStop(0, 'rgba(255,255,255,0.08)');
+    hero.addColorStop(1, 'rgba(255,255,255,0.02)');
+    ctx.fillStyle = hero;
+    ctx.fillRect(padX, padY, innerW, innerH);
+
+    ctx.fillStyle = dragging ? 'rgba(124,160,255,0.16)' : focused || hovered ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.10)';
+    roundRect(ctx, padX + 10, padY + 10, innerW * 0.58, 20, 10);
+    ctx.fill();
+    ctx.fillStyle = dragging ? 'rgba(124,160,255,0.10)' : focused || hovered ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.06)';
+    roundRect(ctx, padX + 10, padY + 38, innerW * 0.82, 9, 4.5);
+    ctx.fill();
+    roundRect(ctx, padX + 10, padY + 54, innerW * 0.52, 9, 4.5);
+    ctx.fill();
+
+    const cardY = padY + innerH - 50;
+    for (let i = 0; i < 3; i++) {
+      const cw = innerW * (0.28 - i * 0.02);
+      const cx = padX + 10 + i * (cw + 10);
+      const cy = cardY + Math.sin(this.t * 0.7 + this.surfacePreview.phase + i) * 1.5;
+      ctx.fillStyle = `rgba(255,255,255,${0.08 + i * 0.02 + (focused || hovered ? 0.03 : 0) + (dragging ? 0.02 : 0)})`;
+      roundRect(ctx, cx, cy, cw, 26, 11);
+      ctx.fill();
+      ctx.fillStyle = dragging ? 'rgba(124,160,255,0.28)' : focused || hovered ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.20)';
+      roundRect(ctx, cx + 8, cy + 7, cw * 0.6, 4, 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  _drawContextRibbon(focusLayer) {
+    const { ctx } = this;
+    const focused = focusLayer === 'context';
+    const y = this.contextRibbon.y;
+    const h = 52;
+
+    ctx.save();
+    ctx.fillStyle = focused ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.032)';
+    roundRect(ctx, this.w * 0.1, y - h / 2, this.w * 0.8, h, 22);
+    ctx.fill();
+    ctx.strokeStyle = focused ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.10)';
+    ctx.stroke();
+
+    ctx.save();
+    ctx.clip();
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    const entries = [
+      'registry',
+      'ownership',
+      'policy',
+      'semantics',
+      'intents',
+      'projection',
+      'routing',
+      'memory',
+    ];
+    const span = this.w * 0.16;
+    const shift = (this.t * (focused ? 22 : 16) + this.contextRibbon.phase * 80) % span;
+    for (let i = -1; i < entries.length + 2; i++) {
+      const text = entries[(i + entries.length) % entries.length];
+      const x = this.w * 0.14 + i * span - shift;
+      const alpha = 0.32 + (i % 2) * 0.08 + (focused ? 0.12 : 0);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fillText(text, x, y);
+    }
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  _drawIntentFlux(focusLayer) {
+    if (!this.coreNode) return;
+    const { ctx } = this;
+    const focused = focusLayer === 'context' || focusLayer === 'surface';
+    const core = this.coreNode;
+    const coreTarget = { x: core.x, y: core.y };
+    const surfacePose = this._getSurfacePreviewPose();
+    const surfaceAnchor = {
+      x: surfacePose ? surfacePose.x - surfacePose.w * 0.18 : this.w * 0.78,
+      y: surfacePose ? surfacePose.y + surfacePose.h * 0.22 : this.h * 0.27,
+    };
+    const contextAnchor = {
+      x: this.w * 0.16,
+      y: this.contextRibbon.y - 18,
+    };
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    this.intentLanes.forEach((lane, index) => {
+      const source = lane.kind === 'surface' ? surfaceAnchor : contextAnchor;
+      const phase = (this.t * (0.18 + index * 0.03) + lane.phase) % 1;
+      const x = lerp(source.x, coreTarget.x, phase) + Math.sin(phase * Math.PI) * (lane.kind === 'surface' ? 38 : 18);
+      const y = lerp(source.y, coreTarget.y, phase) + Math.cos(phase * Math.PI) * (lane.kind === 'surface' ? -18 : 10);
+      const alpha = focused ? 0.28 : 0.18;
+      ctx.fillStyle = lane.kind === 'surface' ? `rgba(124,160,255,${alpha})` : `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(x, y, lane.kind === 'surface' ? 2.3 : 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  _drawLinks(focusLayer) {
+    if (!this.view.showLinks) return;
+    const { ctx } = this;
+    const threshold = Math.min(this.w, this.h) * 0.24;
+    const edgeFocusBoost = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.12 : 1;
+    const showFilter = this.view.activeType;
+
+    for (let i = 0; i < this.nodes.length; i++) {
+      for (let j = i + 1; j < this.nodes.length; j++) {
+        const a = this.nodes[i];
+        const b = this.nodes[j];
+        if (showFilter && a.type !== showFilter && b.type !== showFilter) continue;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < threshold) {
+          const alpha = (1 - dist / threshold) * 0.16 * edgeFocusBoost;
+          const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+          gradient.addColorStop(0, 'rgba(255,255,255,0)');
+          gradient.addColorStop(0.5, `rgba(255,255,255,${alpha})`);
+          gradient.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = focusLayer === 'edge' ? 1.05 : 0.72;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  _drawNodes(focusLayer) {
+    if (!this.view.showNodes) return;
+    const filtered = this.nodes.filter(node => !this.view.activeType || node.type === this.view.activeType);
+    const sortedNodes = [...filtered].sort((a, b) => (a.depth || 0) - (b.depth || 0));
+    sortedNodes.forEach(node => {
+      node.draw(this.ctx, focusLayer);
+      if (this.selectedNodes.has(node)) {
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.arc(node.x, node.y, (node.displayRadius || node.r) + 2, 0, Math.PI * 2);
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.arc(node.x, node.y, (node.displayRadius || node.r) * 0.42, 0, Math.PI * 2);
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
+    });
+  }
+
+  _draw() {
+    const focusLayer = this._getFocusLayer();
+    this.ctx.clearRect(0, 0, this.w, this.h);
+    this._drawBackground(focusLayer);
+    this._drawSurfacePreview(focusLayer);
+    this._drawContextRibbon(focusLayer);
+    this._drawIntentFlux(focusLayer);
+    this._drawLinks(focusLayer);
+    this._drawNodes(focusLayer);
+  }
+
+  _tick() {
+    this._syncCoreNode();
+    this.nodes.forEach(node => node.update(this));
+  }
+
+  _loop() {
+    if (!this.running) return;
+    this.t += 0.007;
+    this._tick();
+    this._draw();
+    this.raf = requestAnimationFrame(() => this._loop());
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.t = 0;
+    this._loop();
+  }
+
+  stop() {
+    this.running = false;
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    this.draggedNode = null;
+    this.dragPointerId = null;
+    this.draggedSurfacePreview = false;
+    this.surfaceDragPointerId = null;
+    this.surfaceDragOffsetX = 0;
+    this.surfaceDragOffsetY = 0;
+    this.surfacePreviewHover = false;
+    this._hideMenu();
+    this._endColorPick();
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  resize() {
+    this._resize();
+    this.nodes.forEach(node => {
+      node.x = clamp(node.x, node.r, this.w - node.r);
+      node.y = clamp(node.y, node.r, this.h - node.r);
+    });
+    this._refreshUi();
+  }
+}
+
+
+// =============================================
 // SCENE REGISTRY
 // Maps slide data-slide keys → [SceneClass, options]
 // Visual vocabulary per concept:
@@ -3353,8 +6478,7 @@ const SCENE_MAP = {
                                     edgeAlpha: 0.16, nodeAlpha: [0.28, 0.42] }],
 
   // GraphOS — primitives, draggable context window, groups, and surface projection
-  graphos:     [GraphOSScene,     { nodeCount: 18, speed: 0.18, thresh: 0.20, edgeAlpha: 0.14,
-                                    nodeAlpha: [0.16, 0.34] }],
+  graphos:     [GraphOSLiveScene, null],
 
   // Unification — gentle convergence
   unification: [ConvergenceScene, { cycleDur: 4.5, particles: 30, spread: 260, sharp: false }],
@@ -3368,8 +6492,8 @@ const SCENE_MAP = {
   // Infrastructure — surface, context, intents, and canonical core
   infrastructure: [InfrastructureScene, null],
 
-  // Build — scattered blocks snapping to grid
-  build:       [AssembleScene,    { cols: 4, rows: 3, gap: 30, cx: 0.72, cy: 0.5 }],
+  // Build — construction system with surface, context, nodes, modules, and assets
+  build:       [BuildScene,       null],
 
   // Combination — same system, larger grid, centered
   combination: [AssembleScene,    { cols: 5, rows: 4, gap: 26, cx: 0.5, cy: 0.5 }],
@@ -3472,6 +6596,7 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     Object.values(scenes).forEach(s => s.resize && s.resize());
+    if (mistBg) mistBg.resize();
     syncGraphosWindowPosition();
     updateUI();
     resizeTimer = null;
@@ -3493,6 +6618,14 @@ function cleanup() {
   draggedGraphosWindowEl = null;
   graphosWindowState.dragging = false;
   graphosWindowState.pointerId = null;
+  if (scenes.graphos) {
+    scenes.graphos.draggedSurfacePreview = false;
+    scenes.graphos.surfaceDragPointerId = null;
+    scenes.graphos.surfaceDragOffsetX = 0;
+    scenes.graphos.surfaceDragOffsetY = 0;
+    scenes.graphos.surfacePreviewHover = false;
+  }
+  if (mistBg) mistBg.dispose();
   Object.values(scenes).forEach(scene => scene.stop && scene.stop());
 }
 

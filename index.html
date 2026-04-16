@@ -16,6 +16,7 @@
       }
       body::before,
       body::after,
+      #mist-bg,
       #cursor,
       #cursor-ring,
       #progress-bar,
@@ -49,6 +50,7 @@
 <body>
 
 <!-- Custom cursor -->
+<canvas id="mist-bg" aria-hidden="true"></canvas>
 <div id="cursor" aria-hidden="true"></div>
 <div id="cursor-ring" aria-hidden="true"></div>
 
@@ -57,7 +59,7 @@
 <div id="slide-counter">
   <span id="num-current">01</span>
   <span class="sep">/</span>
-  <span id="num-total">25</span>
+  <span id="num-total">28</span>
 </div>
 <nav id="slide-nav" aria-label="Slide navigation"></nav>
 
@@ -67,21 +69,26 @@
   <!-- 00 -->
   <section class="slide center has-canvas" data-slide="intro">
     <canvas class="slide-canvas" id="canvas-intro"></canvas>
-    <div class="slide-content">
-      <h2>Bonjour, merci de prendre un instant.</h2>
-      <p class="sub">Je vais partager une vision et voir si nous pouvons construire quelque chose ensemble.</p>
+    <div class="slide-content intro-content">
+      <p class="intro-note" role="note">Ceci est une expérience interactive. Privilégiez l'utilisation desktop.</p>
+      <div class="intro-shell">
+        <p class="intro-eyebrow">SPACE briefing</p>
+        <h2 class="intro-title" data-intro-type>Bonjour, merci de prendre un moment.</h2>
+        <p class="sub intro-sub">Faites défiler pour continuer. Utilisez la molette, les flèches, ou la barre de droite.</p>
+        <div class="intro-actions">
+          <button class="intro-scroll" type="button" data-scroll-next>Scroll pour continuer</button>
+          <p class="intro-scroll-meta">Molette, flèches, rail de navigation.</p>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- 01 -->
   <section class="slide" data-slide="founder">
     <div class="slide-content">
-      <div class="ea-wordmark ea-wordmark--founder" aria-label="Electronic Artefacts">
-        <span class="ea-electronic">electronic</span>
-        <span class="ea-artefacts">Artefacts</span>
-      </div>
-      <p>Fondateur &amp; CTO</p>
-      <p class="sub">Structure récente, pensée dès le départ pour une infrastructure scalable à grande échelle.</p>
+      <h2>Electronic Artefacts</h2>
+      <p>Structure récente, pensée dès le départ pour une infrastructure scalable à grande échelle.</p>
+      <p>Joey-Néot Marquet, fondateur &amp; CTO</p>
     </div>
   </section>
 
@@ -128,32 +135,57 @@
     <canvas class="slide-canvas" id="canvas-graphos"></canvas>
     <div class="graphos-window" aria-label="Context window">
       <button class="graphos-window__header" type="button" aria-label="Move context window">
-        <span>Contexte</span>
-        <span class="graphos-window__hint">drag</span>
+        <span class="graphos-window__eyebrow">GraphOS</span>
+        <span class="graphos-window__status"><span class="graphos-window__dot" aria-hidden="true"></span>live node demo</span>
       </button>
+      <div class="graphos-window__meta">
+        <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-nodes" type="button">Nodes</button>
+        <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-links" type="button">Links</button>
+        <label class="graphos-window__chip graphos-window__chip--select" for="graphos-type-filter">
+          <span>Type</span>
+          <select id="graphos-type-filter" aria-label="Filter node type"></select>
+        </label>
+        <span class="graphos-window__chip graphos-window__chip--info" id="graphos-selection-info">0 selected</span>
+      </div>
       <div class="graphos-window__body">
-        <div class="graphos-window__track">
-          <div class="graphos-window__group">
-            <div class="graphos-log"><strong>node</strong><span>identity / state / owner</span></div>
-            <div class="graphos-log"><strong>edge</strong><span>relation / contract / flow</span></div>
-            <div class="graphos-log"><strong>group</strong><span>cluster / scope / structure</span></div>
-            <div class="graphos-log"><strong>surface</strong><span>public view / projection / display</span></div>
-            <div class="graphos-log"><strong>context</strong><span>signals / memory / runtime</span></div>
-          </div>
-          <div class="graphos-window__group" aria-hidden="true">
-            <div class="graphos-log"><strong>node</strong><span>identity / state / owner</span></div>
-            <div class="graphos-log"><strong>edge</strong><span>relation / contract / flow</span></div>
-            <div class="graphos-log"><strong>group</strong><span>cluster / scope / structure</span></div>
-            <div class="graphos-log"><strong>surface</strong><span>public view / projection / display</span></div>
-            <div class="graphos-log"><strong>context</strong><span>signals / memory / runtime</span></div>
-          </div>
+        <div class="graphos-window__feed" role="list" aria-label="Context primitives">
+          <button class="graphos-row" type="button" data-layer="node" role="listitem" aria-label="Focus nodes" aria-pressed="false">
+            <strong>Node</strong>
+            <span>identity / owner / state</span>
+            <small>canonical primitive</small>
+          </button>
+          <button class="graphos-row" type="button" data-layer="edge" role="listitem" aria-label="Focus edges" aria-pressed="false">
+            <strong>Edge</strong>
+            <span>relation / flow / contract</span>
+            <small>connective path</small>
+          </button>
+          <button class="graphos-row" type="button" data-layer="group" role="listitem" aria-label="Focus groups" aria-pressed="false">
+            <strong>Group</strong>
+            <span>cluster / scope / structure</span>
+            <small>bounded topology</small>
+          </button>
+          <button class="graphos-row" type="button" data-layer="surface" role="listitem" aria-label="Focus surface" aria-pressed="false">
+            <strong>Surface</strong>
+            <span>public view / projection / display</span>
+            <small>visible layer</small>
+          </button>
+          <button class="graphos-row" type="button" data-layer="context" role="listitem" aria-label="Focus context" aria-pressed="false">
+            <strong>Context</strong>
+            <span>signals / memory / semantics</span>
+            <small>semantic registry</small>
+          </button>
         </div>
+        <p class="graphos-window__hint">Drag by the nucleus. Shift-click multi-select. Alt-click duplicates. Right-click opens the live editor.</p>
       </div>
     </div>
     <div class="slide-content">
       <h2>Graph OS</h2>
-      <p>Nodes · Edges · Context · Intents · Surfaces</p>
-      <p class="sub">Context lives in a draggable window. Surface becomes projection.</p>
+      <p>Live node graph. Containment, links, and projection.</p>
+      <p class="sub">Drag by nucleus. Shift multi-select. Alt duplicate. Right click to edit.</p>
+    </div>
+    <div class="graphos-context-menu" id="graphos-context-menu" hidden></div>
+    <div class="graphos-color-picker" id="graphos-color-picker" hidden>
+      <canvas id="graphos-color-wheel" width="140" height="140"></canvas>
     </div>
   </section>
 
@@ -169,15 +201,59 @@
   <!-- 08 -->
   <section class="slide has-canvas" data-slide="infrastructure">
     <canvas class="slide-canvas" id="canvas-infrastructure"></canvas>
-    <div class="slide-content">
-      <h2>Infrastructure</h2>
-      <p>Surface · Modules · Context · Intents</p>
-      <p class="sub">Core is the first canonical node. Inside it, only nodes and edges define topology. Modules share the middle layer with context and route surface actions through intents.</p>
+    <div class="slide-content infra-layout">
+      <div class="infra-intro">
+        <p class="tagline">Infrastructure</p>
+        <h2>Surface projects. Context defines semantics.</h2>
+        <p class="infra-lead">The system is organized as a canonical core graph. Surface turns the system into a public projection, context stores the registry, intents route actions, and modules enrich the middle layer.</p>
+        <p class="infra-path" aria-label="Reading order: Surface, Context, Intents, Modules, Core">
+          <span class="infra-step" data-layer="surface">Surface</span>
+          <span class="infra-step__arrow" aria-hidden="true">→</span>
+          <span class="infra-step" data-layer="context">Context</span>
+          <span class="infra-step__arrow" aria-hidden="true">→</span>
+          <span class="infra-step" data-layer="intents">Intents</span>
+          <span class="infra-step__arrow" aria-hidden="true">→</span>
+          <span class="infra-step" data-layer="modules">Modules</span>
+          <span class="infra-step__arrow" aria-hidden="true">→</span>
+          <span class="infra-step" data-layer="core">Core</span>
+        </p>
+        <p class="sub">Core is the first canonical node. Inside it, only nodes and edges define topology.</p>
+      </div>
+
+      <div class="infra-stack" aria-label="Infrastructure layers">
+        <div class="infra-card" data-layer="surface">
+          <span>Surface</span>
+          <strong>Public projection</strong>
+          <small>Pages, UI, visible output.</small>
+        </div>
+        <div class="infra-card" data-layer="context">
+          <span>Context</span>
+          <strong>Global registry</strong>
+          <small>Semantics, policy, state.</small>
+        </div>
+        <div class="infra-card" data-layer="intents">
+          <span>Intents</span>
+          <strong>Action corridor</strong>
+          <small>User & System actions routed into the graph.</small>
+        </div>
+        <div class="infra-card" data-layer="modules">
+          <span>Modules</span>
+          <strong>Middle layer enrichment</strong>
+          <small>Capabilities attached to canonical nodes.</small>
+        </div>
+        <div class="infra-card" data-layer="core">
+          <span>Core</span>
+          <strong>Nodes and edges only</strong>
+          <small>Topology remains canonical.</small>
+        </div>
+      </div>
+
+      <p class="sub infra-summary">Hover a layer or move across the canvas to bias the corresponding part of the architecture.</p>
     </div>
   </section>
 
-  <!-- 09 — Modules: orbiting blocks -->
-  <section class="slide has-canvas" data-slide="modules">
+  <!-- 09 — Modules: store / catalog -->
+  <section class="slide has-canvas modules-slide" data-slide="modules">
     <canvas class="slide-canvas" id="canvas-modules"></canvas>
     <div class="modules-orbits" aria-hidden="true">
       <div class="module-pill" data-module="identity">Identity</div>
@@ -188,20 +264,249 @@
       <div class="module-pill" data-module="logistics">Logistics</div>
       <div class="module-pill" data-module="flux">Flux</div>
     </div>
-    <div class="slide-content">
-      <h2>Modules</h2>
-      <p>Identity · Workspace · AI · Assets · Programs · Domotics · Surface Studio · Logistics · Flux · Profiles · Marketplace</p>
-      <p class="sub">And Many more composable capabilities attached to one shared primitive system.</p>
+    <div class="slide-content modules-layout">
+      <div class="modules-intro">
+        <p class="modules-kicker">Module store</p>
+        <h2>Modules</h2>
+        <p>A curated module store for installable capabilities. Core packages stay canonical, add-ons stay composable, and new modules can ship independently.</p>
+        <p class="sub">The store is the product layer: install, bundle, and extend without breaking the runtime.</p>
+      </div>
+      <div class="modules-store">
+        <article class="modules-feature" style="--module-accent: rgba(124, 160, 255, 0.78);">
+          <div class="modules-feature__top">
+            <span class="modules-feature__eyebrow">Curated marketplace</span>
+            <span class="modules-feature__status">7 packages</span>
+          </div>
+          <strong>Modules ship like products.</strong>
+          <p>Every capability sits on the same primitive layer, so the catalog can grow without turning the core into a monolith.</p>
+          <div class="modules-feature__chips">
+            <span>Core</span>
+            <span>Public</span>
+            <span>Add-ons</span>
+            <span>Research</span>
+          </div>
+          <div class="modules-feature__meta">
+            <span>Installable stack</span>
+            <span>Versioned catalog</span>
+          </div>
+        </article>
+        <div class="modules-grid">
+          <article class="module-card" tabindex="0" data-module="identity" data-status="included" style="--module-accent: #7ca0ff;">
+            <div class="module-card__top">
+              <span class="module-card__index">01</span>
+              <span class="module-card__badge">Included</span>
+            </div>
+            <strong>Identity</strong>
+            <p>Auth, profiles, permissions, trusted state.</p>
+            <div class="module-card__foot">
+              <span>Core package</span>
+              <span class="module-card__cta">Open</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="workspace" data-status="included" style="--module-accent: #9fe4ff;">
+            <div class="module-card__top">
+              <span class="module-card__index">02</span>
+              <span class="module-card__badge">Included</span>
+            </div>
+            <strong>Workspace</strong>
+            <p>Spaces, projects, collaboration, routing.</p>
+            <div class="module-card__foot">
+              <span>Core package</span>
+              <span class="module-card__cta">Open</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="assets" data-status="available" style="--module-accent: #f4c26f;">
+            <div class="module-card__top">
+              <span class="module-card__index">03</span>
+              <span class="module-card__badge">Available</span>
+            </div>
+            <strong>Assets</strong>
+            <p>Files, media, artifacts, and memory layers.</p>
+            <div class="module-card__foot">
+              <span>Library</span>
+              <span class="module-card__cta">Install</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="programs" data-status="available" style="--module-accent: #a8f0c7;">
+            <div class="module-card__top">
+              <span class="module-card__index">04</span>
+              <span class="module-card__badge">Available</span>
+            </div>
+            <strong>Programs</strong>
+            <p>Automations, workflows, jobs, and runtime logic.</p>
+            <div class="module-card__foot">
+              <span>Automation</span>
+              <span class="module-card__cta">Install</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="domotics" data-status="bridge" style="--module-accent: #e0b4ff;">
+            <div class="module-card__top">
+              <span class="module-card__index">05</span>
+              <span class="module-card__badge">Bridge</span>
+            </div>
+            <strong>Domotics</strong>
+            <p>Devices, rooms, environments, and control layers.</p>
+            <div class="module-card__foot">
+              <span>Connected systems</span>
+              <span class="module-card__cta">Connect</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="logistics" data-status="available" style="--module-accent: #ffc59d;">
+            <div class="module-card__top">
+              <span class="module-card__index">06</span>
+              <span class="module-card__badge">Available</span>
+            </div>
+            <strong>Logistics</strong>
+            <p>Routing, supply, operations, and coordination.</p>
+            <div class="module-card__foot">
+              <span>Operations</span>
+              <span class="module-card__cta">Deploy</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="flux" data-status="experimental" style="--module-accent: #c9d0ff;">
+            <div class="module-card__top">
+              <span class="module-card__index">07</span>
+              <span class="module-card__badge">Experimental</span>
+            </div>
+            <strong>Flux</strong>
+            <p>Streams, sync, transitions, and state flow.</p>
+            <div class="module-card__foot">
+              <span>Research package</span>
+              <span class="module-card__cta">Preview</span>
+            </div>
+          </article>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- 10 -->
   <section class="slide has-canvas" data-slide="build">
     <canvas class="slide-canvas" id="canvas-build"></canvas>
-    <div class="slide-content">
-      <h2>Build</h2>
-      <p>Installer, construire, étendre.</p>
-      <p class="sub">Ajouter des briques au fil des besoins.</p>
+    <div class="slide-content build-layout">
+      <div class="build-intro">
+        <p class="tagline">Build</p>
+        <h2>Surface Studio designs surfaces. Programs wire nodes. Context gives them type.</h2>
+        <p class="build-lead">SPACE is built from surfaces. Surface Studio composes the public layer, programs orchestrate node relations, context defines what a node is in context, modules enrich the middle layer, and Assets lets any file type land on a node.</p>
+        <p class="sub build-summary">Domotics can drive several things at once. The core remains canonical; everything else attaches around it.</p>
+        <p class="build-path" aria-label="Build sequence">
+          <span class="build-step" data-layer="surface" role="button" tabindex="0">Surface Studio</span>
+          <span class="build-step__arrow" aria-hidden="true">→</span>
+          <span class="build-step" data-layer="programs" role="button" tabindex="0">Programs</span>
+          <span class="build-step__arrow" aria-hidden="true">→</span>
+          <span class="build-step" data-layer="context" role="button" tabindex="0">Context</span>
+          <span class="build-step__arrow" aria-hidden="true">→</span>
+          <span class="build-step" data-layer="nodes" role="button" tabindex="0">Nodes</span>
+          <span class="build-step__arrow" aria-hidden="true">→</span>
+          <span class="build-step" data-layer="modules" role="button" tabindex="0">Modules</span>
+          <span class="build-step__arrow" aria-hidden="true">→</span>
+          <span class="build-step" data-layer="assets" role="button" tabindex="0">Assets</span>
+        </p>
+      </div>
+
+      <div class="build-workbench">
+        <div class="build-surface" data-layer="surface" role="button" tabindex="0" aria-pressed="false">
+          <div class="build-surface__top">
+            <span>Surface Studio</span>
+            <span>Public surface</span>
+          </div>
+          <div class="build-surface__window">
+            <div class="build-surface__chrome" aria-hidden="true">
+              <span class="build-surface__dots">
+                <i></i>
+                <i></i>
+                <i></i>
+              </span>
+              <span class="build-surface__url">surface studio / preview</span>
+            </div>
+            <div class="build-surface__viewport">
+              <div class="build-surface__hero">
+                <span class="build-surface__kicker">Surface projects the system</span>
+                <strong>Design the visible layer</strong>
+                <p>Pages, screens, outputs, projections.</p>
+              </div>
+              <div class="build-surface__chips" aria-hidden="true">
+                <span>Layout</span>
+                <span>UI</span>
+                <span>Projection</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="build-grid">
+          <article class="build-card" data-layer="programs" role="button" tabindex="0" aria-pressed="false" style="--build-accent: rgba(255, 255, 255, 0.18);">
+            <div class="build-card__top">
+              <span class="build-card__index">01</span>
+              <span class="build-card__badge">Orchestration</span>
+            </div>
+            <strong>Programs</strong>
+            <p>Orchestrate flows, trigger actions, and compose nodes into repeatable systems.</p>
+            <div class="build-card__foot">
+              <span>compose / route / publish</span>
+              <span class="build-card__cta">Live</span>
+            </div>
+          </article>
+
+          <article class="build-card" data-layer="context" role="button" tabindex="0" aria-pressed="false" style="--build-accent: rgba(124, 160, 255, 0.24);">
+            <div class="build-card__top">
+              <span class="build-card__index">02</span>
+              <span class="build-card__badge">Registry</span>
+            </div>
+            <strong>Context</strong>
+            <p>Define what a node is in context. Registry, semantics, policy.</p>
+            <div class="build-card__foot">
+              <span>type / semantics / policy</span>
+              <span class="build-card__cta">Global</span>
+            </div>
+          </article>
+
+          <article class="build-card" data-layer="nodes" role="button" tabindex="0" aria-pressed="false" style="--build-accent: rgba(255, 255, 255, 0.14);">
+            <div class="build-card__top">
+              <span class="build-card__index">03</span>
+              <span class="build-card__badge">Topology</span>
+            </div>
+            <strong>Nodes</strong>
+            <p>Relations define topology. Edges keep the graph canonical.</p>
+            <div class="build-card__foot">
+              <span>nodes / edges / graph</span>
+              <span class="build-card__cta">Canonical</span>
+            </div>
+          </article>
+
+          <article class="build-card" data-layer="modules" role="button" tabindex="0" aria-pressed="false" style="--build-accent: rgba(160, 184, 255, 0.24);">
+            <div class="build-card__top">
+              <span class="build-card__index">04</span>
+              <span class="build-card__badge">Capabilities</span>
+            </div>
+            <strong>Modules</strong>
+            <p>Attach behavior. Domotics can drive several things at once.</p>
+            <div class="build-card__chips" aria-hidden="true">
+              <span>Domotics</span>
+              <span>Logistics</span>
+              <span>Flux</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="build-assets" data-layer="assets" role="button" tabindex="0" aria-pressed="false">
+          <div class="build-assets__lead">
+            <span>Assets module</span>
+            <strong>Any file type on a node</strong>
+            <p>3D, images, video, code, documents, data.</p>
+          </div>
+          <div class="build-assets__chips" aria-hidden="true">
+            <span class="build-asset-chip">.glb</span>
+            <span class="build-asset-chip">.pdf</span>
+            <span class="build-asset-chip">.png</span>
+            <span class="build-asset-chip">.mp4</span>
+            <span class="build-asset-chip">.md</span>
+            <span class="build-asset-chip">.csv</span>
+            <span class="build-asset-chip">.tsx</span>
+            <span class="build-asset-chip">.json</span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -365,38 +670,104 @@
 
   <!-- 21 -->
   <section class="slide" data-slide="currentstate">
-    <div class="slide-content currentstate-layout">
-      <div class="currentstate-intro">
+    <div class="slide-content brief-layout">
+      <div class="brief-intro">
         <p class="tagline">Current state</p>
         <h2>Architecture conceptuelle verrouillée.</h2>
-        <p class="currentstate-lead">Les primitives sont en cours de purification pour rendre le core réellement agnostique.</p>
+        <p class="brief-lead">Les primitives sont en cours de purification pour rendre le core réellement agnostique.</p>
         <p class="sub">Le raffinage de l'architecture est en place, la migration des modules a commencé, et les premiers tests ont déjà validé la direction sur Raspberry comme en local.</p>
       </div>
 
-      <div class="currentstate-stack" aria-label="Status overview">
-        <div class="currentstate-card">
+      <div class="brief-stack" aria-label="Status overview">
+        <div class="brief-card">
           <span>Validated</span>
           <strong>Raspberry environment</strong>
         </div>
-        <div class="currentstate-card">
+        <div class="brief-card">
           <span>Validated</span>
           <strong>Local environment</strong>
         </div>
-        <div class="currentstate-card">
+        <div class="brief-card">
           <span>In progress</span>
           <strong>Module migration</strong>
         </div>
-        <div class="currentstate-card">
+        <div class="brief-card">
           <span>Next flagship</span>
           <strong>Vestiges</strong>
         </div>
       </div>
 
-      <p class="sub currentstate-summary">Transition courte avant le premier flagship : Vestiges.</p>
+      <p class="sub brief-summary">Transition courte avant le premier flagship : Vestiges.</p>
     </div>
   </section>
 
   <!-- 22 -->
+  <section class="slide" data-slide="partnerships">
+    <div class="slide-content brief-layout">
+      <div class="brief-intro">
+        <p class="tagline">Partnerships</p>
+        <h2>Build the research OS with schools and institutions.</h2>
+        <p class="brief-lead">Education, public institutions, and research partners can help define new modules and new ways of working.</p>
+        <p class="sub">Open to collaborations, co-development, and research partnerships.</p>
+      </div>
+
+      <div class="brief-stack" aria-label="Partnership areas">
+        <div class="brief-card">
+          <span>Education</span>
+          <strong>Co-design new modules</strong>
+        </div>
+        <div class="brief-card">
+          <span>Institutions</span>
+          <strong>Pilot and validate workflows</strong>
+        </div>
+        <div class="brief-card">
+          <span>Public</span>
+          <strong>Open experimentation</strong>
+        </div>
+        <div class="brief-card">
+          <span>Research</span>
+          <strong>Shared exploration</strong>
+        </div>
+      </div>
+
+      <p class="sub brief-summary">The project grows faster when it is built with partners.</p>
+    </div>
+  </section>
+
+  <!-- 23 -->
+  <section class="slide" data-slide="businessmodel">
+    <div class="slide-content brief-layout">
+      <div class="brief-intro">
+        <p class="tagline">Business model</p>
+        <h2>Subscriptions keep the platform moving.</h2>
+        <p class="brief-lead">The core can stay agnostic while recurring plans and paid modules finance the system's evolution.</p>
+        <p class="sub">A public foundation, premium capabilities, and institutional access.</p>
+      </div>
+
+      <div class="brief-stack" aria-label="Business model layers">
+        <div class="brief-card">
+          <span>Subscriptions</span>
+          <strong>Recurring access</strong>
+        </div>
+        <div class="brief-card">
+          <span>Modules</span>
+          <strong>Paid capabilities</strong>
+        </div>
+        <div class="brief-card">
+          <span>Institutions</span>
+          <strong>Education and research tiers</strong>
+        </div>
+        <div class="brief-card">
+          <span>Core</span>
+          <strong>Open, agnostic base</strong>
+        </div>
+      </div>
+
+      <p class="sub brief-summary">The long-term model is continuous access, modular expansion, and partner-backed development.</p>
+    </div>
+  </section>
+
+  <!-- 24 -->
   <section class="slide has-canvas" data-slide="next">
     <canvas class="slide-canvas" id="canvas-next"></canvas>
     <div class="slide-content">
@@ -406,7 +777,7 @@
     </div>
   </section>
 
-  <!-- 23 -->
+  <!-- 25 -->
   <section class="slide" data-slide="open">
     <div class="slide-content">
       <h2>Open</h2>
@@ -415,7 +786,7 @@
     </div>
   </section>
 
-  <!-- 24 -->
+  <!-- 26 -->
   <section class="slide center has-canvas" data-slide="closing">
     <canvas class="slide-canvas" id="canvas-closing"></canvas>
     <div class="slide-content">
