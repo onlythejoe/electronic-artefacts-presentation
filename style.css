@@ -1453,6 +1453,127 @@ body[data-theme="light"] .contact-cta:hover {
   opacity: 0.82;
 }
 
+.slide[data-slide="currentstate"] .slide-content {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+}
+
+.slide[data-slide="currentstate"] h2 {
+  font-size: clamp(2.35rem, 4.8vw, 4.3rem);
+  letter-spacing: -0.05em;
+}
+
+.currentstate-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 560px;
+}
+
+.slide[data-slide="currentstate"] .currentstate-intro p,
+.slide[data-slide="currentstate"] .currentstate-summary {
+  margin-top: 0;
+}
+
+.currentstate-intro .tagline {
+  margin-top: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.66rem;
+  color: rgba(0, 0, 0, 0.42);
+}
+
+.currentstate-lead {
+  margin-top: 8px;
+  max-width: 28ch;
+  font-size: clamp(1.08rem, 1.75vw, 1.35rem);
+  color: var(--theme-fg);
+}
+
+.currentstate-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.currentstate-card {
+  position: relative;
+  min-height: 118px;
+  padding: 18px 18px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.52));
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255,255,255,0.72);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  opacity: 0;
+  transform: translate3d(0, 14px, 0) scale(0.985);
+  will-change: transform, opacity;
+  transition:
+    opacity var(--text-dur) ease,
+    transform var(--text-dur) var(--ease-out),
+    box-shadow 260ms var(--ease-out),
+    border-color 260ms var(--ease-out);
+}
+
+.currentstate-card::before {
+  content: '';
+  position: absolute;
+  inset: 14px auto 14px 14px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.24), rgba(0,0,0,0.06));
+}
+
+.currentstate-card span {
+  display: block;
+  margin-left: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.62rem;
+  color: rgba(0, 0, 0, 0.42);
+}
+
+.currentstate-card strong {
+  display: block;
+  margin: 8px 0 0 18px;
+  color: var(--theme-fg);
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.currentstate-summary {
+  grid-column: 1 / -1;
+  max-width: 760px;
+  margin-top: 6px;
+}
+
+.slide.is-active .currentstate-card {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.slide.is-active .currentstate-card:nth-child(1) { transition-delay: 0.12s; }
+.slide.is-active .currentstate-card:nth-child(2) { transition-delay: 0.20s; }
+.slide.is-active .currentstate-card:nth-child(3) { transition-delay: 0.28s; }
+.slide.is-active .currentstate-card:nth-child(4) { transition-delay: 0.36s; }
+
+.currentstate-card:hover {
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.88);
+  transform: translate3d(0, -2px, 0) scale(1.01);
+}
+
 /* ===== CENTER VARIANT ===== */
 .center {
   align-items: center;
@@ -1529,6 +1650,7 @@ body::after {
 
   .slide[data-slide="modules"] .slide-content,
   .slide[data-slide="infrastructure"] .slide-content,
+  .slide[data-slide="currentstate"] .slide-content,
   .slide[data-slide="positioning"] .slide-content {
     max-width: min(100%, 620px);
     margin-top: 0;
@@ -1598,6 +1720,7 @@ body::after {
 
   .slide[data-slide="modules"] .slide-content,
   .slide[data-slide="infrastructure"] .slide-content,
+  .slide[data-slide="currentstate"] .slide-content,
   .slide[data-slide="positioning"] .slide-content {
     align-self: center;
     max-width: 100%;
@@ -1641,6 +1764,15 @@ body::after {
 
   .phase-node::before {
     top: 8px;
+  }
+
+  .slide[data-slide="currentstate"] .slide-content {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .currentstate-stack {
+    grid-template-columns: 1fr;
   }
 
   .continuum-flow {

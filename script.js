@@ -2,7 +2,7 @@
 const ANIM_DUR   = 850;   // ms — matches CSS --slide-dur
 const PARALLAX_S = 12;    // max parallax offset in px
 const PARALLAX_L = 0.055; // parallax lerp speed
-const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'next', 'open', 'closing', 'contact']);
+const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'currentstate', 'next', 'open', 'closing', 'contact']);
 
 // ===== STATE =====
 let currentIndex = 0;
