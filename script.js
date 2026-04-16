@@ -23,12 +23,22 @@ let activeContentEl = null;
 let activeTextNodes = [];
 let activeVestigeStageEl = null;
 let activeVestigeFloatersEl = null;
+let activeGraphosWindowEl = null;
+let draggedGraphosWindowEl = null;
 let navTrackEl = null;
 let navIndicatorEl = null;
 let hoveredTextNode = null;
 let hoverProbeX = NaN;
 let hoverProbeY = NaN;
 let appAlive = true;
+const graphosWindowState = {
+  x: null,
+  y: null,
+  offsetX: 0,
+  offsetY: 0,
+  dragging: false,
+  pointerId: null,
+};
 const ACTION_HOVER_SELECTOR = '#nav-track, a, button, [role="button"]';
 const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -42,6 +52,7 @@ const progressEl = document.getElementById('progress-bar');
 const numCurEl   = document.getElementById('num-current');
 const numTotEl   = document.getElementById('num-total');
 const navEl      = document.getElementById('slide-nav');
+const graphosWindowHandleEl = document.querySelector('.graphos-window__header');
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -76,13 +87,15 @@ function applyTextMotion() {
 
   const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
   const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
+  const slideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
+  const motionScale = slideKey === 'graphos' ? 0.45 : 1;
 
   activeTextNodes.forEach((node, index) => {
     const depth = index + 1;
     const hoverBoost = hoveredTextNode && (node === hoveredTextNode || node.contains(hoveredTextNode)) ? 1.7 : 1;
-    const tx = clamp(nx * 12 * depth * 0.42 * hoverBoost, -10, 10);
-    const ty = clamp(ny * 10 * depth * 0.36 * hoverBoost, -8, 8);
-    const rot = clamp(nx * depth * 1.2 * hoverBoost, -2.4, 2.4);
+    const tx = clamp(nx * 12 * depth * 0.42 * hoverBoost * motionScale, -10, 10);
+    const ty = clamp(ny * 10 * depth * 0.36 * hoverBoost * motionScale, -8, 8);
+    const rot = clamp(nx * depth * 1.2 * hoverBoost * motionScale, -2.4, 2.4);
     node.style.setProperty('--text-shift-x', tx.toFixed(2) + 'px');
     node.style.setProperty('--text-shift-y', ty.toFixed(2) + 'px');
     node.style.setProperty('--text-rot', rot.toFixed(2) + 'deg');
@@ -98,6 +111,7 @@ function refreshActiveSlideCache() {
     : [];
   activeVestigeStageEl = activeSlideEl ? activeSlideEl.querySelector('#vestiges-stage, #continuum-stage') : null;
   activeVestigeFloatersEl = activeSlideEl ? activeSlideEl.querySelector('.vestiges-floaters') : null;
+  activeGraphosWindowEl = activeSlideEl ? activeSlideEl.querySelector('.graphos-window') : null;
   hoveredTextNode = null;
   hoverProbeX = NaN;
   hoverProbeY = NaN;
@@ -154,6 +168,7 @@ function goTo(index, opts = {}) {
   }
 
   isAnimating = true;
+  endGraphosWindowDrag();
 
   stopScene(slideEls[currentIndex].dataset.slide);
 
@@ -181,6 +196,7 @@ function applyClasses() {
   });
   refreshActiveSlideCache();
   restartLogoAnimation(slideEls[currentIndex]);
+  syncGraphosWindowPosition();
 }
 
 
@@ -263,6 +279,80 @@ function clearActionHoverState() {
   hoverProbeY = NaN;
 }
 
+function getGraphosWindowDefaults() {
+  if (!activeGraphosWindowEl) return null;
+  const narrow = window.innerWidth < 900;
+  return {
+    x: narrow ? window.innerWidth * 0.5 : window.innerWidth * 0.72,
+    y: narrow ? window.innerHeight * 0.38 : window.innerHeight * 0.30,
+  };
+}
+
+function clampGraphosWindowPosition(x, y, el = activeGraphosWindowEl) {
+  if (!el) return { x, y };
+  const rect = el.getBoundingClientRect();
+  const minX = rect.width / 2 + 18;
+  const maxX = Math.max(minX, window.innerWidth - rect.width / 2 - 18);
+  const minY = rect.height / 2 + 18;
+  const maxY = Math.max(minY, window.innerHeight - rect.height / 2 - 18);
+  return {
+    x: clamp(x, minX, maxX),
+    y: clamp(y, minY, maxY),
+  };
+}
+
+function syncGraphosWindowPosition(forceDefault = false) {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'graphos' || !activeGraphosWindowEl) return;
+
+  if (graphosWindowState.x == null || graphosWindowState.y == null || forceDefault) {
+    const defaults = getGraphosWindowDefaults();
+    if (defaults) {
+      graphosWindowState.x = defaults.x;
+      graphosWindowState.y = defaults.y;
+    }
+  }
+
+  const pos = clampGraphosWindowPosition(graphosWindowState.x, graphosWindowState.y);
+  graphosWindowState.x = pos.x;
+  graphosWindowState.y = pos.y;
+  activeGraphosWindowEl.style.setProperty('--graphos-x', `${pos.x.toFixed(1)}px`);
+  activeGraphosWindowEl.style.setProperty('--graphos-y', `${pos.y.toFixed(1)}px`);
+}
+
+function beginGraphosWindowDrag(e) {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'graphos' || !activeGraphosWindowEl) return;
+  if (e.button !== 0) return;
+
+  const rect = activeGraphosWindowEl.getBoundingClientRect();
+  graphosWindowState.dragging = true;
+  graphosWindowState.pointerId = e.pointerId;
+  graphosWindowState.offsetX = e.clientX - (rect.left + rect.width / 2);
+  graphosWindowState.offsetY = e.clientY - (rect.top + rect.height / 2);
+  draggedGraphosWindowEl = activeGraphosWindowEl;
+  draggedGraphosWindowEl.classList.add('is-dragging');
+  if (graphosWindowHandleEl && graphosWindowHandleEl.setPointerCapture) {
+    graphosWindowHandleEl.setPointerCapture(e.pointerId);
+  }
+  e.preventDefault();
+}
+
+function updateGraphosWindowDrag(e) {
+  const windowEl = draggedGraphosWindowEl || activeGraphosWindowEl;
+  if (!graphosWindowState.dragging || e.pointerId !== graphosWindowState.pointerId || !windowEl) return;
+  graphosWindowState.x = e.clientX - graphosWindowState.offsetX;
+  graphosWindowState.y = e.clientY - graphosWindowState.offsetY;
+  syncGraphosWindowPosition();
+}
+
+function endGraphosWindowDrag(e) {
+  if (!graphosWindowState.dragging) return;
+  if (e && 'pointerId' in e && e.pointerId !== graphosWindowState.pointerId) return;
+  graphosWindowState.dragging = false;
+  graphosWindowState.pointerId = null;
+  if (draggedGraphosWindowEl) draggedGraphosWindowEl.classList.remove('is-dragging');
+  draggedGraphosWindowEl = null;
+}
+
 
 // =============================================
 // CURSOR + PARALLAX LOOP
@@ -278,9 +368,16 @@ document.addEventListener('mousemove', e => {
 }, { passive: true });
 
 document.addEventListener('pointermove', onNavPointerMove, { passive: true });
+document.addEventListener('pointermove', updateGraphosWindowDrag, { passive: true });
 document.addEventListener('pointerup', endNavDrag);
+document.addEventListener('pointerup', endGraphosWindowDrag);
 document.addEventListener('pointercancel', endNavDrag);
+document.addEventListener('pointercancel', endGraphosWindowDrag);
 document.addEventListener('mouseleave', clearActionHoverState);
+
+if (graphosWindowHandleEl) {
+  graphosWindowHandleEl.addEventListener('pointerdown', beginGraphosWindowDrag);
+}
 
 function animLoop() {
   if (!appAlive) return;
@@ -794,8 +891,9 @@ class ConvergenceScene {
 
 
 // =============================================
-// SCENE: MODULES
-// App-like capsules dock into a shared core.
+// SCENE: INFRASTRUCTURE
+// Surface projects. Context defines semantics.
+// Intents move changes into a canonical core graph.
 // =============================================
 
 class InfrastructureScene {
@@ -805,13 +903,14 @@ class InfrastructureScene {
     this.running = false;
     this.raf = null;
     this.t = 0;
-    this.layers = [
-      { label: 'Core',     y: 0.22, alpha: 0.12 },
-      { label: 'Surface',  y: 0.43, alpha: 0.10 },
-      { label: 'Runtime',  y: 0.66, alpha: 0.08 },
-    ];
-    this.nodes = [];
-    this.packets = [];
+    this.surfaceWindow = null;
+    this.contextBand = null;
+    this.core = null;
+    this.modules = [];
+    this.contextEntries = [];
+    this.coreLayout = [];
+    this.coreEdges = [];
+    this.intents = [];
     this._resize();
     this._init();
   }
@@ -819,35 +918,83 @@ class InfrastructureScene {
   _resize() {
     this.w = this.canvas.width = this.canvas.offsetWidth;
     this.h = this.canvas.height = this.canvas.offsetHeight;
-    this.cx = this.w * 0.51;
-    this.spineTop = this.h * 0.16;
-    this.spineBottom = this.h * 0.86;
+    this.surfaceWindow = {
+      x: this.w * 0.5,
+      y: this.h * 0.18,
+      w: clamp(this.w * 0.40, 300, 500),
+      h: clamp(this.h * 0.19, 136, 188),
+      phase: rand(0, Math.PI * 2),
+    };
+    this.contextBand = {
+      x: this.w * 0.10,
+      y: this.h * 0.43,
+      w: this.w * 0.80,
+      h: clamp(this.h * 0.18, 130, 178),
+    };
+    this.core = {
+      x: this.w * 0.52,
+      y: this.h * 0.74,
+      r: clamp(Math.min(this.w, this.h) * 0.18, 96, 180),
+    };
   }
 
   _init() {
-    const slots = [
-      { layer: 0, x: 0.49, y: 0.21, label: 'Kernel' },
-      { layer: 0, x: 0.58, y: 0.24, label: 'Identity' },
-      { layer: 1, x: 0.41, y: 0.43, label: 'API' },
-      { layer: 1, x: 0.64, y: 0.42, label: 'Surface' },
-      { layer: 2, x: 0.35, y: 0.66, label: 'Modules' },
-      { layer: 2, x: 0.61, y: 0.69, label: 'Context' },
-    ];
-    this.nodes = slots.map((slot, i) => ({
-      label: slot.label,
-      layer: slot.layer,
-      baseX: this.w * slot.x,
-      baseY: this.h * slot.y,
-      driftX: rand(-8, 8),
-      driftY: rand(-6, 6),
-      size: 0.86 + (i % 2) * 0.06,
+    const moduleLabels = ['Identity', 'Workspace', 'Assets', 'Programs', 'Domotics', 'Logistics', 'Flux'];
+    const moduleTargets = [1, 2, 4, 6, 3, 7, 5];
+    const moduleStartX = this.w * 0.18;
+    const moduleEndX = this.w * 0.82;
+    const moduleStep = (moduleEndX - moduleStartX) / Math.max(1, moduleLabels.length - 1);
+    const moduleY = this.contextBand.y - 26;
+
+    this.modules = moduleLabels.map((label, index) => ({
+      label,
+      baseX: moduleStartX + moduleStep * index,
+      baseY: moduleY + (index % 2 === 0 ? -3 : 9),
+      w: 88 + label.length * 2.9,
+      h: 25,
       phase: rand(0, Math.PI * 2),
+      depth: 0.42 + (index % 3) * 0.08,
+      targetIndex: moduleTargets[index],
+      intentSpeed: 0.14 + Math.random() * 0.07,
     }));
-    this.packets = Array.from({ length: 4 }, (_, i) => ({
-      lane: i % 4,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.26 + Math.random() * 0.12,
-      offset: Math.random(),
+
+    this.contextEntries = [
+      { key: 'registry', value: 'global meaning' },
+      { key: 'ownership', value: 'canonical' },
+      { key: 'policy', value: 'shared rules' },
+      { key: 'state', value: 'live memory' },
+      { key: 'intent', value: 'surface action' },
+      { key: 'projection', value: 'surface output' },
+      { key: 'scope', value: 'module boundary' },
+      { key: 'metadata', value: 'graph context' },
+      { key: 'routing', value: 'edge path' },
+      { key: 'linkage', value: 'node relation' },
+      { key: 'semantics', value: 'registry layer' },
+      { key: 'contracts', value: 'interface' },
+    ];
+
+    // Canonical core graph: a stable internal topology of nodes and edges.
+    this.coreLayout = [
+      { ox: 0.00, oy: 0.00, r: 4.8, wobble: 1.0 },
+      { ox: -0.26, oy: -0.18, r: 2.9, wobble: 0.85 },
+      { ox: 0.26, oy: -0.15, r: 2.8, wobble: 0.80 },
+      { ox: -0.34, oy: 0.16, r: 2.4, wobble: 0.72 },
+      { ox: 0.18, oy: 0.24, r: 2.5, wobble: 0.75 },
+      { ox: 0.00, oy: -0.35, r: 2.2, wobble: 0.70 },
+      { ox: 0.40, oy: 0.06, r: 2.2, wobble: 0.68 },
+      { ox: -0.14, oy: 0.40, r: 2.1, wobble: 0.66 },
+    ];
+    this.coreEdges = [
+      [0, 1], [0, 2], [0, 3], [0, 4],
+      [1, 5], [2, 5], [1, 3], [2, 4],
+      [3, 7], [4, 6], [6, 7],
+    ];
+
+    this.intents = this.modules.map((module, index) => ({
+      moduleIndex: index,
+      targetIndex: module.targetIndex,
+      phase: rand(0, Math.PI * 2),
+      speed: module.intentSpeed,
     }));
   }
 
@@ -864,158 +1011,586 @@ class InfrastructureScene {
     this.ctx.clearRect(0, 0, this.w, this.h);
   }
 
-  resize() { this._resize(); this._init(); }
+  resize() {
+    this._resize();
+    this._init();
+  }
 
   _loop() {
     if (!this.running) return;
-    this.t += 0.008;
+    this.t += 0.007;
     this._draw();
     this.raf = requestAnimationFrame(() => this._loop());
   }
 
-  _drawCapsule(label, x, y, w, h, alpha) {
-    const { ctx } = this;
-    roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2);
-    ctx.fillStyle = `rgba(255,255,255,${0.03 + alpha * 0.08})`;
-    ctx.fill();
-    ctx.strokeStyle = `rgba(255,255,255,${0.06 + alpha * 0.10})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = `rgba(255,255,255,${0.46 + alpha * 0.18})`;
-    ctx.font = '500 11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, y + 0.5);
+  _parallax(depth) {
+    const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
+    const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
+    return { x: nx * depth, y: ny * depth };
   }
 
-  _draw() {
-    const { ctx, nodes, packets, t, cx, spineTop, spineBottom } = this;
-    ctx.clearRect(0, 0, this.w, this.h);
+  _quadPoint(a, b, c, t) {
+    const mt = 1 - t;
+    return {
+      x: mt * mt * a.x + 2 * mt * t * b.x + t * t * c.x,
+      y: mt * mt * a.y + 2 * mt * t * b.y + t * t * c.y,
+    };
+  }
 
-    const bg = ctx.createRadialGradient(cx, this.h * 0.36, 20, cx, this.h * 0.5, Math.max(this.w, this.h) * 0.8);
-    bg.addColorStop(0, 'rgba(8,8,10,1)');
-    bg.addColorStop(0.7, 'rgba(4,4,6,1)');
+  _drawTag(text, x, y, accent = 0.5, align = 'left') {
+    const { ctx } = this;
+    ctx.save();
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    const padX = 10;
+    const padY = 7;
+    const textW = ctx.measureText(text).width;
+    const w = textW + padX * 2;
+    const h = 22;
+    const px = align === 'center' ? x - w / 2 : x;
+    const py = y - h / 2;
+    ctx.fillStyle = `rgba(255,255,255,${0.045 + accent * 0.06})`;
+    roundRect(ctx, px, py, w, h, h / 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${0.08 + accent * 0.12})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = `rgba(255,255,255,${0.54 + accent * 0.24})`;
+    ctx.fillText(text, px + padX, y + 0.5);
+    ctx.restore();
+  }
+
+  _drawBackground() {
+    const { ctx } = this;
+    const bg = ctx.createRadialGradient(
+      this.w * 0.5,
+      this.core.y - this.core.r * 0.45,
+      0,
+      this.w * 0.5,
+      this.core.y - this.core.r * 0.25,
+      Math.max(this.w, this.h) * 0.85,
+    );
+    bg.addColorStop(0, 'rgba(9,9,11,1)');
+    bg.addColorStop(0.7, 'rgba(5,5,7,1)');
     bg.addColorStop(1, 'rgba(2,2,3,1)');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    // Subtle grid and architecture lines.
-    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.028)';
     ctx.lineWidth = 1;
-    for (let i = 0; i < 3; i++) {
-      const y = this.h * 0.22 + i * 86;
+    for (let i = 0; i < 5; i++) {
+      const y = this.h * 0.18 + i * (this.h * 0.11);
       ctx.beginPath();
-      ctx.moveTo(this.w * 0.07, y);
-      ctx.lineTo(this.w * 0.93, y);
+      ctx.moveTo(this.w * 0.06, y);
+      ctx.lineTo(this.w * 0.94, y);
       ctx.stroke();
     }
-    for (let i = -2; i <= 2; i++) {
-      const x = cx + i * 130;
+    for (let i = -3; i <= 3; i++) {
+      const x = this.w * 0.5 + i * (this.w * 0.11);
       ctx.beginPath();
-      ctx.moveTo(x, this.h * 0.18);
-      ctx.lineTo(x, this.h * 0.82);
+      ctx.moveTo(x, this.h * 0.16);
+      ctx.lineTo(x + this.w * 0.03, this.h * 0.84);
       ctx.stroke();
     }
+  }
 
-    // Layer bands.
-    this.layers.forEach((layer, i) => {
-      const y = this.h * layer.y;
-      const band = ctx.createLinearGradient(0, y - 16, this.w, y + 16);
-      band.addColorStop(0, `rgba(255,255,255,0)`);
-      band.addColorStop(0.5, `rgba(255,255,255,${layer.alpha})`);
-      band.addColorStop(1, `rgba(255,255,255,0)`);
-      ctx.fillStyle = band;
-      ctx.fillRect(this.w * 0.12, y - 8, this.w * 0.76, 16);
+  _drawSurfaceWindow() {
+    const { ctx } = this;
+    const drift = this._parallax(14);
+    const wobbleX = Math.sin(this.t * 0.18 + this.surfaceWindow.phase) * 4;
+    const wobbleY = Math.cos(this.t * 0.14 + this.surfaceWindow.phase) * 2.5;
+    const x = this.surfaceWindow.x + drift.x * 0.25 + wobbleX;
+    const y = this.surfaceWindow.y + drift.y * 0.18 + wobbleY;
+    const w = this.surfaceWindow.w;
+    const h = this.surfaceWindow.h;
 
-      // Layer tag.
-      this._drawCapsule(layer.label, this.w * 0.16, y, 72, 22, 0.6 - i * 0.06);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((Math.sin(this.t * 0.08 + this.surfaceWindow.phase) + (mouseX / this.w - 0.5)) * 0.006);
+
+    const fill = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
+    fill.addColorStop(0, 'rgba(255,255,255,0.12)');
+    fill.addColorStop(0.35, 'rgba(255,255,255,0.06)');
+    fill.addColorStop(1, 'rgba(255,255,255,0.03)');
+    ctx.fillStyle = fill;
+    roundRect(ctx, -w / 2, -h / 2, w, h, 24);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    roundRect(ctx, -w / 2 + 1, -h / 2 + 1, w - 2, 26, 20);
+    ctx.fill();
+
+    // Browser chrome.
+    const chromeY = -h / 2 + 13;
+    ['#fff', '#fff', '#fff'].forEach((_, i) => {
+      ctx.beginPath();
+      ctx.arc(-w / 2 + 16 + i * 10, chromeY, 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.45 - i * 0.08})`;
+      ctx.fill();
     });
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.fillText('public surface', -w / 2 + 58, chromeY + 0.4);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    roundRect(ctx, -w / 2 + 42, -h / 2 + 8, w - 58, 12, 6);
+    ctx.fill();
 
-    // Shared spine.
-    const spine = ctx.createLinearGradient(cx, spineTop, cx, spineBottom);
+    // Public surface preview.
+    const padX = -w / 2 + 16;
+    const padY = -h / 2 + 34;
+    const innerW = w - 32;
+    const innerH = h - 48;
+    ctx.save();
+    roundRect(ctx, padX, padY, innerW, innerH, 18);
+    ctx.clip();
+
+    const hero = ctx.createLinearGradient(padX, padY, padX + innerW, padY + innerH);
+    hero.addColorStop(0, 'rgba(255,255,255,0.08)');
+    hero.addColorStop(1, 'rgba(255,255,255,0.02)');
+    ctx.fillStyle = hero;
+    ctx.fillRect(padX, padY, innerW, innerH);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    roundRect(ctx, padX + 10, padY + 10, innerW * 0.58, 20, 10);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    roundRect(ctx, padX + 10, padY + 38, innerW * 0.82, 9, 4.5);
+    ctx.fill();
+    roundRect(ctx, padX + 10, padY + 54, innerW * 0.52, 9, 4.5);
+    ctx.fill();
+
+    const cardY = padY + innerH - 50;
+    for (let i = 0; i < 3; i++) {
+      const cw = innerW * (0.28 - i * 0.02);
+      const cx = padX + 10 + i * (cw + 10);
+      const cy = cardY + Math.sin(this.t * 0.7 + this.surfaceWindow.phase + i) * 1.5;
+      ctx.fillStyle = `rgba(255,255,255,${0.08 + i * 0.02})`;
+      roundRect(ctx, cx, cy, cw, 26, 11);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,0.20)`;
+      roundRect(ctx, cx + 8, cy + 7, cw * 0.6, 4, 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    this._drawTag('Surface', x, y + h / 2 + 22, 0.65, 'center');
+    ctx.restore();
+  }
+
+  _drawContextBand() {
+    const { ctx } = this;
+    const drift = this._parallax(10);
+    const x = this.contextBand.x + drift.x * 0.2;
+    const y = this.contextBand.y + drift.y * 0.12;
+    const w = this.contextBand.w;
+    const h = this.contextBand.h;
+    const rowH = 18;
+    const rows = Math.ceil(h / rowH) + 4;
+    const scroll = (this.t * 20) % rowH;
+
+    ctx.save();
+    roundRect(ctx, x, y, w, h, 26);
+    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.clip();
+
+    const fill = ctx.createLinearGradient(x, y, x + w, y + h);
+    fill.addColorStop(0, 'rgba(255,255,255,0.02)');
+    fill.addColorStop(0.5, 'rgba(255,255,255,0.06)');
+    fill.addColorStop(1, 'rgba(255,255,255,0.03)');
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x, y, w, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(x, y + h - 1, w, 1);
+
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText('Context', x + 16, y + 18);
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
+    ctx.fillText('global registry', x + w - 96, y + 18);
+
+    for (let i = -1; i < rows; i++) {
+      const entryIndex = ((i + Math.floor(this.t * 1.5)) % this.contextEntries.length + this.contextEntries.length) % this.contextEntries.length;
+      const entry = this.contextEntries[entryIndex];
+      const rowY = y + 42 + i * rowH - scroll;
+      if (rowY < y + 28 || rowY > y + h - 12) continue;
+      const alpha = 0.10 + 0.20 * (1 - Math.abs((rowY - (y + h / 2)) / (h / 2)));
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(x + 16, rowY, 1.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.62 + alpha * 0.7})`;
+      ctx.fillText(entry.key.toUpperCase(), x + 28, rowY);
+      ctx.fillStyle = `rgba(255,255,255,${0.34 + alpha * 0.55})`;
+      ctx.fillText(entry.value, x + w * 0.48, rowY);
+    }
+
+    ctx.restore();
+  }
+
+  _drawIntents(coreNodes) {
+    const { ctx } = this;
+    const drift = this._parallax(8);
+    const bandY = this.contextBand.y + drift.y * 0.12;
+    const bandBottom = bandY + this.contextBand.h;
+    const spineX = this.core.x + drift.x * 0.08;
+    const spineTop = bandBottom + 8;
+    const spineBottom = this.core.y - this.core.r * 1.02;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+
+    // Intent spine: the action corridor from semantics into the core.
+    const spine = ctx.createLinearGradient(spineX, spineTop, spineX, spineBottom);
     spine.addColorStop(0, 'rgba(255,255,255,0)');
-    spine.addColorStop(0.25, 'rgba(255,255,255,0.15)');
+    spine.addColorStop(0.28, 'rgba(255,255,255,0.12)');
     spine.addColorStop(0.75, 'rgba(255,255,255,0.18)');
     spine.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.strokeStyle = spine;
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(cx, spineTop);
-    ctx.lineTo(cx, spineBottom);
+    ctx.moveTo(spineX, spineTop);
+    ctx.lineTo(spineX, spineBottom);
     ctx.stroke();
 
-    // Core node and glow.
-    const corePulse = 0.5 + 0.5 * Math.sin(t * 1.8);
-    const coreGlow = ctx.createRadialGradient(cx, this.h * 0.22, 0, cx, this.h * 0.22, 78);
-    coreGlow.addColorStop(0, `rgba(255,255,255,${0.12 + corePulse * 0.10})`);
+    this._drawTag('Intents', spineX, bandBottom + 18, 0.7, 'center');
+
+    this.intents.forEach((intent, index) => {
+      const module = this.modules[intent.moduleIndex];
+      const target = coreNodes[intent.targetIndex];
+      if (!module || !target) return;
+
+      const start = {
+        x: module.x,
+        y: module.y + module.h * 0.55,
+      };
+      const control = {
+        x: lerp(start.x, spineX, 0.45) + Math.sin(this.t * 0.9 + intent.phase) * 16,
+        y: bandBottom + 16 + Math.cos(this.t * 0.7 + intent.phase) * 5,
+      };
+      const end = {
+        x: target.x,
+        y: target.y,
+      };
+
+      const pulse = (this.t * intent.speed + intent.phase) % 1;
+      const pt = this._quadPoint(start, control, end, pulse);
+      const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 22);
+      glow.addColorStop(0, 'rgba(255,255,255,0.22)');
+      glow.addColorStop(1, 'rgba(255,255,255,0)');
+
+      ctx.strokeStyle = `rgba(255,255,255,${0.035 + index * 0.005})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+      ctx.stroke();
+
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 22, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.30 + 0.28 * Math.sin(intent.phase + pulse * Math.PI * 2) ** 2})`;
+      ctx.fill();
+    });
+
+    ctx.restore();
+  }
+
+  _drawCore(coreNodes) {
+    const { ctx } = this;
+    const drift = this._parallax(6);
+    const x = this.core.x + drift.x * 0.1;
+    const y = this.core.y + drift.y * 0.08;
+    const r = this.core.r;
+
+    const coreGlow = ctx.createRadialGradient(x, y - r * 0.2, 0, x, y, r * 2.7);
+    coreGlow.addColorStop(0, 'rgba(255,255,255,0.12)');
+    coreGlow.addColorStop(0.7, 'rgba(255,255,255,0.04)');
     coreGlow.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = coreGlow;
     ctx.beginPath();
-    ctx.arc(cx, this.h * 0.22, 78, 0, Math.PI * 2);
+    ctx.arc(x, y, r * 2.7, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(cx, this.h * 0.22, 13 + corePulse * 3, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${0.72 + corePulse * 0.10})`;
+    ctx.save();
+    roundRect(ctx, x - r, y - r, r * 2, r * 2, r * 1.2);
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
     ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+    ctx.clip();
 
-    // Nodes.
-    nodes.forEach((node, i) => {
-      const pulse = 0.5 + 0.5 * Math.sin(t * 1.2 + node.phase);
-      const x = node.baseX + Math.sin(t * 0.6 + node.phase) * node.driftX * 0.35;
-      const y = node.baseY + Math.cos(t * 0.7 + node.phase) * node.driftY * 0.35;
+    // Internal canonical graph: only nodes and edges live here.
+    const nodes = this.coreLayout.map((layout, index) => ({
+      x: x + layout.ox * r * 0.80 + Math.sin(this.t * 0.7 + layout.ox * 9 + index) * layout.wobble,
+      y: y + layout.oy * r * 0.80 + Math.cos(this.t * 0.64 + layout.oy * 7 + index) * layout.wobble * 0.78,
+      r: layout.r,
+      phase: index * 0.7,
+    }));
 
-      // tether to spine
-      const anchorY = this.h * this.layers[node.layer].y;
-      ctx.strokeStyle = `rgba(255,255,255,${0.04 + pulse * 0.05})`;
-      ctx.lineWidth = 0.7;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(cx, anchorY);
-      ctx.stroke();
-
-      // attachment dot
-      ctx.beginPath();
-      ctx.arc(x, y, 1.8 + pulse * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.18 + pulse * 0.18})`;
-      ctx.fill();
-
-      const w = 78 + node.label.length * 3.0;
-      const h = 24;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(Math.sin(t * 0.18 + i) * 0.015);
-      ctx.scale(node.size, node.size);
-      this._drawCapsule(node.label, 0, 0, w, h, 0.46 + pulse * 0.10);
-      ctx.restore();
-    });
-
-    // Flow packets running up and down the spine.
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
-    packets.forEach((packet, i) => {
-      const pos = (t * packet.speed + packet.offset) % 1;
-      const travel = spineTop + pos * (spineBottom - spineTop);
-      const sway = Math.sin(t * 1.2 + packet.phase) * 4;
+    this.coreEdges.forEach(([a, b]) => {
+      const na = nodes[a];
+      const nb = nodes[b];
+      if (!na || !nb) return;
+      const gradient = ctx.createLinearGradient(na.x, na.y, nb.x, nb.y);
+      gradient.addColorStop(0, 'rgba(255,255,255,0)');
+      gradient.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.75;
       ctx.beginPath();
-      ctx.arc(cx + sway, travel, 1.1, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.08 + 0.08 * Math.sin(packet.phase + pos * Math.PI * 2) ** 2})`;
-      ctx.fill();
+      ctx.moveTo(na.x, na.y);
+      ctx.lineTo(nb.x, nb.y);
+      ctx.stroke();
     });
     ctx.restore();
 
-    // Bottom concept rail, almost imperceptible.
-    const railY = this.h * 0.86;
-    const rail = ctx.createLinearGradient(this.w * 0.22, railY, this.w * 0.78, railY);
-    rail.addColorStop(0, 'rgba(255,255,255,0)');
-    rail.addColorStop(0.5, 'rgba(255,255,255,0.06)');
-    rail.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.strokeStyle = rail;
+    nodes.forEach((node, index) => {
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * 1.4 + node.phase);
+      const size = node.r * (0.86 + pulse * 0.38);
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.18 + pulse * 0.38})`;
+      ctx.fill();
+
+      if (index === 0) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, size + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    ctx.restore();
+
+    this._drawTag('Core', x, y - r - 28, 0.9, 'center');
+
+    // Tiny legend inside the core: nodes and edges define topology.
+    ctx.save();
+    ctx.font = '500 10px Inter, sans-serif';
+    ctx.textBaseline = 'middle';
+    const legendX = x - r * 0.46;
+    const legendY = y + r * 0.47;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(legendX, legendY, 2.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText('Node', legendX + 9, legendY + 0.4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(legendX + 42, legendY);
+    ctx.lineTo(legendX + 70, legendY);
+    ctx.stroke();
+    ctx.fillText('Edge', legendX + 76, legendY + 0.4);
+    ctx.restore();
+  }
+
+  _drawSurfaceSchematic() {
+    const { ctx } = this;
+    const isCompact = this.w < 920;
+    const drift = this._parallax(18);
+    const baseX = this.w * (isCompact ? 0.78 : 0.83) + drift.x * 0.16;
+    const baseY = this.h * (isCompact ? 0.11 : 0.13) + drift.y * 0.16;
+    const scale = isCompact ? 0.85 : 1;
+    const hoverDx = mouseX - baseX;
+    const hoverDy = mouseY - baseY;
+    const hover = clamp(1 - Math.hypot(hoverDx, hoverDy) / 240, 0, 1);
+
+    ctx.save();
+    ctx.translate(baseX, baseY);
+    ctx.rotate((Math.sin(this.t * 0.09) * 0.02) + hover * 0.01);
+    ctx.scale(scale + hover * 0.04, scale + hover * 0.04);
+    ctx.globalCompositeOperation = 'screen';
+
+    // Very light floating field behind the diagram.
+    const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, 120);
+    bg.addColorStop(0, `rgba(255,255,255,${0.10 + hover * 0.05})`);
+    bg.addColorStop(0.65, 'rgba(255,255,255,0.03)');
+    bg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.arc(0, 0, 120, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Surface rail.
+    ctx.strokeStyle = `rgba(255,255,255,${0.40 + hover * 0.20})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-34, -10);
+    ctx.lineTo(44, -10);
+    ctx.stroke();
+
+    // Surface label.
+    this._drawTag('Surface', -2, -26, 0.95, 'center');
+
+    // Surface node.
+    ctx.beginPath();
+    ctx.arc(56, -10, 3.4 + hover * 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${0.78 + hover * 0.10})`;
+    ctx.fill();
+
+    // Link into the graph.
+    const link = ctx.createLinearGradient(44, -10, 36, 32);
+    link.addColorStop(0, `rgba(255,255,255,${0.34 + hover * 0.12})`);
+    link.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = link;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(44, -10);
+    ctx.lineTo(38, 12);
+    ctx.lineTo(34, 30);
+    ctx.stroke();
+
+    // Minimal graph cluster.
+    const nodes = [
+      { x: 34, y: 30, r: 2.8 },
+      { x: 14, y: 46, r: 2.1 },
+      { x: 52, y: 48, r: 2.0 },
+      { x: 29, y: 66, r: 2.2 },
+    ];
+    const edges = [[0, 1], [0, 2], [1, 3], [2, 3]];
+    edges.forEach(([a, b]) => {
+      const na = nodes[a];
+      const nb = nodes[b];
+      ctx.strokeStyle = `rgba(255,255,255,${0.22 + hover * 0.10})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(na.x, na.y);
+      ctx.lineTo(nb.x, nb.y);
+      ctx.stroke();
+    });
+    nodes.forEach((node, index) => {
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * 1.4 + index * 0.8);
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.r + pulse * 0.65, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.42 + pulse * 0.20 + hover * 0.10})`;
+      ctx.fill();
+    });
+
+    this._drawTag('Node', 10, 86, 0.58, 'center');
+    this._drawTag('Edge', 46, 14, 0.42, 'center');
+
+    // Tiny action hint: the diagram feels present but stays discreet.
+    const beam = ctx.createLinearGradient(-18, 14, 62, 70);
+    beam.addColorStop(0, 'rgba(255,255,255,0)');
+    beam.addColorStop(0.5, `rgba(255,255,255,${0.08 + hover * 0.06})`);
+    beam.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = beam;
     ctx.lineWidth = 0.8;
     ctx.beginPath();
-    ctx.moveTo(this.w * 0.22, railY);
-    ctx.lineTo(this.w * 0.78, railY);
+    ctx.moveTo(-18, 14);
+    ctx.lineTo(62, 70);
     ctx.stroke();
+
+    ctx.restore();
+  }
+
+  _draw() {
+    const { ctx } = this;
+    ctx.clearRect(0, 0, this.w, this.h);
+
+    this._drawBackground();
+
+    // Surface projects the system.
+    this._drawSurfaceWindow();
+
+    // Context sits between surface and core, carrying the global registry.
+    this._drawContextBand();
+
+    // Modules are in the middle layer, same conceptual band as context.
+    this.modules.forEach((module, index) => {
+      const drift = this._parallax(12);
+      const x = module.baseX + drift.x * module.depth * 0.18 + Math.sin(this.t * 0.7 + module.phase) * 3.2;
+      const y = module.baseY + drift.y * module.depth * 0.14 + Math.cos(this.t * 0.6 + module.phase) * 2.2;
+      const w = module.w;
+      const h = module.h;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((Math.sin(this.t * 0.15 + module.phase) + (mouseX / this.w - 0.5)) * 0.01);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      roundRect(ctx, -w / 2, -h / 2, w, h, h / 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.20)';
+      ctx.beginPath();
+      ctx.arc(-w / 2 + 14, 0, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.font = '500 10px Inter, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.fillText(module.label, -w / 2 + 24, 0.3);
+      ctx.restore();
+
+      // Faint tether into the context band.
+      const tetherX = x;
+      const tetherY1 = y + h / 2;
+      const tetherY2 = this.contextBand.y + this.contextBand.h * 0.18;
+      const tether = ctx.createLinearGradient(tetherX, tetherY1, tetherX, tetherY2);
+      tether.addColorStop(0, 'rgba(255,255,255,0.12)');
+      tether.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = tether;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(tetherX, tetherY1);
+      ctx.lineTo(tetherX, tetherY2);
+      ctx.stroke();
+    });
+
+    const coreNodes = this.coreLayout.map((layout, index) => ({
+      x: this.core.x + layout.ox * this.core.r * 0.80 + Math.sin(this.t * 0.7 + layout.ox * 9 + index) * layout.wobble,
+      y: this.core.y + layout.oy * this.core.r * 0.80 + Math.cos(this.t * 0.64 + layout.oy * 7 + index) * layout.wobble * 0.78,
+      r: layout.r,
+    }));
+
+    // Intents route through the semantic layer into the core graph.
+    this._drawIntents(coreNodes);
+
+    // The canonical core graph remains the visual anchor.
+    this._drawCore(coreNodes);
+
+    // Subtle surface-to-context projection beam.
+    const surfaceBeamX = this.surfaceWindow.x;
+    const surfaceBeamTop = this.surfaceWindow.y + this.surfaceWindow.h * 0.52;
+    const surfaceBeamBottom = this.contextBand.y - 8;
+    const beam = ctx.createLinearGradient(surfaceBeamX, surfaceBeamTop, surfaceBeamX, surfaceBeamBottom);
+    beam.addColorStop(0, 'rgba(255,255,255,0.10)');
+    beam.addColorStop(0.5, 'rgba(255,255,255,0.04)');
+    beam.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = beam;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(surfaceBeamX, surfaceBeamTop);
+    ctx.lineTo(surfaceBeamX, surfaceBeamBottom);
+    ctx.stroke();
+
+    // Foreground schematic: a tiny public surface → node → edge diagram.
+    this._drawSurfaceSchematic();
   }
 }
 
@@ -1514,7 +2089,7 @@ class VestigeScene {
 
 // =============================================
 // SCENE: GRAPH OS
-// Living graph with contextual labels and context streams.
+// Living graph with draggable context window, stable groups, and surface projections.
 // =============================================
 
 class GraphOSScene {
@@ -1524,6 +2099,7 @@ class GraphOSScene {
     this.opts = {
       nodeCount: opts.nodeCount || 20,
       speed: opts.speed || 0.25,
+      thresh: opts.thresh || 0.22,
       edgeAlpha: opts.edgeAlpha || 0.18,
       nodeAlpha: opts.nodeAlpha || [0.2, 0.42],
     };
@@ -1531,8 +2107,10 @@ class GraphOSScene {
     this.raf = null;
     this.t = 0;
     this.nodes = [];
+    this.groups = [];
     this.labels = [];
     this.streams = [];
+    this.surfaceCards = [];
     this._resize();
     this._init();
   }
@@ -1540,23 +2118,64 @@ class GraphOSScene {
   _resize() {
     this.w = this.canvas.width = this.canvas.offsetWidth;
     this.h = this.canvas.height = this.canvas.offsetHeight;
-    this.surfaceY = this.h * 0.66;
-    this.contextY = this.h * 0.83;
+    this.surfaceY = this.h * 0.68;
+    this.contextY = this.h * 0.84;
   }
 
   _init() {
-    this.nodes = Array.from({ length: this.opts.nodeCount }, (_, i) => ({
-      x: this.w * 0.5 + (Math.random() - 0.5) * this.w * 0.48,
-      y: this.h * 0.45 + (Math.random() - 0.5) * this.h * 0.44,
-      vx: (Math.random() - 0.5) * this.opts.speed,
-      vy: (Math.random() - 0.5) * this.opts.speed,
-      r: 1.2 + Math.random() * 1.9,
-      phase: Math.random() * Math.PI * 2,
-    }));
+    this.groups = [
+      {
+        name: 'Core',
+        baseX: this.w * 0.26,
+        baseY: this.h * 0.34,
+        x: this.w * 0.26,
+        y: this.h * 0.34,
+        spreadX: this.w * 0.15,
+        spreadY: this.h * 0.10,
+        phase: Math.random() * Math.PI * 2,
+      },
+      {
+        name: 'Bridge',
+        baseX: this.w * 0.51,
+        baseY: this.h * 0.45,
+        x: this.w * 0.51,
+        y: this.h * 0.45,
+        spreadX: this.w * 0.19,
+        spreadY: this.h * 0.13,
+        phase: Math.random() * Math.PI * 2,
+      },
+      {
+        name: 'Public',
+        baseX: this.w * 0.76,
+        baseY: this.h * 0.31,
+        x: this.w * 0.76,
+        y: this.h * 0.31,
+        spreadX: this.w * 0.14,
+        spreadY: this.h * 0.10,
+        phase: Math.random() * Math.PI * 2,
+      },
+    ];
+
+    this.nodes = Array.from({ length: this.opts.nodeCount }, (_, i) => {
+      const group = i < 6 ? 0 : (i < 12 ? 1 : 2);
+      const anchor = this.groups[group];
+      const angle = Math.random() * Math.PI * 2;
+      const rx = anchor.spreadX * (0.25 + Math.random() * 0.7);
+      const ry = anchor.spreadY * (0.25 + Math.random() * 0.7);
+      return {
+        group,
+        x: anchor.x + Math.cos(angle) * rx,
+        y: anchor.y + Math.sin(angle) * ry,
+        vx: (Math.random() - 0.5) * this.opts.speed * 0.7,
+        vy: (Math.random() - 0.5) * this.opts.speed * 0.7,
+        r: 1.25 + Math.random() * 1.85,
+        phase: Math.random() * Math.PI * 2,
+      };
+    });
     this.labels = [
       { text: 'Node', node: 0, dx: -36, dy: -30 },
       { text: 'Edge', node: 3, dx: 22, dy: -18 },
-      { text: 'Context', node: 7, dx: -8, dy: 46 },
+      { text: 'Groups', node: 7, dx: -14, dy: 44 },
       { text: 'Surface', node: 12, dx: 30, dy: -12 },
     ];
     this.streams = Array.from({ length: 5 }, (_, i) => ({
@@ -1564,6 +2183,11 @@ class GraphOSScene {
       phase: Math.random() * Math.PI * 2,
       speed: 18 + Math.random() * 14,
     }));
+    this.surfaceCards = [
+      { x: this.w * 0.58, y: this.surfaceY + 14, w: 112, h: 60, title: 'Public view', lines: 3, phase: Math.random() * Math.PI * 2 },
+      { x: this.w * 0.72, y: this.surfaceY + 20, w: 98, h: 52, title: 'Display', lines: 2, phase: Math.random() * Math.PI * 2 },
+      { x: this.w * 0.84, y: this.surfaceY + 9, w: 82, h: 46, title: 'Output', lines: 2, phase: Math.random() * Math.PI * 2 },
+    ];
   }
 
   start() {
@@ -1597,22 +2221,95 @@ class GraphOSScene {
 
   _tick() {
     const maxX = this.w;
-    const maxY = this.surfaceY + 40;
+    const maxY = this.surfaceY + 42;
+    this.groups.forEach(group => {
+      group.x = group.baseX + Math.sin(this.t * 0.32 + group.phase) * 12;
+      group.y = group.baseY + Math.cos(this.t * 0.28 + group.phase) * 9;
+      group.x = clamp(group.x, this.w * 0.14, this.w * 0.86);
+      group.y = clamp(group.y, this.h * 0.20, this.surfaceY - 52);
+    });
     this.nodes.forEach((n, index) => {
-      const anchor = this.nodes[(index * 7 + 3) % this.nodes.length];
-      const ax = (anchor ? anchor.x : this.w * 0.5) - n.x;
-      const ay = (anchor ? anchor.y : this.h * 0.5) - n.y;
-      n.vx += ax * 0.000004 + Math.sin(this.t * 1.2 + n.phase) * 0.0012;
-      n.vy += ay * 0.000004 + Math.cos(this.t * 1.1 + n.phase) * 0.0011;
+      const group = this.groups[n.group];
+      const ax = group.x - n.x;
+      const ay = group.y - n.y;
+      n.vx += ax * 0.00002 + Math.sin(this.t * 1.05 + n.phase) * 0.0011;
+      n.vy += ay * 0.00002 + Math.cos(this.t * 0.95 + n.phase) * 0.0010;
+      const driftScale = 0.26 + n.group * 0.04;
+      n.vx += Math.cos(this.t * 0.45 + index) * 0.0006 * driftScale;
+      n.vy += Math.sin(this.t * 0.38 + index) * 0.0005 * driftScale;
       n.x += n.vx;
       n.y += n.vy;
-      n.vx *= 0.995;
-      n.vy *= 0.995;
+      n.vx *= 0.989;
+      n.vy *= 0.989;
       if (n.x < 0 || n.x > maxX) n.vx *= -1;
       if (n.y < 0 || n.y > maxY) n.vy *= -1;
       n.x = clamp(n.x, 0, maxX);
       n.y = clamp(n.y, 0, maxY);
     });
+  }
+
+  _drawGroupShell(group, index) {
+    const members = this.nodes.filter(n => n.group === index);
+    if (!members.length) return;
+
+    const xs = members.map(n => n.x);
+    const ys = members.map(n => n.y);
+    const padX = 28;
+    const padY = 24;
+    const minX = Math.min(...xs) - padX;
+    const maxX = Math.max(...xs) + padX;
+    const minY = Math.min(...ys) - padY;
+    const maxY = Math.max(...ys) + padY;
+    const x = clamp(minX, 0, this.w - 80);
+    const y = clamp(minY, 18, this.surfaceY - 36);
+    const availableW = Math.max(40, this.w - x - 18);
+    const availableH = Math.max(36, this.surfaceY - y - 18);
+    const w = Math.min(Math.max(maxX - minX, 120), availableW);
+    const h = Math.min(Math.max(maxY - minY, 84), availableH);
+
+    this.ctx.save();
+    this.ctx.fillStyle = `rgba(255,255,255,${0.022 + index * 0.008})`;
+    roundRect(this.ctx, x, y, w, h, 26);
+    this.ctx.fill();
+    this.ctx.strokeStyle = `rgba(255,255,255,${0.085 + index * 0.03})`;
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+    this.ctx.fillStyle = 'rgba(255,255,255,0.48)';
+    this.ctx.font = '500 11px Inter, sans-serif';
+    this.ctx.fillText(group.name, x + 16, y + 18);
+    this.ctx.restore();
+  }
+
+  _drawProjectionCard(card, index) {
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.7 + card.phase);
+    const x = card.x + Math.sin(this.t * 0.45 + card.phase) * 4;
+    const y = card.y + Math.cos(this.t * 0.4 + card.phase) * 3;
+    const alpha = 0.16 + pulse * 0.08;
+
+    this.ctx.save();
+    this.ctx.translate(x, y);
+    this.ctx.fillStyle = `rgba(0,0,0,${0.20 + index * 0.03})`;
+    roundRect(this.ctx, -card.w / 2, -card.h / 2, card.w, card.h, 14);
+    this.ctx.fill();
+    this.ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = `rgba(255,255,255,${0.16 + pulse * 0.04})`;
+    roundRect(this.ctx, -card.w / 2 + 10, -card.h / 2 + 8, card.w - 20, 7, 4);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    this.ctx.font = '500 10px Inter, sans-serif';
+    this.ctx.fillText(card.title, -card.w / 2 + 10, -card.h / 2 + 28);
+
+    for (let i = 0; i < card.lines; i++) {
+      const lineY = -card.h / 2 + 36 + i * 9;
+      this.ctx.fillStyle = `rgba(255,255,255,${0.12 + i * 0.03})`;
+      roundRect(this.ctx, -card.w / 2 + 10, lineY, card.w * (0.48 + i * 0.08), 3, 1.5);
+      this.ctx.fill();
+    }
+    this.ctx.restore();
   }
 
   _drawLabel(text, x, y, accent) {
@@ -1677,8 +2374,10 @@ class GraphOSScene {
     ctx.strokeStyle = 'rgba(255,255,255,0.16)';
     ctx.stroke();
 
+    this.groups.forEach((group, index) => this._drawGroupShell(group, index));
+
     // Edges.
-    const threshold = Math.min(this.w, this.h) * 0.24;
+    const threshold = Math.min(this.w, this.h) * this.opts.thresh;
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx = nodes[j].x - nodes[i].x;
@@ -1709,6 +2408,27 @@ class GraphOSScene {
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
       ctx.fill();
     });
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.075)';
+    ctx.lineWidth = 0.8;
+    this.surfaceCards.forEach(card => {
+      const x = card.x + Math.sin(this.t * 0.45 + card.phase) * 4;
+      const y = card.y + Math.cos(this.t * 0.4 + card.phase) * 3;
+      const target = nodes.reduce((best, n) => {
+        const dist = Math.abs(n.x - x) + Math.abs(n.y - y);
+        if (!best || dist < best.dist) return { node: n, dist };
+        return best;
+      }, null);
+      if (!target) return;
+      ctx.beginPath();
+      ctx.moveTo(target.node.x, target.node.y);
+      ctx.lineTo(x, y - card.h / 2);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    this.surfaceCards.forEach((card, index) => this._drawProjectionCard(card, index));
 
     // Labels placed relative to nodes.
     this.labels.forEach((label, index) => {
@@ -2103,6 +2823,162 @@ class SequenceScene {
 
 
 // =============================================
+// SCENE: NEXT
+// Cloud of cross-shaped marks that breathe in and out.
+// =============================================
+
+class NextScene {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.running = false;
+    this.raf = null;
+    this.t = 0;
+    this.pluses = [];
+    this._resize();
+    this._init();
+  }
+
+  _resize() {
+    this.w = this.canvas.width = this.canvas.offsetWidth;
+    this.h = this.canvas.height = this.canvas.offsetHeight;
+  }
+
+  _init() {
+    const count = Math.max(56, Math.round((this.w * this.h) / 17000));
+    const layers = [0.45, 0.68, 1];
+    this.pluses = Array.from({ length: count }, (_, i) => {
+      const depth = randChoice(layers);
+      const isLarge = i % 7 === 0 || i % 11 === 0;
+      const baseSize = isLarge ? rand(24, 52) : rand(8, 28);
+      return {
+        x: rand(this.w * 0.04, this.w * 0.96),
+        y: rand(this.h * 0.08, this.h * 0.92),
+        vx: rand(-0.16, 0.16) * depth,
+        vy: rand(-0.12, 0.12) * depth,
+        size: baseSize,
+        thickness: rand(0.8, 1.8) + depth * rand(0.65, 1.35),
+        phase: rand(0, Math.PI * 2),
+        speed: rand(0.42, 1.08),
+        depth,
+        angle: rand(-0.18, 0.18),
+      };
+    });
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.t = 0;
+    this._loop();
+  }
+
+  stop() {
+    this.running = false;
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  resize() {
+    this._resize();
+    this._init();
+  }
+
+  _loop() {
+    if (!this.running) return;
+    this.t += 0.0065;
+    this._tick();
+    this._draw();
+    this.raf = requestAnimationFrame(() => this._loop());
+  }
+
+  _tick() {
+    const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
+    const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
+    this.pluses.forEach((plus, index) => {
+      plus.x += plus.vx + Math.sin(this.t * 0.7 + plus.phase) * 0.12 * plus.depth + nx * 0.08 * plus.depth;
+      plus.y += plus.vy + Math.cos(this.t * 0.6 + plus.phase) * 0.10 * plus.depth + ny * 0.06 * plus.depth;
+      plus.phase += 0.0012 + index * 0.00001;
+
+      if (plus.x < -80) plus.x = this.w + 80;
+      if (plus.x > this.w + 80) plus.x = -80;
+      if (plus.y < -80) plus.y = this.h + 80;
+      if (plus.y > this.h + 80) plus.y = -80;
+    });
+  }
+
+  _drawPlus(x, y, size, thickness, alpha, angle, light) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`;
+    ctx.lineWidth = thickness;
+    ctx.beginPath();
+    ctx.moveTo(-size, 0);
+    ctx.lineTo(size, 0);
+    ctx.moveTo(0, -size);
+    ctx.lineTo(0, size);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  _draw() {
+    const { ctx } = this;
+    const light = isLightTheme();
+    ctx.clearRect(0, 0, this.w, this.h);
+
+    const bg = ctx.createRadialGradient(this.w * 0.52, this.h * 0.42, 30, this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.8);
+    if (light) {
+      bg.addColorStop(0, 'rgba(255,255,255,1)');
+      bg.addColorStop(1, 'rgba(245,243,238,1)');
+    } else {
+      bg.addColorStop(0, 'rgba(8,8,10,1)');
+      bg.addColorStop(1, 'rgba(2,2,3,1)');
+    }
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, this.w, this.h);
+
+    ctx.save();
+    ctx.globalCompositeOperation = light ? 'multiply' : 'screen';
+    this.pluses
+      .slice()
+      .sort((a, b) => a.depth - b.depth)
+      .forEach((plus, index) => {
+        const pulse = 0.5 + 0.5 * Math.sin(this.t * plus.speed + plus.phase);
+        const breathe = Math.pow(pulse, 1.5);
+        const size = plus.size * (0.52 + breathe * 0.98);
+        const alpha = (0.06 + breathe * (0.38 + plus.depth * 0.12)) * (0.84 + plus.depth * 0.16);
+        const thickness = plus.thickness * (0.68 + breathe * 0.82);
+        const drift = Math.sin(this.t * 0.4 + plus.phase + index * 0.15) * 0.22;
+        const x = plus.x + drift * 14 * plus.depth;
+        const y = plus.y + Math.cos(this.t * 0.35 + plus.phase) * 10 * plus.depth;
+        const angle = plus.angle + Math.sin(this.t * 0.23 + plus.phase) * 0.08;
+
+        if (breathe > 0.72) {
+          this._drawPlus(x, y, size * 1.05, thickness * 1.7, alpha * 0.08, angle, light);
+        }
+        this._drawPlus(x, y, size, thickness, alpha, angle, light);
+      });
+    ctx.restore();
+
+    // Soft mist so the cloud feels layered rather than purely random.
+    const veil = ctx.createRadialGradient(this.w * 0.58, this.h * 0.46, 0, this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.76);
+    veil.addColorStop(0, light ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)');
+    veil.addColorStop(0.55, 'rgba(255,255,255,0)');
+    veil.addColorStop(1, light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)');
+    ctx.fillStyle = veil;
+    ctx.fillRect(0, 0, this.w, this.h);
+  }
+}
+
+
+// =============================================
 // SCENE: POSITIONING
 // A convergence climax: system collapses into a single realization point.
 // =============================================
@@ -2476,9 +3352,9 @@ const SCENE_MAP = {
   space:       [GraphScene,       { nodeCount: 22, speed: 0.45, thresh: 0.28,
                                     edgeAlpha: 0.16, nodeAlpha: [0.28, 0.42] }],
 
-  // GraphOS — primitives with labels and context stream
-  graphos:     [GraphOSScene,     { nodeCount: 18, speed: 0.22, edgeAlpha: 0.18,
-                                    nodeAlpha: [0.20, 0.42] }],
+  // GraphOS — primitives, draggable context window, groups, and surface projection
+  graphos:     [GraphOSScene,     { nodeCount: 18, speed: 0.18, thresh: 0.20, edgeAlpha: 0.14,
+                                    nodeAlpha: [0.16, 0.34] }],
 
   // Unification — gentle convergence
   unification: [ConvergenceScene, { cycleDur: 4.5, particles: 30, spread: 260, sharp: false }],
@@ -2489,7 +3365,7 @@ const SCENE_MAP = {
   // Vestiges — archival field with nodes and artifacts
   vestiges:    [VestigeScene,     null],
 
-  // Infrastructure — layered runtime stack
+  // Infrastructure — surface, context, intents, and canonical core
   infrastructure: [InfrastructureScene, null],
 
   // Build — scattered blocks snapping to grid
@@ -2509,6 +3385,9 @@ const SCENE_MAP = {
 
   // Use cases — term cloud, many domains
   usecases:    [UseCasesScene,    null],
+
+  // Next — acceleration cloud of plus signs
+  next:        [NextScene,        null],
 
   // Continuum — knowledge / desire / acquisition progression
   continuum:   [SequenceScene,    null],
@@ -2537,6 +3416,7 @@ function initScenes() {
     build:       'canvas-build',
     combination: 'canvas-combination',
     usecases:    'canvas-usecases',
+    next:        'canvas-next',
     physical:    'canvas-physical',
     onesystem:   'canvas-onesystem',
     rupture:     'canvas-rupture',
@@ -2592,6 +3472,7 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     Object.values(scenes).forEach(s => s.resize && s.resize());
+    syncGraphosWindowPosition();
     updateUI();
     resizeTimer = null;
   }, 120);
@@ -2609,6 +3490,9 @@ function cleanup() {
   sceneStartTimer = null;
   sceneUnlockTimer = null;
   resizeTimer = null;
+  draggedGraphosWindowEl = null;
+  graphosWindowState.dragging = false;
+  graphosWindowState.pointerId = null;
   Object.values(scenes).forEach(scene => scene.stop && scene.stop());
 }
 
