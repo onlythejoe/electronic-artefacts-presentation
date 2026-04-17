@@ -4392,18 +4392,23 @@ body::after {
   }
 
   .slide[data-slide="combination"] .slide-content {
-    gap: 8px;
-    max-width: min(100%, 360px);
+    gap: 4px;
+    max-width: min(100%, 260px);
+    margin-top: 0;
   }
 
   .slide[data-slide="combination"] h2 {
-    font-size: clamp(1.45rem, 6.2vw, 2rem);
+    font-size: clamp(1.12rem, 5vw, 1.55rem);
     letter-spacing: -0.04em;
   }
 
   .slide[data-slide="combination"] p {
-    margin-top: 8px;
-    font-size: clamp(0.72rem, 3vw, 0.9rem);
+    display: none;
+  }
+
+  .slide[data-slide="combination"] {
+    justify-content: flex-start;
+    padding-top: clamp(12px, 4svh, 20px);
   }
 
   .module-pill {

@@ -1701,7 +1701,12 @@ class AssembleScene {
   }
 
   _init() {
-    const { cols, rows, gap, cx, cy } = this.opts;
+    const compact = Math.min(this.w, this.h) < 700;
+    const cols = compact ? Math.min(this.opts.cols, 3) : this.opts.cols;
+    const rows = compact ? Math.min(this.opts.rows, 2) : this.opts.rows;
+    const gap = compact ? Math.max(14, Math.round(this.opts.gap * 0.58)) : this.opts.gap;
+    const cx = this.opts.cx;
+    const cy = compact ? Math.min(0.46, this.opts.cy) : this.opts.cy;
     const gw = (cols - 1) * gap;
     const gh = (rows - 1) * gap;
     const ox = this.w * cx - gw / 2;
@@ -1713,7 +1718,7 @@ class AssembleScene {
         const tx = ox + c * gap;
         const ty = oy + r * gap;
         const a  = Math.random() * Math.PI * 2;
-        const d  = 160 + Math.random() * 200;
+        const d  = compact ? 96 + Math.random() * 96 : 160 + Math.random() * 200;
         this.blocks.push({
           x:     this.w * cx + Math.cos(a) * d,
           y:     this.h * cy + Math.sin(a) * d,
@@ -1796,7 +1801,7 @@ class AssembleScene {
       const x  = b.x + (b.tx - b.x) * p;
       const y  = b.y + (b.ty - b.y) * p;
       const a  = 0.12 + 0.55 * p;
-      const sz = 2.5;
+      const sz = Math.min(this.w, this.h) < 700 ? 2 : 2.5;
       ctx.fillStyle = `rgba(255,255,255,${a})`;
       ctx.fillRect(x - sz, y - sz, sz * 2, sz * 2);
     });
