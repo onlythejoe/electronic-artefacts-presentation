@@ -160,6 +160,7 @@ const graphosWindowEl = document.querySelector('.graphos-window');
 const graphosWindowHandleEl = document.querySelector('.graphos-window__header');
 const graphosWindowBodyEl = document.querySelector('.graphos-window__body');
 const graphosFeedEl = document.querySelector('.graphos-window__feed');
+const graphosNoteEl = document.querySelector('.graphos-note');
 const graphosRowEls = graphosFeedEl ? [...graphosFeedEl.querySelectorAll('.graphos-row')] : [];
 graphosToggleNodesEl = document.getElementById('graphos-toggle-nodes');
 graphosToggleLinksEl = document.getElementById('graphos-toggle-links');
@@ -213,6 +214,8 @@ function shouldLockTouchNav(target) {
     return scrollable.scrollHeight > scrollable.clientHeight + 1;
   }
   return targetMatchesSelector(target, [
+    '.graphos-note',
+    '.graphos-window',
     '.graphos-context-menu__item',
     '.graphos-context-menu__toggle',
     '.graphos-context-menu__swatch',
@@ -1290,6 +1293,7 @@ function syncGraphosWindowPosition(forceDefault = false) {
 
 function beginGraphosWindowDrag(e) {
   if (!activeSlideEl || activeSlideEl.dataset.slide !== 'graphos' || !activeGraphosWindowEl) return;
+  if (scenes.graphos && scenes.graphos._isCompactMobile()) return;
   if (e.button !== 0) return;
 
   const rect = activeGraphosWindowEl.getBoundingClientRect();
@@ -1859,6 +1863,7 @@ class ConvergenceScene {
     if (this.running) return;
     this.running = true;
     this.t = 0;
+    this._setMobilePanelOpen(false);
     this._loop();
   }
 
@@ -5525,6 +5530,7 @@ class GraphOSLiveScene {
     this.contextRibbon = null;
     this.intentLanes = [];
     this.coreNode = null;
+    this.mobileExpanded = false;
     this._bound = {
       contextMenu: e => this._onContextMenu(e),
       bodyMouseDown: e => this._onBodyMouseDown(e),
@@ -5537,6 +5543,7 @@ class GraphOSLiveScene {
       colorWheelMove: e => this._onColorWheelMove(e),
       colorWheelDown: e => this._onColorWheelDown(e),
       colorWheelUp: () => this._endColorPick(),
+      toggleMobilePanel: () => this._toggleMobilePanel(),
       toggleNodes: () => {
         this.view.showNodes = !this.view.showNodes;
         this._refreshUi();
@@ -5569,8 +5576,49 @@ class GraphOSLiveScene {
     return activeSlideEl && activeSlideEl.dataset.slide === 'graphos';
   }
 
+  _isCompactMobile() {
+    return window.matchMedia('(hover: none), (pointer: coarse)').matches || window.innerWidth < 900;
+  }
+
+  _setMobilePanelOpen(open) {
+    this.mobileExpanded = !!open;
+    if (activeSlideEl && activeSlideEl.dataset.slide === 'graphos') {
+      activeSlideEl.classList.toggle('is-mobile-open', this.mobileExpanded);
+    }
+    if (graphosNoteEl) {
+      graphosNoteEl.setAttribute('aria-expanded', this.mobileExpanded ? 'true' : 'false');
+    }
+  }
+
+  _syncMobilePanelState() {
+    if (!this._isCompactMobile()) {
+      this._setMobilePanelOpen(false);
+      return;
+    }
+    this._setMobilePanelOpen(this.mobileExpanded);
+  }
+
+  _toggleMobilePanel(force) {
+    if (!this._isCompactMobile()) return;
+    const next = typeof force === 'boolean' ? force : !this.mobileExpanded;
+    this._setMobilePanelOpen(next);
+  }
+
   _bindUi() {
     const stopPropagation = e => e.stopPropagation();
+
+    if (graphosNoteEl) {
+      graphosNoteEl.setAttribute('role', 'button');
+      graphosNoteEl.setAttribute('tabindex', '0');
+      graphosNoteEl.setAttribute('aria-expanded', 'false');
+      graphosNoteEl.addEventListener('click', this._bound.toggleMobilePanel);
+      graphosNoteEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this._bound.toggleMobilePanel();
+        }
+      });
+    }
 
     if (graphosContextMenuEl) {
       graphosContextMenuEl.addEventListener('wheel', stopPropagation, { passive: true });
@@ -5607,6 +5655,14 @@ class GraphOSLiveScene {
     if (graphosColorWheelEl) {
       graphosColorWheelEl.addEventListener('pointermove', this._bound.colorWheelMove);
       graphosColorWheelEl.addEventListener('pointerdown', this._bound.colorWheelDown);
+    }
+
+    if (graphosWindowHandleEl) {
+      graphosWindowHandleEl.addEventListener('click', e => {
+        if (!this._isCompactMobile()) return;
+        e.preventDefault();
+        this._setMobilePanelOpen(false);
+      });
     }
 
     document.addEventListener('contextmenu', this._bound.contextMenu, true);
@@ -5717,6 +5773,7 @@ class GraphOSLiveScene {
       { phase: Math.random() * Math.PI * 2, kind: 'surface' },
       { phase: Math.random() * Math.PI * 2, kind: 'context' },
     ];
+    this._syncMobilePanelState();
   }
 
   _syncCoreNode() {
@@ -6569,6 +6626,13 @@ class GraphOSLiveScene {
 
   _onPointerDown(e) {
     if (!this._isActive() || e.button === 2) return;
+    if (this._isCompactMobile()) {
+      this._setMobilePanelOpen(true);
+      this._hideMenu();
+      this._endColorPick();
+      e.preventDefault();
+      return;
+    }
     const { x, y } = this._getCanvasPoint(e);
     const clickedNode = this._getNodeAt(x, y);
     let clicked = clickedNode;
@@ -7044,6 +7108,7 @@ class GraphOSLiveScene {
       cancelAnimationFrame(this.raf);
       this.raf = null;
     }
+    this._setMobilePanelOpen(false);
     this.draggedNode = null;
     this.dragPointerId = null;
     this.draggedSurfacePreview = false;
