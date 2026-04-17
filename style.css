@@ -3876,9 +3876,27 @@ body::after {
   }
 
   .graphos-note {
-    left: 14px;
-    top: 14px;
-    width: min(84vw, 280px);
+    left: 12px;
+    top: 12px;
+    width: fit-content;
+    max-width: min(76vw, 220px);
+    padding: 6px 9px 7px;
+    border-radius: 999px;
+    gap: 2px;
+  }
+
+  .graphos-note__kicker {
+    font-size: 0.42rem;
+    letter-spacing: 0.16em;
+  }
+
+  .graphos-note strong {
+    font-size: clamp(0.68rem, 2.9vw, 0.86rem);
+    line-height: 1.18;
+  }
+
+  .graphos-note p {
+    display: none;
   }
 
   .graphos-window__body {
@@ -4641,13 +4659,25 @@ body::after {
   }
 
   .graphos-note {
-    width: min(86vw, 240px);
-    padding: 10px 10px 11px;
-    border-radius: 16px;
+    width: fit-content;
+    max-width: min(76vw, 220px);
+    padding: 6px 9px 7px;
+    border-radius: 999px;
+    gap: 2px;
+  }
+
+  .graphos-note__kicker {
+    font-size: 0.42rem;
+    letter-spacing: 0.16em;
   }
 
   .graphos-note strong {
-    font-size: clamp(0.84rem, 4vw, 1rem);
+    font-size: clamp(0.68rem, 2.9vw, 0.86rem);
+    line-height: 1.18;
+  }
+
+  .graphos-note p {
+    display: none;
   }
 
   .graphos-window {
