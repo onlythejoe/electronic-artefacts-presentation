@@ -3928,32 +3928,18 @@ body::after {
   }
 
   .graphos-window {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate3d(-50%, -42%, 0) scale(0.96);
-  }
-
-  .graphos-slide.is-mobile-open .graphos-note {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .graphos-slide.is-mobile-open .graphos-window {
-    left: 12px;
-    right: 12px;
-    top: 24svh;
-    bottom: 12px;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom));
     width: auto;
-    z-index: 4;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     opacity: 1;
-    pointer-events: auto;
+    pointer-events: none;
     transform: none;
-    padding: 10px;
-    border-radius: var(--radius-frame);
-  }
-
-  .graphos-slide.is-mobile-open .graphos-window__body {
-    height: clamp(180px, 40svh, 320px);
   }
 
   .graphos-note {
@@ -3975,6 +3961,55 @@ body::after {
     font-size: clamp(0.62rem, 2.7vw, 0.8rem);
   }
 
+  .graphos-window {
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: none;
+    transform: none;
+  }
+
+  .graphos-window__header,
+  .graphos-window__body,
+  .graphos-window__hint {
+    display: none;
+  }
+
+  .graphos-window__meta {
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-frame);
+    border: 1px solid rgba(255,255,255,0.10);
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+      rgba(255,255,255,0.02);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    box-shadow:
+      0 12px 28px rgba(0,0,0,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    gap: 6px;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    pointer-events: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .graphos-window__meta::-webkit-scrollbar {
+    display: none;
+  }
+
   .graphos-window__body {
     height: clamp(160px, 22svh, 210px);
     border-radius: var(--radius-panel);
@@ -3985,24 +4020,28 @@ body::after {
     padding: 10px;
   }
 
+  .graphos-window__chip {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 0.45rem;
+  }
+
+  .graphos-window__chip--info,
   .graphos-window__chip--mobile-action {
-    display: inline-flex;
-    order: -1;
-    border-color: rgba(124, 160, 255, 0.22);
-    background: rgba(124, 160, 255, 0.12);
-    color: rgba(255,255,255,0.92);
+    display: none;
+  }
+
+  .graphos-window__chip--select {
+    min-width: 92px;
+  }
+
+  .graphos-window__chip--select select {
+    min-width: 0;
+    width: 100%;
   }
 
   .graphos-slide .slide-content {
     pointer-events: none;
-  }
-
-  .graphos-window__meta {
-    gap: 6px;
-  }
-
-  .graphos-window__chip--select select {
-    min-width: 68px;
   }
 
   .graphos-row {
@@ -5146,10 +5185,18 @@ body::after {
   }
 
   .graphos-window {
-    top: 35svh;
-    width: min(92vw, 380px);
-    padding: 10px;
-    border-radius: var(--radius-frame);
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: none;
+    transform: none;
   }
 
   .graphos-slide .slide-canvas {
@@ -5169,64 +5216,64 @@ body::after {
     cursor: pointer;
   }
 
-  .graphos-window {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate3d(-50%, -42%, 0) scale(0.96);
-  }
-
-  .graphos-slide.is-mobile-open .graphos-note {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .graphos-slide.is-mobile-open .graphos-window {
-    left: 10px;
-    right: 10px;
-    top: 22svh;
-    bottom: 10px;
-    width: auto;
-    z-index: 4;
-    opacity: 1;
-    pointer-events: auto;
-    transform: none;
-    padding: 10px;
-    border-radius: 20px;
-  }
-
-  .graphos-slide.is-mobile-open .graphos-window__body {
-    height: clamp(180px, 40svh, 320px);
-  }
-
-  .graphos-window__header {
-    padding-bottom: 8px;
-    font-size: 0.52rem;
-  }
-
-  .graphos-window__status,
-  .graphos-window__chip,
-  .graphos-window__hint {
-    font-size: 0.48rem;
-  }
-
-  .graphos-window__meta {
-    gap: 6px;
-    padding-bottom: 8px;
-  }
-
-  .graphos-window__chip {
-    min-height: 24px;
-    padding: 5px 8px;
-  }
-
-  .graphos-window__chip--select select {
-    min-width: 60px;
-  }
-
   .graphos-window__body {
     height: clamp(150px, 21svh, 190px);
     border-radius: var(--radius-panel);
     padding-bottom: 36px;
+  }
+
+  .graphos-window__header,
+  .graphos-window__body,
+  .graphos-window__hint {
+    display: none;
+  }
+
+  .graphos-window__meta {
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-frame);
+    border: 1px solid rgba(255,255,255,0.10);
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+      rgba(255,255,255,0.02);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    box-shadow:
+      0 12px 28px rgba(0,0,0,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    gap: 6px;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    pointer-events: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .graphos-window__meta::-webkit-scrollbar {
+    display: none;
+  }
+
+  .graphos-window__chip {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 0.45rem;
+  }
+
+  .graphos-window__chip--info,
+  .graphos-window__chip--mobile-action {
+    display: none;
+  }
+
+  .graphos-window__chip--select {
+    min-width: 92px;
+  }
+
+  .graphos-window__chip--select select {
+    min-width: 0;
+    width: 100%;
   }
 
   .graphos-window__feed {
@@ -5812,5 +5859,106 @@ body::after {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .graphos-slide .slide-content {
+    display: none !important;
+  }
+
+  .graphos-slide .slide-canvas {
+    display: block !important;
+    pointer-events: auto;
+  }
+
+  .graphos-slide .graphos-window {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1;
+    pointer-events: none;
+    transform: none !important;
+    overflow: visible;
+    z-index: 30;
+  }
+
+  .graphos-slide .graphos-window::before,
+  .graphos-slide .graphos-window::after {
+    display: none !important;
+  }
+
+  .graphos-slide .graphos-window__header,
+  .graphos-slide .graphos-window__body,
+  .graphos-slide .graphos-window__hint {
+    display: none !important;
+  }
+
+  .graphos-slide .graphos-window__meta {
+    display: flex;
+    position: relative;
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-frame);
+    border: 1px solid rgba(255,255,255,0.10);
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+      rgba(255,255,255,0.02);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    box-shadow:
+      0 12px 28px rgba(0,0,0,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    gap: 6px;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    pointer-events: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .graphos-slide .graphos-window__meta::-webkit-scrollbar {
+    display: none;
+  }
+
+  .graphos-slide .graphos-window__chip {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 0.45rem;
+  }
+
+  .graphos-slide .graphos-window__chip--info,
+  .graphos-slide .graphos-window__chip--mobile-action {
+    display: none !important;
+  }
+
+  .graphos-slide .graphos-window__chip--select {
+    min-width: 92px;
+  }
+
+  .graphos-slide .graphos-window__chip--select select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .graphos-slide .graphos-window__chip--action {
+    flex: 0 0 auto;
+  }
+
+  .graphos-slide .graphos-context-menu {
+    z-index: 40;
   }
 }

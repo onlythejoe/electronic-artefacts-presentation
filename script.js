@@ -5617,6 +5617,16 @@ class GraphOSLiveScene {
   }
 
   _setMobilePanelOpen(open) {
+    if (this._isCompactMobile()) {
+      this.mobileExpanded = false;
+      if (activeSlideEl && activeSlideEl.dataset.slide === 'graphos') {
+        activeSlideEl.classList.remove('is-mobile-open');
+      }
+      if (graphosNoteEl) {
+        graphosNoteEl.setAttribute('aria-expanded', 'false');
+      }
+      return;
+    }
     this.mobileExpanded = !!open;
     if (activeSlideEl && activeSlideEl.dataset.slide === 'graphos') {
       activeSlideEl.classList.toggle('is-mobile-open', this.mobileExpanded);
@@ -6668,7 +6678,6 @@ class GraphOSLiveScene {
     const compactMobile = this._isCompactMobile();
 
     if (compactMobile) {
-      this._setMobilePanelOpen(true);
       this._hideMenu();
       this._endColorPick();
       graphosMobileGesture = {
