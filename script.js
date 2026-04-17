@@ -4238,6 +4238,14 @@ class UseCasesScene {
       'Robotics', 'Research', 'Marketplace', 'Operations', 'Energy', 'Finance', 'Health',
       'Navigation', 'Design', 'Music', 'Culture', 'Planning', 'Strategy', 'Computation',
     ];
+    this.useCasePalette = [
+      { fill: [124, 160, 255], stroke: [209, 223, 255], glow: [124, 160, 255] },
+      { fill: [93, 229, 214], stroke: [202, 255, 247], glow: [93, 229, 214] },
+      { fill: [141, 204, 120], stroke: [221, 250, 212], glow: [141, 204, 120] },
+      { fill: [255, 194, 102], stroke: [255, 233, 191], glow: [255, 194, 102] },
+      { fill: [255, 145, 196], stroke: [255, 223, 238], glow: [255, 145, 196] },
+      { fill: [180, 146, 255], stroke: [226, 210, 255], glow: [180, 146, 255] },
+    ];
     this._resize();
     this._init();
   }
@@ -4253,10 +4261,12 @@ class UseCasesScene {
     this.words = Array.from({ length: count }, (_, i) => {
       const word = this.wordBank[i % this.wordBank.length];
       const layer = randChoice(layers);
+      const color = this._pickUseCaseColor(word, i);
       const baseX = rand(this.w * 0.08, this.w * 0.92);
       const baseY = rand(this.h * 0.10, this.h * 0.90);
       return {
         text: word,
+        color,
         baseX,
         baseY,
         x: baseX,
@@ -4270,6 +4280,22 @@ class UseCasesScene {
         alpha: rand(0.14, 0.30) + layer * 0.10,
       };
     });
+  }
+
+  _pickUseCaseColor(word, index) {
+    const key = word.toLowerCase();
+    const paletteIndex = (() => {
+      if (['crm', 'web', 'marketplace', 'finance', 'retail', 'data'].includes(key)) return 0;
+      if (['logistics', 'operations', 'navigation', 'planning', 'infrastructure'].includes(key)) return 1;
+      if (['domotics', 'robotics', 'systems', 'consciousness', 'strategy'].includes(key)) return 5;
+      if (['simulation', 'physics', 'research', 'computation'].includes(key)) return 3;
+      if (['biology', 'genome', 'health', 'education'].includes(key)) return 2;
+      if (['media', 'music', 'culture', 'design'].includes(key)) return 4;
+      const seed = [...word].reduce((acc, ch) => acc + ch.charCodeAt(0), index * 17);
+      return seed % this.useCasePalette.length;
+    })();
+
+    return this.useCasePalette[paletteIndex];
   }
 
   start() {
@@ -4340,37 +4366,43 @@ class UseCasesScene {
       .slice()
       .sort((a, b) => a.depth - b.depth)
       .forEach((w, i) => {
-        const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
-        const scale = 0.80 + w.depth * 0.50 + pulse * 0.06;
-        const alpha = clamp(w.alpha * (0.72 + 0.28 * pulse), 0.05, 0.78);
-        const fillAlpha = light ? alpha * (0.92 + w.depth * 0.04) : alpha;
-        const strokeAlpha = clamp(fillAlpha * (w.depth > 0.9 ? 0.52 : w.depth > 0.65 ? 0.34 : 0.18), 0.02, 0.58);
-        ctx.save();
-        ctx.translate(w.x, w.y);
-        ctx.rotate(Math.sin(t * 0.22 + w.phase) * (0.012 + w.depth * 0.02));
-        ctx.scale(scale, scale);
-        ctx.font = `500 ${Math.round(w.base)}px Inter, sans-serif`;
+      const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
+      const scale = 0.80 + w.depth * 0.50 + pulse * 0.06;
+      const alpha = clamp(w.alpha * (0.72 + 0.28 * pulse), 0.05, 0.78);
+      const fillAlpha = light ? alpha * (0.92 + w.depth * 0.04) : alpha;
+      const strokeAlpha = clamp(fillAlpha * (w.depth > 0.9 ? 0.52 : w.depth > 0.65 ? 0.34 : 0.18), 0.02, 0.58);
+      const accentAlpha = clamp((0.22 + w.depth * 0.32) * (0.72 + pulse * 0.28), 0.10, 0.86);
+      const fillColor = w.color?.fill || [255, 255, 255];
+      const strokeColor = w.color?.stroke || [255, 255, 255];
+      const glowColor = w.color?.glow || [255, 255, 255];
+      ctx.save();
+      ctx.translate(w.x, w.y);
+      ctx.rotate(Math.sin(t * 0.22 + w.phase) * (0.012 + w.depth * 0.02));
+      ctx.scale(scale, scale);
+      ctx.font = `500 ${Math.round(w.base)}px Inter, sans-serif`;
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'left';
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-        ctx.lineWidth = 0.45 + w.depth * 1.15;
-        ctx.strokeStyle = light
-          ? `rgba(0,0,0,${strokeAlpha})`
-          : `rgba(255,255,255,${strokeAlpha})`;
-        if (w.depth > 0.55 || pulse > 0.72) {
-          ctx.strokeText(w.text, 0, 0);
-        }
-        if (w.depth > 0.9) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = light ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)';
-        }
-        ctx.fillStyle = light
-          ? `rgba(0,0,0,${fillAlpha})`
-          : `rgba(255,255,255,${fillAlpha})`;
-        ctx.fillText(w.text, 0, 0);
-        ctx.restore();
-      });
+      ctx.lineWidth = 0.45 + w.depth * 1.15;
+      const strokeBase = light
+        ? [strokeColor[0] * 0.35, strokeColor[1] * 0.35, strokeColor[2] * 0.35]
+        : strokeColor;
+      ctx.strokeStyle = `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
+      if (w.depth > 0.55 || pulse > 0.72) {
+        ctx.strokeText(w.text, 0, 0);
+      }
+      if (w.depth > 0.9) {
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = `rgba(${glowColor.join(',')},${light ? 0.10 : 0.16})`;
+      }
+      const fillBase = light
+        ? [fillColor[0] * 0.42, fillColor[1] * 0.42, fillColor[2] * 0.42]
+        : fillColor;
+      ctx.fillStyle = `rgba(${fillBase.map(v => Math.round(v)).join(',')},${accentAlpha})`;
+      ctx.fillText(w.text, 0, 0);
+      ctx.restore();
+    });
     ctx.restore();
 
     // Soft depth veil to keep the cloud legible.
