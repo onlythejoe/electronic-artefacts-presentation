@@ -4063,26 +4063,27 @@ body::after {
   }
 
   .slide[data-slide="build"] .slide-content {
-    gap: 18px;
-  }
-
-  .slide[data-slide="build"] .slide-content {
-    max-width: min(100%, 480px);
-    gap: 10px;
+    width: min(100%, 460px);
+    height: calc(100svh - (var(--slide-pad) * 2));
+    max-width: 100%;
+    gap: 8px;
+    justify-content: flex-start;
+    overflow: hidden;
   }
 
   .slide[data-slide="build"] .build-intro {
-    gap: 6px;
+    gap: 4px;
   }
 
   .slide[data-slide="build"] .build-intro h2 {
-    max-width: 13ch;
-    font-size: clamp(1.3rem, 5.8vw, 1.95rem);
+    max-width: 12ch;
+    font-size: clamp(1.08rem, 4.8vw, 1.55rem);
   }
 
   .slide[data-slide="build"] .build-lead {
     max-width: 100%;
-    font-size: clamp(0.88rem, 3.2vw, 1rem);
+    font-size: clamp(0.78rem, 3vw, 0.92rem);
+    line-height: 1.38;
   }
 
   .slide[data-slide="build"] .build-summary {
@@ -4095,13 +4096,12 @@ body::after {
   }
 
   .build-grid {
-    display: grid;
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(70vw, 1fr);
+    grid-auto-columns: minmax(60vw, 1fr);
     overflow-x: auto;
     overflow-y: hidden;
-    padding-bottom: 8px;
+    padding-bottom: 4px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
@@ -4124,7 +4124,7 @@ body::after {
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 7px 8px 8px;
+    padding: 6px 7px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
@@ -4140,53 +4140,54 @@ body::after {
   }
 
   .build-step {
-    min-height: 22px;
-    padding: 4px 8px;
-    font-size: 0.48rem;
-    letter-spacing: 0.1em;
+    min-height: 20px;
+    padding: 3px 7px;
+    font-size: 0.44rem;
+    letter-spacing: 0.09em;
   }
 
   .build-step__arrow {
-    font-size: 0.56rem;
+    font-size: 0.52rem;
   }
 
   .build-workbench {
-    gap: 8px;
-    padding: 10px;
-    border-radius: 22px;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 20px;
+    overflow: hidden;
   }
 
   .build-surface {
-    gap: 8px;
-    padding: 10px;
-    border-radius: 18px;
-  }
-
-  .build-surface__top {
-    font-size: 0.48rem;
-  }
-
-  .build-surface__window {
-    min-height: 118px;
+    gap: 6px;
+    padding: 8px;
     border-radius: 16px;
   }
 
+  .build-surface__top {
+    font-size: 0.42rem;
+  }
+
+  .build-surface__window {
+    min-height: 96px;
+    border-radius: 14px;
+  }
+
   .build-surface__chrome {
-    padding: 8px 10px 7px;
-    font-size: 0.45rem;
+    padding: 7px 9px 6px;
+    font-size: 0.41rem;
   }
 
   .build-surface__viewport {
-    gap: 8px;
-    padding: 10px;
+    gap: 6px;
+    padding: 8px;
   }
 
   .build-surface__hero {
-    gap: 6px;
+    gap: 4px;
   }
 
   .build-surface__hero strong {
-    font-size: clamp(0.92rem, 4vw, 1.24rem);
+    font-size: clamp(0.82rem, 3.7vw, 1.08rem);
   }
 
   .build-surface__hero p {
@@ -4197,8 +4198,8 @@ body::after {
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-    gap: 6px;
-    padding-bottom: 4px;
+    gap: 5px;
+    padding-bottom: 3px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
@@ -4211,25 +4212,25 @@ body::after {
   .build-surface__chips span,
   .build-card__chips span,
   .build-asset-chip {
-    min-height: 20px;
-    padding: 0 8px;
-    font-size: 0.44rem;
+    min-height: 18px;
+    padding: 0 7px;
+    font-size: 0.41rem;
   }
 
   .build-card {
-    min-height: 96px;
-    padding: 11px 11px 10px;
-    border-radius: 16px;
-    gap: 6px;
+    min-height: 84px;
+    padding: 9px 9px 8px;
+    border-radius: 14px;
+    gap: 4px;
   }
 
   .build-card strong {
-    font-size: clamp(0.92rem, 3.9vw, 1.18rem);
+    font-size: clamp(0.84rem, 3.5vw, 1.05rem);
   }
 
   .build-card__top,
   .build-card__foot {
-    gap: 8px;
+    gap: 6px;
   }
 
   .build-card__chips {
@@ -4250,34 +4251,34 @@ body::after {
   .build-card__cta,
   .build-card__foot span:first-child,
   .build-card__badge {
-    font-size: 0.42rem;
+    font-size: 0.38rem;
   }
 
   .build-card p {
-    font-size: 0.74rem;
-    line-height: 1.42;
+    font-size: 0.66rem;
+    line-height: 1.34;
   }
 
   .build-card__foot {
-    padding-top: 8px;
+    padding-top: 6px;
   }
 
   .build-assets {
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 18px;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 16px;
   }
 
   .build-assets__lead {
-    gap: 4px;
+    gap: 3px;
   }
 
   .build-assets__lead span {
-    font-size: 0.44rem;
+    font-size: 0.41rem;
   }
 
   .build-assets__lead strong {
-    font-size: clamp(0.9rem, 4vw, 1.08rem);
+    font-size: clamp(0.82rem, 3.8vw, 0.98rem);
   }
 
   .build-assets__lead p {
@@ -4498,13 +4499,13 @@ body::after {
   }
 
   .slide[data-slide="combination"] .slide-content {
-    gap: 4px;
-    max-width: min(100%, 260px);
+    gap: 2px;
+    max-width: min(100%, 220px);
     margin-top: 0;
   }
 
   .slide[data-slide="combination"] h2 {
-    font-size: clamp(1.12rem, 5vw, 1.55rem);
+    font-size: clamp(0.98rem, 4.4vw, 1.25rem);
     letter-spacing: -0.04em;
   }
 
@@ -4513,8 +4514,9 @@ body::after {
   }
 
   .slide[data-slide="combination"] {
-    justify-content: flex-start;
-    padding-top: clamp(12px, 4svh, 20px);
+    justify-content: center;
+    padding-top: clamp(8px, 2.2svh, 14px);
+    padding-bottom: clamp(12px, 3svh, 18px);
   }
 
   .module-pill {
@@ -4791,10 +4793,10 @@ body::after {
     display: grid;
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(76vw, 1fr);
+    grid-auto-columns: minmax(60vw, 1fr);
     overflow-x: auto;
     overflow-y: hidden;
-    padding-bottom: 8px;
+    padding-bottom: 4px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
@@ -4813,7 +4815,7 @@ body::after {
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-    padding-bottom: 10px;
+    padding-bottom: 6px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
@@ -4906,36 +4908,36 @@ body::after {
   .build-assets,
   .brief-card,
   .infra-card {
-    border-radius: 18px;
-    padding: 12px 12px 12px 14px;
+    border-radius: 16px;
+    padding: 9px 10px 10px 11px;
   }
 
   .build-surface__window {
-    min-height: clamp(160px, 22svh, 210px);
+    min-height: clamp(96px, 18svh, 150px);
   }
 
   .build-surface__viewport {
-    padding: 12px;
+    padding: 8px;
   }
 
   .build-grid,
   .build-assets {
-    gap: 10px;
+    gap: 6px;
   }
 
   .build-card {
-    min-height: 118px;
-    padding: 13px 13px 12px;
-    border-radius: 18px;
-    gap: 8px;
+    min-height: 84px;
+    padding: 9px 9px 8px;
+    border-radius: 14px;
+    gap: 4px;
   }
 
   .build-card strong {
-    font-size: clamp(1rem, 4.2vw, 1.28rem);
+    font-size: clamp(0.84rem, 3.6vw, 1.08rem);
   }
 
   .build-assets__lead strong {
-    font-size: clamp(0.98rem, 4vw, 1.16rem);
+    font-size: clamp(0.84rem, 3.6vw, 1rem);
   }
 
   .build-assets__lead p {
