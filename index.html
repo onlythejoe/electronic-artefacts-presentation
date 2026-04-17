@@ -62,6 +62,12 @@
   <span id="num-total">28</span>
 </div>
 <nav id="slide-nav" aria-label="Slide navigation"></nav>
+<aside id="hover-hud" aria-hidden="true">
+  <span class="hover-hud__kicker">Hover</span>
+  <strong class="hover-hud__title"></strong>
+  <p class="hover-hud__detail"></p>
+  <p class="hover-hud__meta"></p>
+</aside>
 
 <!-- Slides -->
 <div class="slides" id="slides">
@@ -73,7 +79,7 @@
       <div class="intro-shell">
         <p class="intro-note" role="note">Expérience interactive · desktop recommandé</p>
         <p class="intro-eyebrow">SPACE briefing</p>
-        <h2 class="intro-title" data-intro-type>Salut, merci de prendre un instant.</h2>
+        <h2 class="intro-title" data-intro-type>Salut, merci de prendre un moment.</h2>
         <p class="intro-sub">Ceci est une expérience interactive pensée pour desktop.</p>
         <p class="sub intro-sub intro-sub--secondary">Certaines pages sont entièrement manipulables. Vous parcourez une démo du logiciel SPACE, pas le logiciel lui-même.</p>
         <p class="intro-nav">
@@ -134,6 +140,11 @@
   <!-- 06 -->
   <section class="slide has-canvas graphos-slide" data-slide="graphos">
     <canvas class="slide-canvas" id="canvas-graphos"></canvas>
+    <aside class="graphos-note" aria-label="About this demonstration">
+      <span class="graphos-note__kicker">Interactive demo</span>
+      <strong>ARCA node logic, projected through surfaces.</strong>
+      <p>Create nodes, nest them, connect relations, and shape context. This is a demo of the logic, not the operating system itself.</p>
+    </aside>
     <div class="graphos-window" aria-label="Context window">
       <button class="graphos-window__header" type="button" aria-label="Move context window">
         <span class="graphos-window__eyebrow">GraphOS</span>
@@ -182,8 +193,8 @@
     </div>
     <div class="slide-content">
       <h2>Graph OS</h2>
-      <p>Interactive live node graph. Tap rows to focus. Drag nodes in place.</p>
-      <p class="sub">Desktop: right-click to edit. Mobile: use Actions for color, type, and delete.</p>
+      <p>Interactive live demo of the node system. Tap rows to focus, drag nodes in place, and explore how context and surfaces shape the graph.</p>
+      <p class="sub">Desktop: right-click to edit. Mobile: use Actions for color, type, and delete. This is a demonstration of the logic, not the OS itself.</p>
     </div>
     <div class="graphos-context-menu" id="graphos-context-menu" hidden></div>
     <div class="graphos-color-picker" id="graphos-color-picker" hidden>

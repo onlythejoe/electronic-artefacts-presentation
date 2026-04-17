@@ -232,6 +232,22 @@ body.is-action-hover {
   --cursor-ring-size: 20px;
 }
 
+body[data-hover-kind="drag"] {
+  --cursor-ring-size: 26px;
+}
+
+body[data-hover-kind="pick"] {
+  --cursor-ring-size: 18px;
+}
+
+body[data-hover-kind="drag"] #cursor {
+  --cursor-dot-scale: 0.92;
+}
+
+body[data-hover-kind="pick"] #cursor {
+  --cursor-dot-scale: 0.78;
+}
+
 body.is-action-hover #cursor-ring {
   border-color: rgba(255, 255, 255, 0.44);
   opacity: 1;
@@ -289,6 +305,110 @@ body[data-theme="light"] #nav-track:hover::before {
 body[data-theme="light"].is-action-hover #cursor-ring {
   border-color: rgba(0, 0, 0, 0.24);
   box-shadow: 0 0 16px rgba(0, 0, 0, 0.08);
+}
+
+#hover-hud {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 240;
+  width: min(320px, 28vw);
+  padding: 12px 14px 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
+    rgba(255,255,255,0.02);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  box-shadow:
+    0 16px 36px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.84);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 8px, 0) scale(0.985);
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 220ms var(--ease-out),
+    box-shadow 220ms var(--ease-out),
+    border-color 220ms var(--ease-out);
+  will-change: transform, opacity;
+}
+
+#hover-hud.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+#hover-hud[data-kind="drag"] {
+  width: min(300px, 26vw);
+}
+
+#hover-hud[data-kind="pick"] {
+  width: min(260px, 22vw);
+}
+
+.hover-hud__kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.58);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.48rem;
+}
+
+.hover-hud__title {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.95rem;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+}
+
+.hover-hud__detail {
+  margin: 6px 0 0;
+  color: rgba(255,255,255,0.64);
+  line-height: 1.5;
+  font-size: 0.78rem;
+}
+
+.hover-hud__meta {
+  margin: 7px 0 0;
+  color: rgba(255,255,255,0.42);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.48rem;
+}
+
+body[data-theme="light"] #hover-hud {
+  border-color: rgba(0,0,0,0.08);
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.82), rgba(255,255,255,0.46)),
+    rgba(255,255,255,0.58);
+  color: rgba(18,18,18,0.86);
+  box-shadow:
+    0 16px 32px rgba(0,0,0,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.82);
+}
+
+body[data-theme="light"] .hover-hud__kicker {
+  border-color: rgba(0,0,0,0.08);
+  background: rgba(0,0,0,0.03);
+  color: rgba(18,18,18,0.58);
+}
+
+body[data-theme="light"] .hover-hud__detail {
+  color: rgba(18,18,18,0.64);
+}
+
+body[data-theme="light"] .hover-hud__meta {
+  color: rgba(18,18,18,0.42);
 }
 
 body[data-theme="light"] .slide h2,
@@ -1931,7 +2051,7 @@ body[data-theme="light"] .contact-cta:hover {
   --graphos-glass-shadow-hover:
     0 28px 70px rgba(0, 0, 0, 0.30),
     inset 0 1px 0 rgba(255, 255, 255, 0.20);
-  --graphos-glass-backdrop: blur(28px) saturate(145%);
+  --graphos-glass-backdrop: blur(36px) saturate(160%);
   --graphos-glass-highlight:
     radial-gradient(circle at 18% 0%, rgba(255,255,255,0.18), transparent 28%),
     radial-gradient(circle at 100% 0%, rgba(124,160,255,0.10), transparent 24%),
@@ -1943,6 +2063,57 @@ body[data-theme="light"] .contact-cta:hover {
   max-width: min(460px, 36vw);
   margin-top: 4vh;
   pointer-events: none;
+}
+
+.graphos-note {
+  position: absolute;
+  left: clamp(18px, 3vw, 44px);
+  top: clamp(18px, 3vh, 44px);
+  z-index: 3;
+  width: min(300px, 26vw);
+  padding: 11px 12px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
+    rgba(255,255,255,0.02);
+  backdrop-filter: blur(26px) saturate(145%);
+  -webkit-backdrop-filter: blur(26px) saturate(145%);
+  box-shadow:
+    0 14px 32px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.84);
+  pointer-events: none;
+}
+
+.graphos-note__kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.58);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.48rem;
+}
+
+.graphos-note strong {
+  display: block;
+  margin-top: 8px;
+  font-size: clamp(0.92rem, 1.12vw, 1.12rem);
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+}
+
+.graphos-note p {
+  margin: 7px 0 0;
+  max-width: 34ch;
+  color: rgba(255,255,255,0.60);
+  line-height: 1.45;
+  font-size: 0.78rem;
 }
 
 .graphos-window {
@@ -2174,12 +2345,14 @@ body[data-theme="light"] .contact-cta:hover {
   border-radius: 22px;
   border: 1px solid rgba(255,255,255,0.08);
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
-    rgba(255,255,255,0.02);
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.010)),
+    rgba(255,255,255,0.012);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
     inset 0 -1px 0 rgba(255,255,255,0.03);
   pointer-events: auto;
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -3701,6 +3874,12 @@ body::after {
     width: min(90vw, 440px);
   }
 
+  .graphos-note {
+    left: 14px;
+    top: 14px;
+    width: min(84vw, 280px);
+  }
+
   .graphos-window__body {
     height: clamp(170px, 24svh, 220px);
   }
@@ -3770,7 +3949,8 @@ body::after {
 
   #cursor,
   #cursor-ring,
-  #slide-nav {
+  #slide-nav,
+  #hover-hud {
     display: none;
   }
 

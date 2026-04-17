@@ -37,6 +37,11 @@ let graphosSelectionInfoEl = null;
 let graphosContextMenuEl = null;
 let graphosColorPickerEl = null;
 let graphosColorWheelEl = null;
+let hoverHudEl = null;
+let hoverHudKickerEl = null;
+let hoverHudTitleEl = null;
+let hoverHudDetailEl = null;
+let hoverHudMetaEl = null;
 let hoveredTextNode = null;
 let hoveredInfraLayer = null;
 let hoveredGraphosLayer = null;
@@ -53,6 +58,7 @@ let lastBuildSelected = null;
 let introTypewriter = null;
 let hoverProbeX = NaN;
 let hoverProbeY = NaN;
+let lastHoverHudKey = null;
 let appAlive = true;
 let mistBg = null;
 const graphosWindowState = {
@@ -64,7 +70,7 @@ const graphosWindowState = {
   pointerId: null,
 };
 const INTRO_TYPEWRITER_PHRASES = [
-  'Salut, merci de prendre un instant.',
+  'Salut, merci de prendre un moment.',
 ];
 const ACTION_HOVER_SELECTOR = [
   '#nav-track',
@@ -72,7 +78,6 @@ const ACTION_HOVER_SELECTOR = [
   'button',
   'select',
   '[role="button"]',
-  '[tabindex]:not([tabindex="-1"])',
   '#canvas-graphos',
   '.infra-card',
   '.infra-step',
@@ -161,6 +166,11 @@ graphosSelectionInfoEl = document.getElementById('graphos-selection-info');
 graphosContextMenuEl = document.getElementById('graphos-context-menu');
 graphosColorPickerEl = document.getElementById('graphos-color-picker');
 graphosColorWheelEl = document.getElementById('graphos-color-wheel');
+hoverHudEl = document.getElementById('hover-hud');
+hoverHudKickerEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__kicker') : null;
+hoverHudTitleEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__title') : null;
+hoverHudDetailEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__detail') : null;
+hoverHudMetaEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__meta') : null;
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -209,6 +219,308 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, rr);
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
+}
+
+function collapseText(value) {
+  return value ? String(value).replace(/\s+/g, ' ').trim() : '';
+}
+
+function readText(root, selector) {
+  return collapseText(root ? root.querySelector(selector)?.textContent : '');
+}
+
+function resolveHoverKind(el) {
+  if (!isElementTarget(el)) return 'action';
+  if (el.closest('#nav-track, .graphos-window__header')) return 'drag';
+  if (el.closest('.graphos-context-menu__swatch, .graphos-color-picker canvas')) return 'pick';
+  return 'action';
+}
+
+function buildHoverPayload(el) {
+  if (!isElementTarget(el)) return null;
+
+  const navTrack = el.closest('#nav-track');
+  if (navTrack) {
+    return {
+      key: 'nav-track',
+      kind: 'drag',
+      kicker: 'Navigation',
+      title: 'Slide rail',
+      detail: 'Drag the rail, use the wheel, or press the arrow keys to move through the deck.',
+      meta: `${String(currentIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`,
+    };
+  }
+
+  const graphosHeader = el.closest('.graphos-window__header');
+  if (graphosHeader) {
+    return {
+      key: 'graphos-header',
+      kind: 'drag',
+      kicker: 'GraphOS',
+      title: 'Move the context window',
+      detail: 'Drag the header to reposition the live node demo.',
+      meta: 'Glass panel',
+    };
+  }
+
+  const graphosChip = el.closest('.graphos-window__chip');
+  if (graphosChip) {
+    const isSelect = graphosChip.classList.contains('graphos-window__chip--select');
+    const selectValue = graphosTypeFilterEl ? collapseText(graphosTypeFilterEl.selectedOptions?.[0]?.textContent || graphosTypeFilterEl.value) : '';
+    const chipId = graphosChip.id || '';
+    const chipTitleMap = {
+      'graphos-toggle-nodes': 'Nodes',
+      'graphos-toggle-links': 'Links',
+      'graphos-open-menu': 'Actions',
+    };
+    const chipDetailMap = {
+      'graphos-toggle-nodes': 'Show or hide the node field.',
+      'graphos-toggle-links': 'Reveal or hide connective paths.',
+      'graphos-open-menu': 'Open the touch-safe actions menu.',
+    };
+    return {
+      key: `graphos-chip:${collapseText(graphosChip.textContent)}`,
+      kind: isSelect ? 'action' : 'action',
+      kicker: 'GraphOS',
+      title: isSelect ? 'Type filter' : chipTitleMap[chipId] || collapseText(graphosChip.textContent),
+      detail: isSelect ? `Current filter: ${selectValue || 'All types'}` : chipDetailMap[chipId] || 'Toggle the corresponding graph control.',
+      meta: isSelect ? 'Semantic filter' : 'Live control',
+    };
+  }
+
+  const graphosRow = el.closest('.graphos-row');
+  if (graphosRow) {
+    return {
+      key: `graphos-row:${graphosRow.dataset.layer || 'row'}`,
+      kind: 'action',
+      kicker: 'GraphOS layer',
+      title: readText(graphosRow, 'strong') || collapseText(graphosRow.textContent),
+      detail: readText(graphosRow, 'span'),
+      meta: readText(graphosRow, 'small'),
+    };
+  }
+
+  const graphosCanvas = el.closest('#canvas-graphos');
+  if (graphosCanvas) {
+    return {
+      key: 'graphos-canvas',
+      kind: 'drag',
+      kicker: 'GraphOS',
+      title: 'Live node field',
+      detail: 'Drag nodes, edit relations, and use the canvas to explore the surface projection.',
+      meta: 'Interactive canvas',
+    };
+  }
+
+  const infraStep = el.closest('.infra-step');
+  if (infraStep) {
+    const layer = infraStep.dataset.layer || collapseText(infraStep.textContent).toLowerCase();
+    const detailMap = {
+      surface: 'Public view and projected output.',
+      context: 'Registry, semantics, and policy.',
+      intents: 'Actions routed into the graph.',
+      modules: 'Capabilities enriching the middle layer.',
+      core: 'Canonical topology: nodes and edges only.',
+    };
+    return {
+      key: `infra-step:${layer}`,
+      kind: 'action',
+      kicker: 'Infrastructure',
+      title: collapseText(infraStep.textContent),
+      detail: detailMap[layer] || 'Layer of the system.',
+      meta: 'Reading order',
+    };
+  }
+
+  const infraCard = el.closest('.infra-card');
+  if (infraCard) {
+    return {
+      key: `infra-card:${infraCard.dataset.layer || collapseText(infraCard.textContent)}`,
+      kind: 'action',
+      kicker: 'Infrastructure',
+      title: readText(infraCard, 'strong'),
+      detail: readText(infraCard, 'small'),
+      meta: readText(infraCard, 'span'),
+    };
+  }
+
+  const buildStep = el.closest('.build-step');
+  if (buildStep) {
+    const step = buildStep.dataset.layer || collapseText(buildStep.textContent).toLowerCase();
+    const detailMap = {
+      surface: 'Public surface and visible projection.',
+      programs: 'Orchestrate flows, triggers, and routing.',
+      context: 'Registry, semantics, and policy.',
+      nodes: 'Topology and canonical relations.',
+      modules: 'Capabilities that enrich the system.',
+      assets: 'Any file type can land on a node.',
+    };
+    return {
+      key: `build-step:${step}`,
+      kind: 'action',
+      kicker: 'Build',
+      title: collapseText(buildStep.textContent),
+      detail: detailMap[step] || 'Build layer.',
+      meta: 'Construction path',
+    };
+  }
+
+  const moduleCard = el.closest('.module-card');
+  if (moduleCard) {
+    return {
+      key: `module-card:${moduleCard.dataset.module || collapseText(readText(moduleCard, 'strong'))}`,
+      kind: 'action',
+      kicker: 'Module',
+      title: readText(moduleCard, 'strong'),
+      detail: readText(moduleCard, 'p'),
+      meta: `${readText(moduleCard, '.module-card__badge')} · ${readText(moduleCard, '.module-card__cta')}`.replace(/^ · | · $/g, ''),
+    };
+  }
+
+  const modulesFeature = el.closest('.modules-feature');
+  if (modulesFeature) {
+    return {
+      key: 'modules-feature',
+      kind: 'action',
+      kicker: 'Module store',
+      title: readText(modulesFeature, 'strong'),
+      detail: readText(modulesFeature, 'p'),
+      meta: readText(modulesFeature, '.modules-feature__meta'),
+    };
+  }
+
+  const buildSurface = el.closest('.build-surface');
+  if (buildSurface) {
+    return {
+      key: `build-surface:${buildSurface.dataset.layer || 'surface'}`,
+      kind: 'action',
+      kicker: 'Build',
+      title: readText(buildSurface, '.build-surface__hero strong'),
+      detail: readText(buildSurface, '.build-surface__hero p'),
+      meta: readText(buildSurface, '.build-surface__chips'),
+    };
+  }
+
+  const buildCard = el.closest('.build-card');
+  if (buildCard) {
+    return {
+      key: `build-card:${buildCard.dataset.layer || readText(buildCard, 'strong')}`,
+      kind: 'action',
+      kicker: 'Build',
+      title: readText(buildCard, 'strong'),
+      detail: readText(buildCard, 'p'),
+      meta: readText(buildCard, '.build-card__foot'),
+    };
+  }
+
+  const buildAssets = el.closest('.build-assets');
+  if (buildAssets) {
+    return {
+      key: 'build-assets',
+      kind: 'action',
+      kicker: 'Build',
+      title: readText(buildAssets, '.build-assets__lead strong'),
+      detail: readText(buildAssets, '.build-assets__lead p'),
+      meta: readText(buildAssets, '.build-assets__chips'),
+    };
+  }
+
+  const graphosContextMenuItem = el.closest('.graphos-context-menu__item');
+  if (graphosContextMenuItem) {
+    return {
+      key: `graphos-menu:${collapseText(graphosContextMenuItem.textContent)}`,
+      kind: 'action',
+      kicker: 'GraphOS',
+      title: collapseText(graphosContextMenuItem.textContent),
+      detail: 'Apply this action to the selected node.',
+      meta: 'Context menu',
+    };
+  }
+
+  const graphosContextMenuToggle = el.closest('.graphos-context-menu__toggle');
+  if (graphosContextMenuToggle) {
+    return {
+      key: `graphos-toggle:${collapseText(graphosContextMenuToggle.textContent)}`,
+      kind: 'action',
+      kicker: 'GraphOS',
+      title: collapseText(graphosContextMenuToggle.textContent),
+      detail: 'Switch the canonical state for the active node.',
+      meta: 'Core toggle',
+    };
+  }
+
+  const graphosContextMenuSwatch = el.closest('.graphos-context-menu__swatch');
+  if (graphosContextMenuSwatch) {
+    return {
+      key: 'graphos-swatch',
+      kind: 'pick',
+      kicker: 'GraphOS',
+      title: 'Node color',
+      detail: 'Pick a color for the selected node.',
+      meta: 'Palette',
+    };
+  }
+
+  const graphosColorWheel = el.closest('.graphos-color-picker canvas');
+  if (graphosColorWheel) {
+    return {
+      key: 'graphos-color-wheel',
+      kind: 'pick',
+      kicker: 'GraphOS',
+      title: 'Color wheel',
+      detail: 'Drag to assign a new node color.',
+      meta: 'Fine control',
+    };
+  }
+
+  const contactCta = el.closest('.contact-cta');
+  if (contactCta) {
+    return {
+      key: 'contact-cta',
+      kind: 'action',
+      kicker: 'Contact',
+      title: collapseText(contactCta.textContent),
+      detail: 'Open the mail client to continue the conversation.',
+      meta: 'electronic-artefacts@gmail.com',
+    };
+  }
+
+  return null;
+}
+
+function syncHoverHud(payload) {
+  if (!hoverHudEl) return;
+  if (!payload) {
+    lastHoverHudKey = null;
+    hoverHudEl.classList.remove('is-visible');
+    document.body.classList.remove('has-hover-hud');
+    delete document.body.dataset.hoverKind;
+    if (hoverHudKickerEl) hoverHudKickerEl.textContent = 'Hover';
+    if (hoverHudTitleEl) hoverHudTitleEl.textContent = '';
+    if (hoverHudDetailEl) hoverHudDetailEl.textContent = '';
+    if (hoverHudMetaEl) hoverHudMetaEl.textContent = '';
+    return;
+  }
+
+  const key = [
+    payload.key || '',
+    payload.kicker || '',
+    payload.title || '',
+    payload.detail || '',
+    payload.meta || '',
+  ].join('|');
+  document.body.classList.add('has-hover-hud');
+  document.body.dataset.hoverKind = payload.kind || 'action';
+  hoverHudEl.dataset.kind = payload.kind || 'action';
+  hoverHudEl.classList.add('is-visible');
+
+  if (key === lastHoverHudKey) return;
+  lastHoverHudKey = key;
+
+  if (hoverHudKickerEl) hoverHudKickerEl.textContent = payload.kicker || 'Hover';
+  if (hoverHudTitleEl) hoverHudTitleEl.textContent = payload.title || '';
+  if (hoverHudDetailEl) hoverHudDetailEl.textContent = payload.detail || '';
+  if (hoverHudMetaEl) hoverHudMetaEl.textContent = payload.meta || '';
 }
 
 class MistBackground {
@@ -892,14 +1204,23 @@ function updateHoverTargets(force = false) {
   hoveredBuildLayer = activeSlideEl && activeSlideEl.dataset.slide === 'build' && el && el.closest
     ? (el.closest('.build-step, .build-card, .build-surface, .build-assets')?.dataset.layer || null)
     : null;
+  const hoverPayload = buildHoverPayload(activeActionEl);
+  const hoverKind = hoverPayload ? hoverPayload.kind : (activeActionEl ? resolveHoverKind(activeActionEl) : null);
   syncInfraFocusState();
   syncGraphosFocusState();
   syncBuildFocusState();
+  syncHoverHud(hoverPayload);
   document.body.classList.toggle('is-action-hover', !!activeActionEl);
+  if (hoverKind) {
+    document.body.dataset.hoverKind = hoverKind;
+  } else {
+    delete document.body.dataset.hoverKind;
+  }
 }
 
 function clearActionHoverState() {
   document.body.classList.remove('is-action-hover');
+  syncHoverHud(null);
   hoveredTextNode = null;
   hoveredInfraLayer = null;
   hoveredGraphosLayer = null;
