@@ -2070,50 +2070,51 @@ body[data-theme="light"] .contact-cta:hover {
   left: clamp(18px, 3vw, 44px);
   top: clamp(18px, 3vh, 44px);
   z-index: 3;
-  width: min(300px, 26vw);
-  padding: 11px 12px 12px;
-  border-radius: 18px;
+  width: fit-content;
+  max-width: min(42vw, 320px);
+  padding: 8px 10px;
+  border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.10);
   background:
     linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
     rgba(255,255,255,0.02);
-  backdrop-filter: blur(26px) saturate(145%);
-  -webkit-backdrop-filter: blur(26px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
   box-shadow:
-    0 14px 32px rgba(0,0,0,0.18),
+    0 10px 22px rgba(0,0,0,0.14),
     inset 0 1px 0 rgba(255,255,255,0.10);
   color: rgba(255,255,255,0.84);
   pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .graphos-note__kicker {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 9px;
+  min-height: 18px;
+  padding: 0 7px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
   color: rgba(255,255,255,0.58);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 0.48rem;
+  font-size: 0.41rem;
 }
 
 .graphos-note strong {
-  display: block;
-  margin-top: 8px;
-  font-size: clamp(0.92rem, 1.12vw, 1.12rem);
-  line-height: 1.14;
-  letter-spacing: -0.025em;
+  display: inline;
+  margin-top: 0;
+  font-size: clamp(0.68rem, 0.95vw, 0.92rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .graphos-note p {
-  margin: 7px 0 0;
-  max-width: 34ch;
-  color: rgba(255,255,255,0.60);
-  line-height: 1.45;
-  font-size: 0.78rem;
+  display: none;
 }
 
 .graphos-window {
@@ -3876,27 +3877,22 @@ body::after {
   }
 
   .graphos-note {
-    left: 12px;
-    top: 12px;
-    width: fit-content;
-    max-width: min(76vw, 220px);
-    padding: 6px 9px 7px;
-    border-radius: 999px;
-    gap: 2px;
+    left: 10px;
+    top: 10px;
+    max-width: min(68vw, 190px);
+    padding: 5px 8px;
+    gap: 5px;
   }
 
   .graphos-note__kicker {
-    font-size: 0.42rem;
-    letter-spacing: 0.16em;
+    min-height: 16px;
+    padding: 0 6px;
+    font-size: 0.38rem;
+    letter-spacing: 0.15em;
   }
 
   .graphos-note strong {
-    font-size: clamp(0.68rem, 2.9vw, 0.86rem);
-    line-height: 1.18;
-  }
-
-  .graphos-note p {
-    display: none;
+    font-size: clamp(0.62rem, 2.7vw, 0.8rem);
   }
 
   .graphos-window__body {
@@ -4659,25 +4655,20 @@ body::after {
   }
 
   .graphos-note {
-    width: fit-content;
-    max-width: min(76vw, 220px);
-    padding: 6px 9px 7px;
-    border-radius: 999px;
-    gap: 2px;
+    max-width: min(68vw, 190px);
+    padding: 5px 8px;
+    gap: 5px;
   }
 
   .graphos-note__kicker {
-    font-size: 0.42rem;
-    letter-spacing: 0.16em;
+    min-height: 16px;
+    padding: 0 6px;
+    font-size: 0.38rem;
+    letter-spacing: 0.15em;
   }
 
   .graphos-note strong {
-    font-size: clamp(0.68rem, 2.9vw, 0.86rem);
-    line-height: 1.18;
-  }
-
-  .graphos-note p {
-    display: none;
+    font-size: clamp(0.62rem, 2.7vw, 0.8rem);
   }
 
   .graphos-window {
