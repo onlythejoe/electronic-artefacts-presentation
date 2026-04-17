@@ -7172,6 +7172,9 @@ class GraphOSLiveScene {
     const threshold = Math.min(this.w, this.h) * 0.24;
     const edgeFocusBoost = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.12 : 1;
     const showFilter = this.view.activeType;
+    const glowWidth = focusLayer === 'edge' ? 2.2 : focusLayer === 'group' ? 1.8 : 1.5;
+    const strokeWidth = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.08 : 0.92;
+    const baseAlpha = focusLayer === 'edge' ? 0.34 : focusLayer === 'group' ? 0.26 : 0.22;
 
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
@@ -7182,17 +7185,30 @@ class GraphOSLiveScene {
         const dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < threshold) {
-          const alpha = (1 - dist / threshold) * 0.16 * edgeFocusBoost;
+          const alpha = (1 - dist / threshold) * baseAlpha * edgeFocusBoost;
           const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
           gradient.addColorStop(0, 'rgba(255,255,255,0)');
           gradient.addColorStop(0.5, `rgba(255,255,255,${alpha})`);
           gradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(124,160,255,0.14)';
+          ctx.shadowBlur = focusLayer === 'edge' ? 10 : 6;
           ctx.strokeStyle = gradient;
-          ctx.lineWidth = focusLayer === 'edge' ? 1.05 : 0.72;
+          ctx.lineWidth = glowWidth;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
           ctx.stroke();
+
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = strokeWidth;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+          ctx.restore();
         }
       }
     }
