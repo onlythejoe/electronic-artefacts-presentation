@@ -4237,6 +4237,9 @@ class UseCasesScene {
       'Consciousness', 'Systems', 'Data', 'Infrastructure', 'Education', 'Retail', 'Media',
       'Robotics', 'Research', 'Marketplace', 'Operations', 'Energy', 'Finance', 'Health',
       'Navigation', 'Design', 'Music', 'Culture', 'Planning', 'Strategy', 'Computation',
+      'Automation', 'Analytics', 'Archive', 'Workflow', 'Collaboration', 'Knowledge',
+      'Publishing', 'Signals', 'Support', 'Sensors', 'Agents', 'Catalog', 'Content',
+      'Experience', 'Protocol', 'Telemetry', 'Audience', 'Scheduling', 'Interfaces',
     ];
     this.useCasePalette = [
       { fill: [124, 160, 255], stroke: [209, 223, 255], glow: [124, 160, 255] },
@@ -4245,6 +4248,8 @@ class UseCasesScene {
       { fill: [255, 194, 102], stroke: [255, 233, 191], glow: [255, 194, 102] },
       { fill: [255, 145, 196], stroke: [255, 223, 238], glow: [255, 145, 196] },
       { fill: [180, 146, 255], stroke: [226, 210, 255], glow: [180, 146, 255] },
+      { fill: [110, 214, 255], stroke: [214, 244, 255], glow: [110, 214, 255] },
+      { fill: [255, 166, 122], stroke: [255, 228, 211], glow: [255, 166, 122] },
     ];
     this._resize();
     this._init();
@@ -4256,41 +4261,60 @@ class UseCasesScene {
   }
 
   _init() {
-    const layers = this.isFinePointer ? [0.42, 0.72, 1] : [0.55, 0.84, 1];
-    const count = this.isFinePointer ? 30 : 22;
+    const layers = this.isFinePointer ? [0.30, 0.48, 0.66, 0.84, 1] : [0.42, 0.64, 0.82, 1];
+    const count = this.isFinePointer ? 44 : 30;
     this.words = Array.from({ length: count }, (_, i) => {
       const word = this.wordBank[i % this.wordBank.length];
       const layer = randChoice(layers);
       const color = this._pickUseCaseColor(word, i);
+      const family = this._resolveUseCaseFamily(word);
       const baseX = rand(this.w * 0.08, this.w * 0.92);
       const baseY = rand(this.h * 0.10, this.h * 0.90);
       return {
         text: word,
         color,
+        family,
         baseX,
         baseY,
         x: baseX,
         y: baseY,
-        orbitX: rand(18, 68) * layer,
-        orbitY: rand(10, 40) * layer,
-        speed: rand(0.10, 0.28) + layer * 0.08,
-        base: 10 + rand(0, 8) * layer + (layer > 0.9 ? 4 : 0),
+        orbitX: rand(18, 82) * layer,
+        orbitY: rand(10, 52) * layer,
+        speed: rand(0.08, 0.24) + layer * 0.09,
+        base: 9 + rand(0, 10) * layer + (layer > 0.9 ? 5 : layer > 0.8 ? 3 : 0),
         depth: layer,
         phase: rand(0, Math.PI * 2),
         alpha: rand(0.14, 0.30) + layer * 0.10,
+        blur: layer < 0.45 ? rand(1.6, 3.4) : layer < 0.7 ? rand(0.8, 1.8) : rand(0.1, 0.85),
+        wobble: rand(0.6, 1.8) + layer * 0.5,
+        twist: rand(-0.018, 0.018),
+        drift: rand(0.3, 1.2),
       };
     });
+  }
+
+  _resolveUseCaseFamily(word) {
+    const key = word.toLowerCase();
+    if (['crm', 'web', 'marketplace', 'finance', 'retail', 'data', 'content', 'catalog'].includes(key)) return 'enterprise';
+    if (['logistics', 'operations', 'navigation', 'planning', 'infrastructure', 'scheduling', 'workflow'].includes(key)) return 'ops';
+    if (['domotics', 'robotics', 'systems', 'consciousness', 'strategy', 'agents', 'interfaces'].includes(key)) return 'systems';
+    if (['simulation', 'physics', 'research', 'computation', 'telemetry', 'protocol'].includes(key)) return 'science';
+    if (['biology', 'genome', 'health', 'education', 'knowledge', 'signals'].includes(key)) return 'bio';
+    if (['media', 'music', 'culture', 'design', 'experience', 'publishing', 'audience'].includes(key)) return 'culture';
+    if (['automation', 'analytics', 'archive', 'collaboration', 'support'].includes(key)) return 'platform';
+    return 'general';
   }
 
   _pickUseCaseColor(word, index) {
     const key = word.toLowerCase();
     const paletteIndex = (() => {
-      if (['crm', 'web', 'marketplace', 'finance', 'retail', 'data'].includes(key)) return 0;
-      if (['logistics', 'operations', 'navigation', 'planning', 'infrastructure'].includes(key)) return 1;
-      if (['domotics', 'robotics', 'systems', 'consciousness', 'strategy'].includes(key)) return 5;
-      if (['simulation', 'physics', 'research', 'computation'].includes(key)) return 3;
-      if (['biology', 'genome', 'health', 'education'].includes(key)) return 2;
-      if (['media', 'music', 'culture', 'design'].includes(key)) return 4;
+      if (['crm', 'web', 'marketplace', 'finance', 'retail', 'data', 'content', 'catalog'].includes(key)) return 0;
+      if (['logistics', 'operations', 'navigation', 'planning', 'infrastructure', 'scheduling', 'workflow'].includes(key)) return 1;
+      if (['domotics', 'robotics', 'systems', 'consciousness', 'strategy', 'agents', 'interfaces'].includes(key)) return 5;
+      if (['simulation', 'physics', 'research', 'computation', 'telemetry', 'protocol'].includes(key)) return 3;
+      if (['biology', 'genome', 'health', 'education', 'knowledge', 'signals'].includes(key)) return 2;
+      if (['media', 'music', 'culture', 'design', 'experience', 'publishing', 'audience'].includes(key)) return 4;
+      if (['automation', 'analytics', 'archive', 'collaboration', 'support'].includes(key)) return 6;
       const seed = [...word].reduce((acc, ch) => acc + ch.charCodeAt(0), index * 17);
       return seed % this.useCasePalette.length;
     })();
@@ -4366,43 +4390,59 @@ class UseCasesScene {
       .slice()
       .sort((a, b) => a.depth - b.depth)
       .forEach((w, i) => {
-      const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
-      const scale = 0.80 + w.depth * 0.50 + pulse * 0.06;
-      const alpha = clamp(w.alpha * (0.72 + 0.28 * pulse), 0.05, 0.78);
-      const fillAlpha = light ? alpha * (0.92 + w.depth * 0.04) : alpha;
-      const strokeAlpha = clamp(fillAlpha * (w.depth > 0.9 ? 0.52 : w.depth > 0.65 ? 0.34 : 0.18), 0.02, 0.58);
-      const accentAlpha = clamp((0.22 + w.depth * 0.32) * (0.72 + pulse * 0.28), 0.10, 0.86);
-      const fillColor = w.color?.fill || [255, 255, 255];
-      const strokeColor = w.color?.stroke || [255, 255, 255];
-      const glowColor = w.color?.glow || [255, 255, 255];
-      ctx.save();
-      ctx.translate(w.x, w.y);
-      ctx.rotate(Math.sin(t * 0.22 + w.phase) * (0.012 + w.depth * 0.02));
-      ctx.scale(scale, scale);
-      ctx.font = `500 ${Math.round(w.base)}px Inter, sans-serif`;
+        const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
+        const far = clamp(1 - w.depth, 0, 1);
+        const familyBoost = w.family === 'science' || w.family === 'systems' ? 0.05 : 0;
+        const scale = 0.78 + far * 0.56 + pulse * 0.08 + familyBoost;
+        const fillAlpha = clamp((0.14 + w.depth * 0.64) * (0.78 + pulse * 0.22), 0.05, 0.92);
+        const strokeAlpha = clamp((0.08 + far * 0.36) * (0.68 + pulse * 0.32), 0.02, 0.48);
+        const glowAlpha = clamp((0.05 + far * 0.24) * (0.72 + pulse * 0.28), 0.02, 0.34);
+        const fillColor = w.color?.fill || [255, 255, 255];
+        const strokeColor = w.color?.stroke || [255, 255, 255];
+        const glowColor = w.color?.glow || [255, 255, 255];
+        ctx.save();
+        ctx.translate(w.x, w.y);
+        ctx.rotate(Math.sin(t * 0.22 + w.phase) * (0.012 + w.depth * 0.02) + w.twist);
+        ctx.scale(scale, scale);
+        const weight = Math.round(420 + far * 360 + pulse * 40);
+        ctx.font = `${weight} ${Math.round(w.base)}px Inter, sans-serif`;
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'left';
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-      ctx.lineWidth = 0.45 + w.depth * 1.15;
-      const strokeBase = light
-        ? [strokeColor[0] * 0.35, strokeColor[1] * 0.35, strokeColor[2] * 0.35]
-        : strokeColor;
-      ctx.strokeStyle = `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
-      if (w.depth > 0.55 || pulse > 0.72) {
-        ctx.strokeText(w.text, 0, 0);
-      }
-      if (w.depth > 0.9) {
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = `rgba(${glowColor.join(',')},${light ? 0.10 : 0.16})`;
-      }
-      const fillBase = light
-        ? [fillColor[0] * 0.42, fillColor[1] * 0.42, fillColor[2] * 0.42]
-        : fillColor;
-      ctx.fillStyle = `rgba(${fillBase.map(v => Math.round(v)).join(',')},${accentAlpha})`;
-      ctx.fillText(w.text, 0, 0);
-      ctx.restore();
-    });
+        ctx.lineWidth = 0.35 + far * 1.35 + pulse * 0.08;
+        const strokeBase = light
+          ? [strokeColor[0] * 0.42, strokeColor[1] * 0.42, strokeColor[2] * 0.42]
+          : strokeColor;
+        ctx.strokeStyle = `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
+        const blur = far > 0.72
+          ? clamp(w.blur + far * 1.9 + Math.max(0, 0.7 - pulse) * 0.5, 0, 4.8)
+          : far > 0.38
+            ? clamp(w.blur * 0.48 + Math.max(0, 0.7 - pulse) * 0.18, 0, 1.2)
+            : 0;
+        ctx.filter = blur > 0.16 ? `blur(${blur.toFixed(2)}px)` : 'none';
+        if (far > 0.18 || pulse > 0.72) {
+          ctx.strokeText(w.text, 0, 0);
+        }
+        ctx.shadowBlur = far > 0.8 ? 10 : far > 0.55 ? 5 : far > 0.3 ? 2 : 0;
+        ctx.shadowColor = `rgba(${glowColor.join(',')},${light ? 0.06 : 0.12})`;
+        const fillBase = light
+          ? [fillColor[0] * 0.42, fillColor[1] * 0.42, fillColor[2] * 0.42]
+          : fillColor;
+        ctx.fillStyle = `rgba(${fillBase.map(v => Math.round(v)).join(',')},${fillAlpha})`;
+        ctx.fillText(w.text, 0, 0);
+        if (far > 0.82) {
+          ctx.filter = 'none';
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+          ctx.lineWidth = 0.5;
+          ctx.strokeStyle = `rgba(${strokeColor.join(',')},${Math.min(0.16, strokeAlpha * 0.7)})`;
+          ctx.strokeText(w.text, 0, 0);
+        }
+        ctx.filter = 'none';
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      });
     ctx.restore();
 
     // Soft depth veil to keep the cloud legible.
