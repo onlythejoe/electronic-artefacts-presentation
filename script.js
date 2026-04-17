@@ -49,6 +49,7 @@ let hoveredBuildLayer = null;
 let selectedInfraLayer = null;
 let selectedGraphosLayer = null;
 let selectedBuildLayer = null;
+let navActivityTimer = null;
 let lastInfraFocus = null;
 let lastInfraSelected = null;
 let lastGraphosFocus = null;
@@ -998,6 +999,7 @@ function initUI() {
   navEl.appendChild(track);
   navTrackEl = track;
   navIndicatorEl = track.firstElementChild;
+  navEl.classList.remove('is-active');
   track.addEventListener('pointerdown', onNavPointerDown);
   updateUI();
 }
@@ -1018,11 +1020,28 @@ function getNavIndexFromClientY(clientY) {
   return Math.round(ratio * (total - 1));
 }
 
+function setNavActivityState(active) {
+  clearTimeout(navActivityTimer);
+  navActivityTimer = null;
+  if (!navEl || !navTrackEl) return;
+  navEl.classList.toggle('is-active', !!active);
+  navTrackEl.classList.toggle('is-active', !!active);
+}
+
+function scheduleNavActivityReset() {
+  clearTimeout(navActivityTimer);
+  navActivityTimer = setTimeout(() => {
+    navActivityTimer = null;
+    setNavActivityState(false);
+  }, 900);
+}
+
 function onNavPointerDown(e) {
   if (e.button !== 0) return;
   const track = e.currentTarget;
   navDragActive = true;
   navDragPointerId = e.pointerId;
+  setNavActivityState(true);
   track.classList.add('is-dragging');
   track.setPointerCapture(e.pointerId);
   e.preventDefault();
@@ -1042,6 +1061,7 @@ function endNavDrag(e) {
   navDragActive = false;
   navDragPointerId = null;
   if (navTrackEl) navTrackEl.classList.remove('is-dragging');
+  scheduleNavActivityReset();
 }
 
 function syncGraphosFocusState() {
