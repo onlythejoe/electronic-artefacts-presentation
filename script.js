@@ -61,6 +61,17 @@ let hoverProbeY = NaN;
 let lastHoverHudKey = null;
 let appAlive = true;
 let mistBg = null;
+
+function updateViewportMetrics() {
+  const vv = window.visualViewport;
+  const height = Math.round(vv?.height || window.innerHeight || document.documentElement.clientHeight || 0);
+  const width = Math.round(vv?.width || window.innerWidth || document.documentElement.clientWidth || 0);
+  document.documentElement.style.setProperty('--app-height', `${height}px`);
+  document.documentElement.style.setProperty('--app-width', `${width}px`);
+}
+
+updateViewportMetrics();
+
 const graphosWindowState = {
   x: null,
   y: null,
@@ -7325,6 +7336,7 @@ document.addEventListener('touchcancel', () => {
 }, { passive: true });
 
 window.addEventListener('resize', () => {
+  updateViewportMetrics();
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     Object.values(scenes).forEach(s => s.resize && s.resize());
@@ -7334,6 +7346,13 @@ window.addEventListener('resize', () => {
     resizeTimer = null;
   }, 120);
 }, { passive: true });
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateViewportMetrics, { passive: true });
+  window.visualViewport.addEventListener('scroll', updateViewportMetrics, { passive: true });
+}
+
+window.addEventListener('orientationchange', updateViewportMetrics, { passive: true });
 
 function cleanup() {
   appAlive = false;
