@@ -191,6 +191,10 @@ function targetMatchesSelector(target, selector) {
 function getGraphosScrollBody(target) {
   return isElementTarget(target) ? target.closest('.graphos-window__body') : null;
 }
+function getScrollableAncestor(target) {
+  if (!isElementTarget(target)) return null;
+  return target.closest('.graphos-window__body, .graphos-context-menu, .graphos-color-picker');
+}
 function canElementScroll(el, deltaY = 0) {
   if (!el) return false;
   const style = window.getComputedStyle(el);
@@ -204,11 +208,20 @@ function shouldLockKeyboardNav(target) {
   return targetMatchesSelector(target, KEYBOARD_NAV_LOCK_SELECTOR);
 }
 function shouldLockTouchNav(target) {
-  const graphosBody = getGraphosScrollBody(target);
-  if (graphosBody) {
-    return graphosBody.scrollHeight > graphosBody.clientHeight + 1;
+  const scrollable = getScrollableAncestor(target);
+  if (scrollable) {
+    return scrollable.scrollHeight > scrollable.clientHeight + 1;
   }
-  return targetMatchesSelector(target, TOUCH_NAV_LOCK_SELECTOR);
+  return targetMatchesSelector(target, [
+    '.graphos-context-menu__item',
+    '.graphos-context-menu__toggle',
+    '.graphos-context-menu__swatch',
+    '.graphos-color-picker canvas',
+    '#graphos-toggle-nodes',
+    '#graphos-toggle-links',
+    '#graphos-open-menu',
+    '#graphos-type-filter',
+  ].join(', '));
 }
 function shouldLockWheelNav(target) {
   return targetMatchesSelector(target, WHEEL_NAV_LOCK_SELECTOR);
@@ -5553,25 +5566,20 @@ class GraphOSLiveScene {
 
   _bindUi() {
     const stopPropagation = e => e.stopPropagation();
-    const stopSlideGestures = el => {
-      if (!el) return;
-      el.addEventListener('wheel', stopPropagation, { passive: true });
-      el.addEventListener('touchstart', stopPropagation, { passive: true });
-      el.addEventListener('touchmove', stopPropagation, { passive: true });
-      el.addEventListener('touchend', stopPropagation, { passive: true });
-    };
-
-    stopSlideGestures(graphosWindowEl);
-    stopSlideGestures(graphosWindowBodyEl);
-    stopSlideGestures(graphosContextMenuEl);
-    stopSlideGestures(graphosColorPickerEl);
-    stopSlideGestures(this.canvas);
 
     if (graphosContextMenuEl) {
+      graphosContextMenuEl.addEventListener('wheel', stopPropagation, { passive: true });
+      graphosContextMenuEl.addEventListener('touchstart', stopPropagation, { passive: true });
+      graphosContextMenuEl.addEventListener('touchmove', stopPropagation, { passive: true });
+      graphosContextMenuEl.addEventListener('touchend', stopPropagation, { passive: true });
       graphosContextMenuEl.addEventListener('pointerdown', e => e.stopPropagation());
     }
 
     if (graphosColorPickerEl) {
+      graphosColorPickerEl.addEventListener('wheel', stopPropagation, { passive: true });
+      graphosColorPickerEl.addEventListener('touchstart', stopPropagation, { passive: true });
+      graphosColorPickerEl.addEventListener('touchmove', stopPropagation, { passive: true });
+      graphosColorPickerEl.addEventListener('touchend', stopPropagation, { passive: true });
       graphosColorPickerEl.addEventListener('pointerdown', e => e.stopPropagation());
     }
 
@@ -7209,23 +7217,37 @@ document.addEventListener('wheel', e => {
 
 let touchY0 = 0;
 let touchNavLocked = false;
+let touchScrollableAncestor = null;
 document.addEventListener('touchstart', e => {
+  touchScrollableAncestor = getScrollableAncestor(e.target);
   touchNavLocked = shouldLockTouchNav(e.target);
   if (e.touches && e.touches[0]) {
     touchY0 = e.touches[0].clientY;
   }
 }, { passive: true });
 document.addEventListener('touchend', e => {
-  if (touchNavLocked) {
+  if (!e.changedTouches || !e.changedTouches[0]) {
     touchNavLocked = false;
+    touchScrollableAncestor = null;
     return;
   }
-  if (!e.changedTouches || !e.changedTouches[0]) return;
   const diff = touchY0 - e.changedTouches[0].clientY;
+  if (touchScrollableAncestor && canElementScroll(touchScrollableAncestor, diff)) {
+    touchNavLocked = false;
+    touchScrollableAncestor = null;
+    return;
+  }
+  if (touchNavLocked) {
+    touchNavLocked = false;
+    touchScrollableAncestor = null;
+    return;
+  }
   if (Math.abs(diff) > 45) goTo(currentIndex + (diff > 0 ? 1 : -1));
+  touchScrollableAncestor = null;
 }, { passive: true });
 document.addEventListener('touchcancel', () => {
   touchNavLocked = false;
+  touchScrollableAncestor = null;
 }, { passive: true });
 
 window.addEventListener('resize', () => {
