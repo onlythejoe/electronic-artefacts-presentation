@@ -50,6 +50,7 @@ let selectedInfraLayer = null;
 let selectedGraphosLayer = null;
 let selectedBuildLayer = null;
 let navActivityTimer = null;
+let graphosMobileGesture = null;
 let lastInfraFocus = null;
 let lastInfraSelected = null;
 let lastGraphosFocus = null;
@@ -6661,16 +6662,25 @@ class GraphOSLiveScene {
 
   _onPointerDown(e) {
     if (!this._isActive() || e.button === 2) return;
-    if (this._isCompactMobile()) {
-      this._setMobilePanelOpen(true);
-      this._hideMenu();
-      this._endColorPick();
-      e.preventDefault();
-      return;
-    }
     const { x, y } = this._getCanvasPoint(e);
     const clickedNode = this._getNodeAt(x, y);
     let clicked = clickedNode;
+    const compactMobile = this._isCompactMobile();
+
+    if (compactMobile) {
+      this._setMobilePanelOpen(true);
+      this._hideMenu();
+      this._endColorPick();
+      graphosMobileGesture = {
+        pointerId: e.pointerId,
+        startX: x,
+        startY: y,
+        kind: clickedNode ? 'node' : this._getLinkAt(x, y) ? 'link' : 'blank',
+        node: clickedNode || null,
+        link: null,
+        moved: false,
+      };
+    }
 
     if (e.altKey && clickedNode) {
       const duplicate = this.cloneNodeForDuplicate(clickedNode);
@@ -6682,12 +6692,21 @@ class GraphOSLiveScene {
     }
 
     const clickedLink = clicked ? null : this._getLinkAt(x, y);
+    if (compactMobile && graphosMobileGesture) {
+      graphosMobileGesture.link = clickedLink || null;
+      graphosMobileGesture.kind = clickedNode ? 'node' : clickedLink ? 'link' : 'blank';
+    }
+
     if (clickedLink) {
       this._setLinkSelection(clickedLink);
+      if (compactMobile) {
+        this._refreshUi();
+        return;
+      }
       return;
     }
 
-    if (!clicked && this._isPointInSurfacePreview(x, y)) {
+    if (!compactMobile && !clicked && this._isPointInSurfacePreview(x, y)) {
       this._selectSingle(null);
       this._hideMenu();
       if (this._beginSurfacePreviewDrag(x, y, e, this._getSurfacePreviewPose())) {
@@ -6697,6 +6716,10 @@ class GraphOSLiveScene {
 
     if (e.shiftKey && clicked) {
       this._toggleNodeSelection(clicked);
+      if (compactMobile) {
+        this._refreshUi();
+        return;
+      }
       return;
     }
 
@@ -6707,16 +6730,27 @@ class GraphOSLiveScene {
       this.draggedNode.vx = 0;
       this.draggedNode.vy = 0;
       this.canvas.setPointerCapture?.(e.pointerId);
+      if (compactMobile) {
+        this._refreshUi();
+      }
       return;
     }
 
     this._setSelection([]);
     this._hideMenu();
+    if (compactMobile) {
+      this._refreshUi();
+    }
   }
 
   _onPointerMove(e) {
     if (!this._isActive()) return;
     const { x, y } = this._getCanvasPoint(e);
+
+    if (graphosMobileGesture && e.pointerId === graphosMobileGesture.pointerId) {
+      const moved = Math.hypot(x - graphosMobileGesture.startX, y - graphosMobileGesture.startY) > 8;
+      graphosMobileGesture.moved = graphosMobileGesture.moved || moved;
+    }
 
     this.surfacePreviewHover = this._isPointInSurfacePreview(x, y);
 
@@ -6741,6 +6775,9 @@ class GraphOSLiveScene {
   }
 
   _onPointerUp(e) {
+    const compactMobile = this._isCompactMobile();
+    const gesture = graphosMobileGesture && e.pointerId === graphosMobileGesture.pointerId ? graphosMobileGesture : null;
+
     if (this.draggedSurfacePreview) {
       if (e.pointerId != null && e.pointerId !== this.surfaceDragPointerId) return;
       this._endSurfacePreviewDrag(e);
@@ -6749,10 +6786,71 @@ class GraphOSLiveScene {
       return;
     }
 
+    if (compactMobile && gesture && this.draggedNode && e.pointerId != null && e.pointerId === this.dragPointerId) {
+      const { x, y } = this._getCanvasPoint(e);
+      const target = this._getContainingNodeAt(x, y, this.draggedNode);
+      if (gesture.kind === 'node' && !gesture.moved) {
+        this._selectSingle(gesture.node || this.draggedNode);
+        this._setMobilePanelOpen(true);
+        this._beginContextMenu(gesture.node || this.draggedNode, null, e.clientX, e.clientY, e);
+        this.saveGraph();
+        this.draggedNode.vx *= 0.2;
+        this.draggedNode.vy *= 0.2;
+        this.draggedNode = null;
+        this.dragPointerId = null;
+        graphosMobileGesture = null;
+        this._syncCoreNode();
+        this._refreshUi();
+        return;
+      }
+
+      if (target && target !== this.draggedNode) {
+        let current = target;
+        let isCycle = false;
+        while (current) {
+          if (current === this.draggedNode) {
+            isCycle = true;
+            break;
+          }
+          current = current.parent;
+        }
+
+        if (!isCycle) {
+          target.addChild(this.draggedNode);
+        }
+      }
+
+      this.saveGraph();
+      this.nodes.forEach(node => { node.isContainedPreview = false; });
+      this.draggedNode.vx *= 0.2;
+      this.draggedNode.vy *= 0.2;
+      this.draggedNode = null;
+      this.dragPointerId = null;
+      graphosMobileGesture = null;
+      this._syncCoreNode();
+      this._refreshUi();
+      return;
+    }
+
+    if (compactMobile && gesture && !gesture.moved && gesture.kind === 'blank') {
+      this._setMobilePanelOpen(true);
+      this._beginContextMenu(null, null, e.clientX, e.clientY, e);
+      graphosMobileGesture = null;
+      return;
+    }
+
+    if (compactMobile && gesture && !gesture.moved && gesture.kind === 'link') {
+      this._setMobilePanelOpen(true);
+      this._beginContextMenu(null, gesture.link, e.clientX, e.clientY, e);
+      graphosMobileGesture = null;
+      return;
+    }
+
     if (!this.draggedNode) {
       if (this.pickingColor) {
         this._endColorPick();
       }
+      graphosMobileGesture = null;
       return;
     }
 
@@ -6782,6 +6880,7 @@ class GraphOSLiveScene {
     this.draggedNode.vy *= 0.2;
     this.draggedNode = null;
     this.dragPointerId = null;
+    graphosMobileGesture = null;
     this._syncCoreNode();
     this._refreshUi();
   }
@@ -6798,6 +6897,7 @@ class GraphOSLiveScene {
     if (this.draggedNode && e.pointerId != null && e.pointerId !== this.dragPointerId) return;
     this.draggedNode = null;
     this.dragPointerId = null;
+    graphosMobileGesture = null;
     this.nodes.forEach(node => { node.isContainedPreview = false; });
     this._hideMenu();
     this._endColorPick();
@@ -6833,6 +6933,13 @@ class GraphOSLiveScene {
   }
 
   _getFocusLayer() {
+    if (this._isCompactMobile()) {
+      if (hoveredGraphosLayer) return hoveredGraphosLayer;
+      if (selectedGraphosLayer) return selectedGraphosLayer;
+      if (this.hoveredLink) return 'edge';
+      if (this.hoveredNode) return 'node';
+      return 'node';
+    }
     if (hoveredGraphosLayer) return hoveredGraphosLayer;
     if (selectedGraphosLayer) return selectedGraphosLayer;
     if (this.surfacePreviewHover || this.draggedSurfacePreview) return 'surface';
@@ -7110,9 +7217,11 @@ class GraphOSLiveScene {
     const focusLayer = this._getFocusLayer();
     this.ctx.clearRect(0, 0, this.w, this.h);
     this._drawBackground(focusLayer);
-    this._drawSurfacePreview(focusLayer);
-    this._drawContextRibbon(focusLayer);
-    this._drawIntentFlux(focusLayer);
+    if (!this._isCompactMobile()) {
+      this._drawSurfacePreview(focusLayer);
+      this._drawContextRibbon(focusLayer);
+      this._drawIntentFlux(focusLayer);
+    }
     this._drawLinks(focusLayer);
     this._drawNodes(focusLayer);
   }

@@ -3911,7 +3911,8 @@ body::after {
   }
 
   .graphos-slide .slide-canvas {
-    display: none;
+    display: block;
+    pointer-events: auto;
   }
 
   .graphos-slide .slide-content {
@@ -5152,7 +5153,8 @@ body::after {
   }
 
   .graphos-slide .slide-canvas {
-    display: none;
+    display: block;
+    pointer-events: auto;
   }
 
   .graphos-slide .slide-content {
