@@ -70,15 +70,16 @@
   <section class="slide center has-canvas" data-slide="intro">
     <canvas class="slide-canvas" id="canvas-intro"></canvas>
     <div class="slide-content intro-content">
-      <p class="intro-note" role="note">Ceci est une expérience interactive. Privilégiez l'utilisation desktop.</p>
       <div class="intro-shell">
+        <p class="intro-note" role="note">Expérience interactive · desktop recommandé</p>
         <p class="intro-eyebrow">SPACE briefing</p>
-        <h2 class="intro-title" data-intro-type>Salut,</h2>
-        <p class="sub intro-sub">Faites défiler pour continuer. Utilisez la molette, les flèches, ou la barre de droite.</p>
-        <div class="intro-actions">
-          <button class="intro-scroll" type="button" data-scroll-next>Scroll pour continuer</button>
-          <p class="intro-scroll-meta">Molette, flèches, rail de navigation.</p>
-        </div>
+        <h2 class="intro-title" data-intro-type>Salut, merci de prendre un instant.</h2>
+        <p class="intro-sub">Ceci est une expérience interactive pensée pour desktop.</p>
+        <p class="sub intro-sub intro-sub--secondary">Certaines pages sont entièrement manipulables. Vous parcourez une démo du logiciel SPACE, pas le logiciel lui-même.</p>
+        <p class="intro-nav">
+          <span class="intro-nav__icon" aria-hidden="true">⇅</span>
+          <span>Pour naviguer, utilisez la molette, les flèches du clavier ou le rail de droite.</span>
+        </p>
       </div>
     </div>
   </section>
@@ -145,6 +146,7 @@
           <span>Type</span>
           <select id="graphos-type-filter" aria-label="Filter node type"></select>
         </label>
+        <button class="graphos-window__chip graphos-window__chip--action graphos-window__chip--mobile-action" id="graphos-open-menu" type="button" aria-label="Open GraphOS actions menu">Actions</button>
         <span class="graphos-window__chip graphos-window__chip--info" id="graphos-selection-info">0 selected</span>
       </div>
       <div class="graphos-window__body">
@@ -175,13 +177,13 @@
             <small>semantic registry</small>
           </button>
         </div>
-        <p class="graphos-window__hint">Drag by the nucleus. Shift-click multi-select. Alt-click duplicates. Right-click opens the live editor.</p>
+        <p class="graphos-window__hint">Tap rows to focus. Drag nodes or the surface preview. Use Actions on touch, right-click on desktop.</p>
       </div>
     </div>
     <div class="slide-content">
       <h2>Graph OS</h2>
-      <p>Live node graph. Containment, links, and projection.</p>
-      <p class="sub">Drag by nucleus. Shift multi-select. Alt duplicate. Right click to edit.</p>
+      <p>Interactive live node graph. Tap rows to focus. Drag nodes in place.</p>
+      <p class="sub">Desktop: right-click to edit. Mobile: use Actions for color, type, and delete.</p>
     </div>
     <div class="graphos-context-menu" id="graphos-context-menu" hidden></div>
     <div class="graphos-color-picker" id="graphos-color-picker" hidden>

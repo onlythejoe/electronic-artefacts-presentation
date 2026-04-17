@@ -32,6 +32,7 @@ let navIndicatorEl = null;
 let graphosToggleNodesEl = null;
 let graphosToggleLinksEl = null;
 let graphosTypeFilterEl = null;
+let graphosOpenMenuEl = null;
 let graphosSelectionInfoEl = null;
 let graphosContextMenuEl = null;
 let graphosColorPickerEl = null;
@@ -63,11 +64,35 @@ const graphosWindowState = {
   pointerId: null,
 };
 const INTRO_TYPEWRITER_PHRASES = [
-  'Salut,',
+  'Salut, merci de prendre un instant.',
 ];
-const ACTION_HOVER_SELECTOR = '#nav-track, a, button, select, [role="button"], .infra-card, .infra-step, .module-card, .modules-feature, .build-card, .build-step, .build-surface, .build-assets, .graphos-window__header, .graphos-window__body, .graphos-window__chip, .graphos-context-menu, .graphos-context-menu__item, .graphos-color-picker';
+const ACTION_HOVER_SELECTOR = [
+  '#nav-track',
+  'a',
+  'button',
+  'select',
+  '[role="button"]',
+  '[tabindex]:not([tabindex="-1"])',
+  '#canvas-graphos',
+  '.infra-card',
+  '.infra-step',
+  '.module-card',
+  '.modules-feature',
+  '.build-card',
+  '.build-step',
+  '.build-surface',
+  '.build-assets',
+  '.graphos-window__header',
+  '.graphos-window__chip',
+  '.graphos-row',
+  '.graphos-context-menu__item',
+  '.graphos-context-menu__toggle',
+  '.graphos-context-menu__swatch',
+  '.graphos-color-picker canvas',
+].join(', ');
 const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const GRAPHOS_TOUCH_HIT_SCALE = HAS_FINE_POINTER ? 1 : 1.6;
 const KEYBOARD_NAV_LOCK_SELECTOR = [
   'a',
   'button',
@@ -94,7 +119,6 @@ const TOUCH_NAV_LOCK_SELECTOR = [
   '.build-assets',
   '.infra-card',
   '.infra-step',
-  '.intro-scroll',
   '.contact-cta',
   '.vestiges-social',
 ].join(', ');
@@ -132,6 +156,7 @@ const graphosRowEls = graphosFeedEl ? [...graphosFeedEl.querySelectorAll('.graph
 graphosToggleNodesEl = document.getElementById('graphos-toggle-nodes');
 graphosToggleLinksEl = document.getElementById('graphos-toggle-links');
 graphosTypeFilterEl = document.getElementById('graphos-type-filter');
+graphosOpenMenuEl = document.getElementById('graphos-open-menu');
 graphosSelectionInfoEl = document.getElementById('graphos-selection-info');
 graphosContextMenuEl = document.getElementById('graphos-context-menu');
 graphosColorPickerEl = document.getElementById('graphos-color-picker');
@@ -150,10 +175,26 @@ function isElementTarget(target) { return target instanceof Element; }
 function targetMatchesSelector(target, selector) {
   return isElementTarget(target) ? !!target.closest(selector) : false;
 }
+function getGraphosScrollBody(target) {
+  return isElementTarget(target) ? target.closest('.graphos-window__body') : null;
+}
+function canElementScroll(el, deltaY = 0) {
+  if (!el) return false;
+  const style = window.getComputedStyle(el);
+  if (!/(auto|scroll|overlay)/.test(style.overflowY)) return false;
+  if (el.scrollHeight <= el.clientHeight + 1) return false;
+  if (deltaY > 0) return el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+  if (deltaY < 0) return el.scrollTop > 0;
+  return true;
+}
 function shouldLockKeyboardNav(target) {
   return targetMatchesSelector(target, KEYBOARD_NAV_LOCK_SELECTOR);
 }
 function shouldLockTouchNav(target) {
+  const graphosBody = getGraphosScrollBody(target);
+  if (graphosBody) {
+    return graphosBody.scrollHeight > graphosBody.clientHeight + 1;
+  }
   return targetMatchesSelector(target, TOUCH_NAV_LOCK_SELECTOR);
 }
 function shouldLockWheelNav(target) {
@@ -435,7 +476,11 @@ function applyTextMotion() {
   const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
   const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
   const slideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
-  const motionScale = slideKey === 'graphos' ? 0.45 : 1;
+  const motionScale = slideKey === 'graphos'
+    ? 0.45
+    : slideKey === 'intro'
+      ? 0.38
+      : 1;
 
   activeTextNodes.forEach((node, index) => {
     const depth = index + 1;
@@ -758,7 +803,7 @@ class IntroTypewriter {
     this.charIndex = 0;
     this.phase = 'typing';
     this.el.textContent = '';
-    this.nextStepAt = now + 260;
+    this.nextStepAt = now + 420;
   }
 
   stop() {
@@ -804,7 +849,7 @@ class IntroTypewriter {
       if (this.charIndex <= 0) {
         this.index = (this.index + 1) % this.phrases.length;
         this.phase = 'typing';
-        this.nextStepAt = now + 260;
+        this.nextStepAt = now + 420;
       } else {
         const char = phrase[this.charIndex - 1];
         this.nextStepAt = now + this._eraseDelay(char);
@@ -813,17 +858,17 @@ class IntroTypewriter {
   }
 
   _typingDelay(char) {
-    if (!char) return 48;
-    if (/\s/.test(char)) return 70;
-    if (/[,.!?]/.test(char)) return 220;
-    return rand(44, 78);
+    if (!char) return 56;
+    if (/\s/.test(char)) return 96;
+    if (/[,.!?]/.test(char)) return 280;
+    return rand(62, 108);
   }
 
   _eraseDelay(char) {
-    if (!char) return 24;
-    if (/\s/.test(char)) return 20;
-    if (/[,.!?]/.test(char)) return 30;
-    return 18;
+    if (!char) return 28;
+    if (/\s/.test(char)) return 24;
+    if (/[,.!?]/.test(char)) return 36;
+    return 22;
   }
 }
 
@@ -1006,13 +1051,6 @@ document.addEventListener('keydown', e => {
   const nextLayer = target.dataset.layer || null;
   selectedInfraLayer = selectedInfraLayer === nextLayer ? null : nextLayer;
   syncInfraFocusState();
-});
-
-document.addEventListener('click', e => {
-  const btn = e.target.closest('[data-scroll-next]');
-  if (!btn || !activeSlideEl || activeSlideEl.dataset.slide !== 'intro') return;
-  e.preventDefault();
-  goTo(currentIndex + 1, { force: true });
 });
 
 document.addEventListener('click', e => {
@@ -3872,6 +3910,7 @@ class UseCasesScene {
     this.raf = null;
     this.t = 0;
     this.words = [];
+    this.isFinePointer = HAS_FINE_POINTER;
     this.wordBank = [
       'CRM', 'Logistics', 'Web', 'Domotics', 'Simulation', 'Physics', 'Biology', 'Genome',
       'Consciousness', 'Systems', 'Data', 'Infrastructure', 'Education', 'Retail', 'Media',
@@ -3888,20 +3927,26 @@ class UseCasesScene {
   }
 
   _init() {
-    const layers = [0.45, 0.75, 1];
-    this.words = Array.from({ length: 30 }, (_, i) => {
+    const layers = this.isFinePointer ? [0.42, 0.72, 1] : [0.55, 0.84, 1];
+    const count = this.isFinePointer ? 30 : 22;
+    this.words = Array.from({ length: count }, (_, i) => {
       const word = this.wordBank[i % this.wordBank.length];
       const layer = randChoice(layers);
+      const baseX = rand(this.w * 0.08, this.w * 0.92);
+      const baseY = rand(this.h * 0.10, this.h * 0.90);
       return {
         text: word,
-        x: rand(this.w * 0.06, this.w * 0.94),
-        y: rand(this.h * 0.08, this.h * 0.9),
-        vx: rand(-0.2, 0.2) * layer,
-        vy: rand(-0.12, 0.12) * layer,
-        base: 11 + rand(0, 10) * layer,
-        layer,
+        baseX,
+        baseY,
+        x: baseX,
+        y: baseY,
+        orbitX: rand(18, 68) * layer,
+        orbitY: rand(10, 40) * layer,
+        speed: rand(0.10, 0.28) + layer * 0.08,
+        base: 10 + rand(0, 8) * layer + (layer > 0.9 ? 4 : 0),
+        depth: layer,
         phase: rand(0, Math.PI * 2),
-        alpha: rand(0.18, 0.42),
+        alpha: rand(0.14, 0.30) + layer * 0.10,
       };
     });
   }
@@ -3936,21 +3981,30 @@ class UseCasesScene {
   }
 
   _tick() {
+    const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
+    const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
     this.words.forEach((w, i) => {
-      w.x += w.vx + Math.sin(this.t * 1.1 + w.phase) * 0.10 * w.layer;
-      w.y += w.vy + Math.cos(this.t * 0.9 + w.phase) * 0.08 * w.layer;
-      if (w.x < -80) w.x = this.w + 80;
-      if (w.x > this.w + 80) w.x = -80;
-      if (w.y < -40) w.y = this.h + 40;
-      if (w.y > this.h + 40) w.y = -40;
+      const orbit = this.t * w.speed + w.phase;
+      const sway = Math.sin(orbit + i * 0.09);
+      const lift = Math.cos(orbit * 0.92 + i * 0.07);
+      const mousePullX = nx * 18 * w.depth;
+      const mousePullY = ny * 16 * w.depth;
+      w.x = w.baseX + sway * w.orbitX + mousePullX;
+      w.y = w.baseY + lift * w.orbitY + mousePullY;
+      if (!this.isFinePointer) {
+        w.x += Math.sin(this.t * 0.32 + w.phase) * 1.4;
+        w.y += Math.cos(this.t * 0.28 + w.phase) * 1.1;
+      }
       if (i % 3 === 0) {
-        w.alpha = 0.14 + 0.25 * (0.5 + 0.5 * Math.sin(this.t * 0.7 + w.phase));
+        const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.72 + w.phase);
+        w.alpha = 0.12 + w.depth * 0.16 + pulse * (0.16 + w.depth * 0.08);
       }
     });
   }
 
   _draw() {
     const { ctx, words, t } = this;
+    const light = isLightTheme();
     ctx.clearRect(0, 0, this.w, this.h);
 
     const bg = ctx.createRadialGradient(this.w * 0.48, this.h * 0.42, 30, this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.8);
@@ -3960,25 +4014,40 @@ class UseCasesScene {
     ctx.fillRect(0, 0, this.w, this.h);
 
     ctx.save();
-    ctx.globalCompositeOperation = 'screen';
+    ctx.globalCompositeOperation = light ? 'multiply' : 'screen';
     words
       .slice()
-      .sort((a, b) => a.layer - b.layer)
+      .sort((a, b) => a.depth - b.depth)
       .forEach((w, i) => {
         const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
-        const scale = 0.85 + w.layer * 0.4 + pulse * 0.08;
-        const alpha = w.alpha * (0.65 + 0.35 * pulse);
+        const scale = 0.80 + w.depth * 0.50 + pulse * 0.06;
+        const alpha = clamp(w.alpha * (0.72 + 0.28 * pulse), 0.05, 0.78);
+        const fillAlpha = light ? alpha * (0.92 + w.depth * 0.04) : alpha;
+        const strokeAlpha = clamp(fillAlpha * (w.depth > 0.9 ? 0.52 : w.depth > 0.65 ? 0.34 : 0.18), 0.02, 0.58);
         ctx.save();
         ctx.translate(w.x, w.y);
-        ctx.rotate(Math.sin(t * 0.3 + w.phase) * 0.03);
-        ctx.font = `500 ${Math.round(w.base * scale)}px Inter, sans-serif`;
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-        ctx.fillText(w.text, 0, 0);
-        if (w.layer > 0.9) {
-          ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.08})`;
-          ctx.lineWidth = 1;
+        ctx.rotate(Math.sin(t * 0.22 + w.phase) * (0.012 + w.depth * 0.02));
+        ctx.scale(scale, scale);
+        ctx.font = `500 ${Math.round(w.base)}px Inter, sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 0.45 + w.depth * 1.15;
+        ctx.strokeStyle = light
+          ? `rgba(0,0,0,${strokeAlpha})`
+          : `rgba(255,255,255,${strokeAlpha})`;
+        if (w.depth > 0.55 || pulse > 0.72) {
           ctx.strokeText(w.text, 0, 0);
         }
+        if (w.depth > 0.9) {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = light ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)';
+        }
+        ctx.fillStyle = light
+          ? `rgba(0,0,0,${fillAlpha})`
+          : `rgba(255,255,255,${fillAlpha})`;
+        ctx.fillText(w.text, 0, 0);
         ctx.restore();
       });
     ctx.restore();
@@ -5062,6 +5131,7 @@ class GraphOSLiveScene {
         this.view.showLinks = !this.view.showLinks;
         this._refreshUi();
       },
+      openMenu: () => this._openQuickActions(),
       typeFilter: () => {
         this.view.activeType = graphosTypeFilterEl && graphosTypeFilterEl.value ? graphosTypeFilterEl.value : null;
         this._refreshUi();
@@ -5115,6 +5185,10 @@ class GraphOSLiveScene {
 
     if (graphosToggleLinksEl) {
       graphosToggleLinksEl.addEventListener('click', this._bound.toggleLinks);
+    }
+
+    if (graphosOpenMenuEl) {
+      graphosOpenMenuEl.addEventListener('click', this._bound.openMenu);
     }
 
     if (graphosTypeFilterEl) {
@@ -5646,10 +5720,10 @@ class GraphOSLiveScene {
   _getNodeHitRadius(node) {
     if (!node) return 0;
     if (node.showCore) {
-      return node.r * GRAPHOS_LIVE.CORE_RATIO;
+      return node.r * GRAPHOS_LIVE.CORE_RATIO * GRAPHOS_TOUCH_HIT_SCALE;
     }
     const display = node.displayRadius || node.r;
-    return Math.max(display, node.r * 0.6);
+    return Math.max(display, node.r * 0.6) * GRAPHOS_TOUCH_HIT_SCALE;
   }
 
   _getNodeCoreAt(x, y, exclude = null) {
@@ -5693,20 +5767,21 @@ class GraphOSLiveScene {
   }
 
   _getLinkAt(x, y) {
+    const hitRadius = GRAPHOS_LIVE.LINK_HIT_RADIUS * GRAPHOS_TOUCH_HIT_SCALE;
     return this.links.find(link => {
       if (!link || !link.a || !link.b) return false;
       if (!this.nodes.includes(link.a) || !this.nodes.includes(link.b)) return false;
 
-      const minX = Math.min(link.a.x, link.b.x) - GRAPHOS_LIVE.LINK_HIT_RADIUS;
-      const maxX = Math.max(link.a.x, link.b.x) + GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      const minX = Math.min(link.a.x, link.b.x) - hitRadius;
+      const maxX = Math.max(link.a.x, link.b.x) + hitRadius;
       if (x < minX || x > maxX) return false;
 
-      const minY = Math.min(link.a.y, link.b.y) - GRAPHOS_LIVE.LINK_HIT_RADIUS;
-      const maxY = Math.max(link.a.y, link.b.y) + GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      const minY = Math.min(link.a.y, link.b.y) - hitRadius;
+      const maxY = Math.max(link.a.y, link.b.y) + hitRadius;
       if (y < minY || y > maxY) return false;
 
       const distance = this._pointToSegmentDistance(x, y, link.a.x, link.a.y, link.b.x, link.b.y);
-      return distance <= GRAPHOS_LIVE.LINK_HIT_RADIUS;
+      return distance <= hitRadius;
     }) || null;
   }
 
@@ -5996,6 +6071,20 @@ class GraphOSLiveScene {
     if (graphosColorPickerEl && !graphosColorPickerEl.contains(e.target)) {
       this._endColorPick();
     }
+  }
+
+  _openQuickActions() {
+    const anchor = graphosOpenMenuEl || graphosWindowHandleEl || this.canvas;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const fakeEvent = {
+      clientX: rect.left + rect.width * 0.5,
+      clientY: rect.bottom + 12,
+    };
+    const selectedNode = this.selectedNodes.size ? [...this.selectedNodes][0] : null;
+    const link = selectedNode ? null : this.selectedLink;
+    this._beginContextMenu(selectedNode, link, fakeEvent.clientX, fakeEvent.clientY, fakeEvent);
   }
 
   _onContextMenu(e) {
@@ -6696,7 +6785,18 @@ document.addEventListener('keydown', e => {
 
 let wheelAcc = 0, wheelTimer;
 document.addEventListener('wheel', e => {
-  if (e.ctrlKey || e.metaKey || shouldLockWheelNav(e.target)) {
+  if (e.ctrlKey || e.metaKey) {
+    wheelAcc = 0;
+    clearTimeout(wheelTimer);
+    return;
+  }
+  const graphosBody = getGraphosScrollBody(e.target);
+  if (graphosBody && canElementScroll(graphosBody, e.deltaY)) {
+    wheelAcc = 0;
+    clearTimeout(wheelTimer);
+    return;
+  }
+  if (shouldLockWheelNav(e.target) && !graphosBody) {
     wheelAcc = 0;
     clearTimeout(wheelTimer);
     return;
