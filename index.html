@@ -73,7 +73,7 @@
       <p class="intro-note" role="note">Ceci est une expérience interactive. Privilégiez l'utilisation desktop.</p>
       <div class="intro-shell">
         <p class="intro-eyebrow">SPACE briefing</p>
-        <h2 class="intro-title" data-intro-type>Bonjour, merci de prendre un moment.</h2>
+        <h2 class="intro-title" data-intro-type>Salut,</h2>
         <p class="sub intro-sub">Faites défiler pour continuer. Utilisez la molette, les flèches, ou la barre de droite.</p>
         <div class="intro-actions">
           <button class="intro-scroll" type="button" data-scroll-next>Scroll pour continuer</button>
@@ -207,41 +207,41 @@
         <h2>Surface projects. Context defines semantics.</h2>
         <p class="infra-lead">The system is organized as a canonical core graph. Surface turns the system into a public projection, context stores the registry, intents route actions, and modules enrich the middle layer.</p>
         <p class="infra-path" aria-label="Reading order: Surface, Context, Intents, Modules, Core">
-          <span class="infra-step" data-layer="surface">Surface</span>
+          <span class="infra-step" data-layer="surface" role="button" tabindex="0">Surface</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="context">Context</span>
+          <span class="infra-step" data-layer="context" role="button" tabindex="0">Context</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="intents">Intents</span>
+          <span class="infra-step" data-layer="intents" role="button" tabindex="0">Intents</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="modules">Modules</span>
+          <span class="infra-step" data-layer="modules" role="button" tabindex="0">Modules</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="core">Core</span>
+          <span class="infra-step" data-layer="core" role="button" tabindex="0">Core</span>
         </p>
         <p class="sub">Core is the first canonical node. Inside it, only nodes and edges define topology.</p>
       </div>
 
       <div class="infra-stack" aria-label="Infrastructure layers">
-        <div class="infra-card" data-layer="surface">
+        <div class="infra-card" data-layer="surface" role="button" tabindex="0">
           <span>Surface</span>
           <strong>Public projection</strong>
           <small>Pages, UI, visible output.</small>
         </div>
-        <div class="infra-card" data-layer="context">
+        <div class="infra-card" data-layer="context" role="button" tabindex="0">
           <span>Context</span>
           <strong>Global registry</strong>
           <small>Semantics, policy, state.</small>
         </div>
-        <div class="infra-card" data-layer="intents">
+        <div class="infra-card" data-layer="intents" role="button" tabindex="0">
           <span>Intents</span>
           <strong>Action corridor</strong>
           <small>User & System actions routed into the graph.</small>
         </div>
-        <div class="infra-card" data-layer="modules">
+        <div class="infra-card" data-layer="modules" role="button" tabindex="0">
           <span>Modules</span>
           <strong>Middle layer enrichment</strong>
           <small>Capabilities attached to canonical nodes.</small>
         </div>
-        <div class="infra-card" data-layer="core">
+        <div class="infra-card" data-layer="core" role="button" tabindex="0">
           <span>Core</span>
           <strong>Nodes and edges only</strong>
           <small>Topology remains canonical.</small>

@@ -40,8 +40,11 @@ let hoveredTextNode = null;
 let hoveredInfraLayer = null;
 let hoveredGraphosLayer = null;
 let hoveredBuildLayer = null;
+let selectedInfraLayer = null;
 let selectedGraphosLayer = null;
 let selectedBuildLayer = null;
+let lastInfraFocus = null;
+let lastInfraSelected = null;
 let lastGraphosFocus = null;
 let lastGraphosSelected = null;
 let lastBuildFocus = null;
@@ -60,15 +63,56 @@ const graphosWindowState = {
   pointerId: null,
 };
 const INTRO_TYPEWRITER_PHRASES = [
-  'Bonjour, merci de prendre un moment.',
-  'Bonsoir, merci de prendre un moment.',
-  'Bonjour, bonsoir.',
-  'Merci de prendre un instant.',
-  'Une vision à partager.',
+  'Salut,',
 ];
 const ACTION_HOVER_SELECTOR = '#nav-track, a, button, select, [role="button"], .infra-card, .infra-step, .module-card, .modules-feature, .build-card, .build-step, .build-surface, .build-assets, .graphos-window__header, .graphos-window__body, .graphos-window__chip, .graphos-context-menu, .graphos-context-menu__item, .graphos-color-picker';
 const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const KEYBOARD_NAV_LOCK_SELECTOR = [
+  'a',
+  'button',
+  'input',
+  'textarea',
+  'select',
+  '[contenteditable="true"]',
+  '[role="button"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+const TOUCH_NAV_LOCK_SELECTOR = [
+  '.graphos-window',
+  '.graphos-window__body',
+  '.graphos-context-menu',
+  '.graphos-color-picker',
+  '.graphos-window__chip',
+  '.graphos-row',
+  '#canvas-graphos',
+  '.module-card',
+  '.modules-feature',
+  '.build-step',
+  '.build-card',
+  '.build-surface',
+  '.build-assets',
+  '.infra-card',
+  '.infra-step',
+  '.intro-scroll',
+  '.contact-cta',
+  '.vestiges-social',
+].join(', ');
+const WHEEL_NAV_LOCK_SELECTOR = [
+  '.graphos-window',
+  '.graphos-window__body',
+  '.graphos-context-menu',
+  '.graphos-color-picker',
+  '#canvas-graphos',
+  'button',
+  'input',
+  'textarea',
+  'select',
+  'a',
+  '[contenteditable="true"]',
+  '[role="button"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
 
 // ===== DOM =====
 const slideEls   = [...document.querySelectorAll('.slide')];
@@ -102,6 +146,19 @@ function easeInOutCubic(x) {
 }
 function rand(min, max) { return min + Math.random() * (max - min); }
 function randChoice(items) { return items[(Math.random() * items.length) | 0]; }
+function isElementTarget(target) { return target instanceof Element; }
+function targetMatchesSelector(target, selector) {
+  return isElementTarget(target) ? !!target.closest(selector) : false;
+}
+function shouldLockKeyboardNav(target) {
+  return targetMatchesSelector(target, KEYBOARD_NAV_LOCK_SELECTOR);
+}
+function shouldLockTouchNav(target) {
+  return targetMatchesSelector(target, TOUCH_NAV_LOCK_SELECTOR);
+}
+function shouldLockWheelNav(target) {
+  return targetMatchesSelector(target, WHEEL_NAV_LOCK_SELECTOR);
+}
 function roundRect(ctx, x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -416,13 +473,17 @@ function refreshActiveSlideCache() {
   hoveredInfraLayer = null;
   hoveredGraphosLayer = null;
   hoveredBuildLayer = null;
+  selectedInfraLayer = null;
   selectedGraphosLayer = null;
   selectedBuildLayer = null;
+  lastInfraFocus = null;
+  lastInfraSelected = null;
   lastGraphosFocus = null;
   lastGraphosSelected = null;
   lastBuildFocus = null;
   lastBuildSelected = null;
   delete document.body.dataset.infraFocus;
+  delete document.body.dataset.infraSelected;
   delete document.body.dataset.graphosFocus;
   delete document.body.dataset.graphosSelected;
   delete document.body.dataset.buildFocus;
@@ -621,6 +682,27 @@ function syncGraphosFocusState() {
   }
 }
 
+function syncInfraFocusState() {
+  const focus = hoveredInfraLayer || selectedInfraLayer || null;
+  if (focus !== lastInfraFocus) {
+    lastInfraFocus = focus;
+    if (focus) {
+      document.body.dataset.infraFocus = focus;
+    } else {
+      delete document.body.dataset.infraFocus;
+    }
+  }
+
+  if (selectedInfraLayer !== lastInfraSelected) {
+    lastInfraSelected = selectedInfraLayer;
+    if (selectedInfraLayer) {
+      document.body.dataset.infraSelected = selectedInfraLayer;
+    } else {
+      delete document.body.dataset.infraSelected;
+    }
+  }
+}
+
 function syncBuildFocusState() {
   const focus = hoveredBuildLayer || selectedBuildLayer || null;
   if (focus !== lastBuildFocus) {
@@ -676,7 +758,7 @@ class IntroTypewriter {
     this.charIndex = 0;
     this.phase = 'typing';
     this.el.textContent = '';
-    this.nextStepAt = now + 180;
+    this.nextStepAt = now + 260;
   }
 
   stop() {
@@ -695,7 +777,7 @@ class IntroTypewriter {
 
       if (this.charIndex >= phrase.length) {
         this.phase = 'holding';
-        this.nextStepAt = now + rand(1900, 2800);
+        this.nextStepAt = now + rand(2400, 3400);
       } else {
         const char = phrase[this.charIndex - 1];
         this.nextStepAt = now + this._typingDelay(char);
@@ -704,8 +786,14 @@ class IntroTypewriter {
     }
 
     if (this.phase === 'holding') {
+      if (this.phrases.length === 1) {
+        this.active = false;
+        this.phase = 'idle';
+        this.nextStepAt = 0;
+        return;
+      }
       this.phase = 'erasing';
-      this.nextStepAt = now + 200;
+      this.nextStepAt = now + 260;
       return;
     }
 
@@ -725,17 +813,17 @@ class IntroTypewriter {
   }
 
   _typingDelay(char) {
-    if (!char) return 34;
-    if (/\s/.test(char)) return 44;
-    if (/[,.!?]/.test(char)) return 140;
-    return rand(24, 42);
+    if (!char) return 48;
+    if (/\s/.test(char)) return 70;
+    if (/[,.!?]/.test(char)) return 220;
+    return rand(44, 78);
   }
 
   _eraseDelay(char) {
-    if (!char) return 16;
-    if (/\s/.test(char)) return 14;
-    if (/[,.!?]/.test(char)) return 22;
-    return 14;
+    if (!char) return 24;
+    if (/\s/.test(char)) return 20;
+    if (/[,.!?]/.test(char)) return 30;
+    return 18;
   }
 }
 
@@ -759,11 +847,7 @@ function updateHoverTargets(force = false) {
   hoveredBuildLayer = activeSlideEl && activeSlideEl.dataset.slide === 'build' && el && el.closest
     ? (el.closest('.build-step, .build-card, .build-surface, .build-assets')?.dataset.layer || null)
     : null;
-  if (hoveredInfraLayer) {
-    document.body.dataset.infraFocus = hoveredInfraLayer;
-  } else {
-    delete document.body.dataset.infraFocus;
-  }
+  syncInfraFocusState();
   syncGraphosFocusState();
   syncBuildFocusState();
   document.body.classList.toggle('is-action-hover', !!activeActionEl);
@@ -775,7 +859,7 @@ function clearActionHoverState() {
   hoveredInfraLayer = null;
   hoveredGraphosLayer = null;
   hoveredBuildLayer = null;
-  delete document.body.dataset.infraFocus;
+  syncInfraFocusState();
   syncGraphosFocusState();
   syncBuildFocusState();
   hoverProbeX = NaN;
@@ -903,6 +987,26 @@ if (graphosFeedEl) {
     syncGraphosFocusState();
   });
 }
+
+document.addEventListener('click', e => {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'infrastructure') return;
+  const target = e.target.closest('.infra-card, .infra-step');
+  if (!target || !activeSlideEl.contains(target)) return;
+  const nextLayer = target.dataset.layer || null;
+  selectedInfraLayer = selectedInfraLayer === nextLayer ? null : nextLayer;
+  syncInfraFocusState();
+});
+
+document.addEventListener('keydown', e => {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'infrastructure') return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const target = e.target.closest('.infra-card, .infra-step');
+  if (!target || !activeSlideEl.contains(target)) return;
+  e.preventDefault();
+  const nextLayer = target.dataset.layer || null;
+  selectedInfraLayer = selectedInfraLayer === nextLayer ? null : nextLayer;
+  syncInfraFocusState();
+});
 
 document.addEventListener('click', e => {
   const btn = e.target.closest('[data-scroll-next]');
@@ -1584,6 +1688,7 @@ class InfrastructureScene {
   _getFocusLayer() {
     if (hoveredGraphosLayer) return hoveredGraphosLayer;
     if (hoveredInfraLayer) return hoveredInfraLayer;
+    if (selectedInfraLayer) return selectedInfraLayer;
     const ny = this.h ? mouseY / this.h : 0.5;
     const nx = this.w ? mouseX / this.w : 0.5;
     if (ny < 0.34) return 'node';
@@ -2229,11 +2334,24 @@ class ModulesScene {
       card.addEventListener('pointerleave', clear);
       card.addEventListener('focus', activate);
       card.addEventListener('blur', clear);
+      card.addEventListener('click', activate);
+      card.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        activate();
+      });
     });
 
     if (this.featureEl) {
-      this.featureEl.addEventListener('pointerenter', () => this._setActiveModule(-1));
-      this.featureEl.addEventListener('pointerleave', () => this._setActiveModule(-1));
+      const reset = () => this._setActiveModule(-1);
+      this.featureEl.addEventListener('pointerenter', reset);
+      this.featureEl.addEventListener('pointerleave', reset);
+      this.featureEl.addEventListener('click', reset);
+      this.featureEl.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        reset();
+      });
     }
 
     if (this.slideEl) {
@@ -4981,6 +5099,7 @@ class GraphOSLiveScene {
     stopSlideGestures(graphosWindowBodyEl);
     stopSlideGestures(graphosContextMenuEl);
     stopSlideGestures(graphosColorPickerEl);
+    stopSlideGestures(this.canvas);
 
     if (graphosContextMenuEl) {
       graphosContextMenuEl.addEventListener('pointerdown', e => e.stopPropagation());
@@ -6565,6 +6684,8 @@ function stopScene(key)  { if (scenes[key]) scenes[key].stop();  }
 // =============================================
 
 document.addEventListener('keydown', e => {
+  if (shouldLockKeyboardNav(e.target)) return;
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
   if (['ArrowDown', 'ArrowRight', ' '].includes(e.key)) {
     e.preventDefault(); goTo(currentIndex + 1);
   }
@@ -6575,6 +6696,11 @@ document.addEventListener('keydown', e => {
 
 let wheelAcc = 0, wheelTimer;
 document.addEventListener('wheel', e => {
+  if (e.ctrlKey || e.metaKey || shouldLockWheelNav(e.target)) {
+    wheelAcc = 0;
+    clearTimeout(wheelTimer);
+    return;
+  }
   e.preventDefault();
   if (isAnimating) return;
   wheelAcc += e.deltaY;
@@ -6586,10 +6712,24 @@ document.addEventListener('wheel', e => {
 }, { passive: false });
 
 let touchY0 = 0;
-document.addEventListener('touchstart', e => { touchY0 = e.touches[0].clientY; }, { passive: true });
+let touchNavLocked = false;
+document.addEventListener('touchstart', e => {
+  touchNavLocked = shouldLockTouchNav(e.target);
+  if (e.touches && e.touches[0]) {
+    touchY0 = e.touches[0].clientY;
+  }
+}, { passive: true });
 document.addEventListener('touchend', e => {
+  if (touchNavLocked) {
+    touchNavLocked = false;
+    return;
+  }
+  if (!e.changedTouches || !e.changedTouches[0]) return;
   const diff = touchY0 - e.changedTouches[0].clientY;
   if (Math.abs(diff) > 45) goTo(currentIndex + (diff > 0 ? 1 : -1));
+}, { passive: true });
+document.addEventListener('touchcancel', () => {
+  touchNavLocked = false;
 }, { passive: true });
 
 window.addEventListener('resize', () => {
