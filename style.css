@@ -4284,13 +4284,74 @@ body::after {
     gap: 12px;
   }
 
+  .slide[data-slide="partnerships"] .brief-layout,
+  .slide[data-slide="businessmodel"] .brief-layout {
+    gap: 10px;
+  }
+
+  .slide[data-slide="partnerships"] .brief-intro,
+  .slide[data-slide="businessmodel"] .brief-intro {
+    gap: 6px;
+  }
+
+  .slide[data-slide="partnerships"] .brief-intro h2,
+  .slide[data-slide="businessmodel"] .brief-intro h2 {
+    max-width: 13ch;
+  }
+
+  .slide[data-slide="partnerships"] .brief-lead,
+  .slide[data-slide="businessmodel"] .brief-lead {
+    max-width: 100%;
+    font-size: clamp(0.88rem, 3.2vw, 1rem);
+  }
+
+  .slide[data-slide="partnerships"] .brief-summary,
+  .slide[data-slide="businessmodel"] .brief-summary {
+    display: none;
+  }
+
   .brief-stack {
     grid-template-columns: 1fr;
   }
 
+  .slide[data-slide="partnerships"] .brief-stack,
   .slide[data-slide="businessmodel"] .brief-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(72vw, 1fr);
     gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scroll-snap-type: x mandatory;
+  }
+
+  .slide[data-slide="partnerships"] .brief-stack::-webkit-scrollbar,
+  .slide[data-slide="businessmodel"] .brief-stack::-webkit-scrollbar {
+    display: none;
+  }
+
+  .slide[data-slide="partnerships"] .brief-card,
+  .slide[data-slide="businessmodel"] .brief-card {
+    min-height: 94px;
+    padding: 11px 11px 10px;
+    border-radius: 16px;
+    scroll-snap-align: start;
+  }
+
+  .slide[data-slide="partnerships"] .brief-card strong,
+  .slide[data-slide="businessmodel"] .brief-card strong {
+    font-size: clamp(0.88rem, 3.8vw, 1.12rem);
+  }
+
+  .slide[data-slide="partnerships"] .brief-card span,
+  .slide[data-slide="businessmodel"] .brief-card span {
+    margin-left: 14px;
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
   }
 
   .modules-layout {
@@ -4619,6 +4680,46 @@ body::after {
     grid-template-columns: 1fr;
   }
 
+  .slide[data-slide="partnerships"] .brief-stack,
+  .slide[data-slide="businessmodel"] .brief-stack {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(72vw, 1fr);
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scroll-snap-type: x mandatory;
+  }
+
+  .slide[data-slide="partnerships"] .brief-stack::-webkit-scrollbar,
+  .slide[data-slide="businessmodel"] .brief-stack::-webkit-scrollbar {
+    display: none;
+  }
+
+  .slide[data-slide="partnerships"] .brief-card,
+  .slide[data-slide="businessmodel"] .brief-card {
+    min-height: 94px;
+    padding: 11px 11px 10px;
+    border-radius: 16px;
+    scroll-snap-align: start;
+  }
+
+  .slide[data-slide="partnerships"] .brief-card strong,
+  .slide[data-slide="businessmodel"] .brief-card strong {
+    font-size: clamp(0.88rem, 3.8vw, 1.12rem);
+  }
+
+  .slide[data-slide="partnerships"] .brief-card span,
+  .slide[data-slide="businessmodel"] .brief-card span {
+    margin-left: 14px;
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+  }
+
   .slide[data-slide="modules"] .modules-grid {
     display: grid;
     grid-template-columns: none;
@@ -4680,11 +4781,6 @@ body::after {
 
   .slide[data-slide="build"] .build-path .build-step {
     scroll-snap-align: start;
-  }
-
-  .slide[data-slide="businessmodel"] .brief-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
   }
 
   .modules-feature strong {
