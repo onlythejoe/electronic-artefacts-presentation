@@ -3541,6 +3541,10 @@ body[data-build-selected="assets"] .slide[data-slide="build"] .build-assets {
   opacity: 0.82;
 }
 
+.slide[data-slide="usecases"] .slide-canvas {
+  opacity: 0.96;
+}
+
 .brief-layout {
   width: min(100%, 1120px);
   margin: 0 auto;

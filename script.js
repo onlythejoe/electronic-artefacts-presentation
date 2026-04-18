@@ -1516,8 +1516,12 @@ class GraphScene {
   }
 
   _resize() {
-    this.w = this.canvas.width  = this.canvas.offsetWidth;
-    this.h = this.canvas.height = this.canvas.offsetHeight;
+    this.dpr = window.devicePixelRatio || 1;
+    this.w = this.canvas.offsetWidth || 1;
+    this.h = this.canvas.offsetHeight || 1;
+    this.canvas.width = Math.max(1, Math.floor(this.w * this.dpr));
+    this.canvas.height = Math.max(1, Math.floor(this.h * this.dpr));
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
 
   _init() {
@@ -2999,8 +3003,12 @@ class VestigeScene {
   }
 
   _resize() {
-    this.w = this.canvas.width = this.canvas.offsetWidth;
-    this.h = this.canvas.height = this.canvas.offsetHeight;
+    this.dpr = window.devicePixelRatio || 1;
+    this.w = this.canvas.offsetWidth || 1;
+    this.h = this.canvas.offsetHeight || 1;
+    this.canvas.width = Math.max(1, Math.floor(this.w * this.dpr));
+    this.canvas.height = Math.max(1, Math.floor(this.h * this.dpr));
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
 
   _init() {
@@ -4447,7 +4455,7 @@ class UseCasesScene {
     ctx.fillRect(0, 0, this.w, this.h);
 
     ctx.save();
-    ctx.globalCompositeOperation = light ? 'multiply' : 'screen';
+    ctx.globalCompositeOperation = 'screen';
     words
       .slice()
       .sort((a, b) => a.depth - b.depth)
@@ -4455,10 +4463,10 @@ class UseCasesScene {
         const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
         const far = clamp(1 - w.depth, 0, 1);
         const familyBoost = w.family === 'science' || w.family === 'systems' ? 0.05 : 0;
-        const scale = 0.78 + far * 0.56 + pulse * 0.08 + familyBoost;
-        const fillAlpha = clamp((0.14 + w.depth * 0.64) * (0.78 + pulse * 0.22), 0.05, 0.92);
-        const strokeAlpha = clamp((0.08 + far * 0.36) * (0.68 + pulse * 0.32), 0.02, 0.48);
-        const glowAlpha = clamp((0.05 + far * 0.24) * (0.72 + pulse * 0.28), 0.02, 0.34);
+        const scale = 0.88 + far * 0.52 + pulse * 0.06 + familyBoost;
+        const fillAlpha = clamp((0.24 + w.depth * 0.56) * (0.84 + pulse * 0.16), 0.12, 0.98);
+        const strokeAlpha = clamp((0.14 + far * 0.38) * (0.78 + pulse * 0.22), 0.06, 0.68);
+        const glowAlpha = clamp((0.10 + far * 0.28) * (0.84 + pulse * 0.16), 0.04, 0.40);
         const fillColor = w.color?.fill || [255, 255, 255];
         const strokeColor = w.color?.stroke || [255, 255, 255];
         const glowColor = w.color?.glow || [255, 255, 255];
@@ -4472,24 +4480,24 @@ class UseCasesScene {
         ctx.textAlign = 'left';
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-        ctx.lineWidth = 0.35 + far * 1.35 + pulse * 0.08;
+        ctx.lineWidth = 0.62 + far * 0.98 + pulse * 0.06;
         const strokeBase = light
-          ? [strokeColor[0] * 0.42, strokeColor[1] * 0.42, strokeColor[2] * 0.42]
+          ? [strokeColor[0] * 0.68, strokeColor[1] * 0.68, strokeColor[2] * 0.68]
           : strokeColor;
         ctx.strokeStyle = `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
         const blur = far > 0.72
-          ? clamp(w.blur + far * 1.9 + Math.max(0, 0.7 - pulse) * 0.5, 0, 4.8)
+          ? clamp(w.blur * 0.75 + far * 1.1 + Math.max(0, 0.7 - pulse) * 0.18, 0, 2.2)
           : far > 0.38
-            ? clamp(w.blur * 0.48 + Math.max(0, 0.7 - pulse) * 0.18, 0, 1.2)
+            ? clamp(w.blur * 0.22 + Math.max(0, 0.7 - pulse) * 0.08, 0, 0.72)
             : 0;
         ctx.filter = blur > 0.16 ? `blur(${blur.toFixed(2)}px)` : 'none';
         if (far > 0.18 || pulse > 0.72) {
           ctx.strokeText(w.text, 0, 0);
         }
-        ctx.shadowBlur = far > 0.8 ? 10 : far > 0.55 ? 5 : far > 0.3 ? 2 : 0;
-        ctx.shadowColor = `rgba(${glowColor.join(',')},${light ? 0.06 : 0.12})`;
+        ctx.shadowBlur = far > 0.8 ? 14 : far > 0.55 ? 8 : far > 0.3 ? 4 : 0;
+        ctx.shadowColor = `rgba(${glowColor.join(',')},${light ? 0.10 : 0.20})`;
         const fillBase = light
-          ? [fillColor[0] * 0.42, fillColor[1] * 0.42, fillColor[2] * 0.42]
+          ? [fillColor[0] * 0.74, fillColor[1] * 0.74, fillColor[2] * 0.74]
           : fillColor;
         ctx.fillStyle = `rgba(${fillBase.map(v => Math.round(v)).join(',')},${fillAlpha})`;
         ctx.fillText(w.text, 0, 0);
@@ -4497,7 +4505,7 @@ class UseCasesScene {
           ctx.filter = 'none';
           ctx.shadowBlur = 0;
           ctx.globalAlpha = 1;
-          ctx.lineWidth = 0.5;
+          ctx.lineWidth = 0.7;
           ctx.strokeStyle = `rgba(${strokeColor.join(',')},${Math.min(0.16, strokeAlpha * 0.7)})`;
           ctx.strokeText(w.text, 0, 0);
         }
@@ -7326,7 +7334,7 @@ const SCENE_MAP = {
 
   // SPACE — standard graph, baseline visual language
   space:       [GraphScene,       { nodeCount: 22, speed: 0.45, thresh: 0.28,
-                                    edgeAlpha: 0.16, nodeAlpha: [0.28, 0.42] }],
+                                    edgeAlpha: 0.22, nodeAlpha: [0.32, 0.48] }],
 
   // GraphOS — primitives, draggable context window, groups, and surface projection
   graphos:     [GraphOSLiveScene, null],
