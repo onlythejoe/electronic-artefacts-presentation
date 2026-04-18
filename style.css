@@ -4399,6 +4399,73 @@ body::after {
   .vestiges-copy h2 {
     font-size: clamp(2rem, 7.2vw, 3.2rem);
   }
+
+  /* — Use cases slide — collapse 2-col drum+field to single-column — */
+  .usecases-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    column-gap: 0;
+    row-gap: clamp(12px, 2vh, 20px);
+  }
+
+  /* Drum becomes a horizontal row of pill tabs */
+  .uc-drum {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-self: auto;
+    padding-left: 0;
+    gap: 6px;
+  }
+
+  .uc-drum__rail { display: none; }
+
+  .uc-drum__item {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    gap: 8px;
+  }
+
+  .uc-drum__item::before { display: none; }
+
+  .uc-drum__item.is-active {
+    background: rgba(var(--uc-active), 0.1);
+    border-color: rgba(var(--uc-active), 0.3);
+  }
+
+  .uc-drum__dot { margin-top: 0; }
+
+  /* Sub-text and count hidden — not enough room in pill form */
+  .uc-drum__sub,
+  .uc-drum__count { display: none !important; }
+
+  .uc-drum__name {
+    font-size: 0.78rem !important;
+    font-weight: 400 !important;
+    color: rgba(255,255,255,0.38) !important;
+    letter-spacing: 0em !important;
+  }
+
+  .uc-drum__item.is-active .uc-drum__name {
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    color: rgb(var(--uc-active)) !important;
+  }
+
+  .uc-field {
+    align-self: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .uc-field__grid {
+    gap: 6px;
+  }
 }
 
 @media (hover: none), (pointer: coarse) {
@@ -5072,6 +5139,26 @@ body::after {
     min-width: 0;
     width: min(100%, 420px);
   }
+
+  /* — Use cases touch — disable hover dimming, tap-friendly chips — */
+  .uc-field__grid:has(.uc-case:hover) .uc-case:not(:hover) {
+    opacity: 1;
+  }
+
+  .uc-case:hover {
+    background: rgba(var(--uc-a), 0.05);
+    border-color: rgba(var(--uc-a), 0.14);
+    color: rgba(var(--uc-a), 0.65);
+    box-shadow: none;
+  }
+
+  .uc-drum__item:not(.is-active):hover .uc-drum__name {
+    color: rgba(255,255,255,0.38);
+  }
+
+  .usecases-ft__hint {
+    display: none;
+  }
 }
 
 @media (max-width: 600px) {
@@ -5718,6 +5805,51 @@ body::after {
     padding: 13px 18px;
     font-size: 0.86rem;
   }
+
+  /* — Use cases 600px — tighter chips and header — */
+  .usecases-hd__headline {
+    font-size: clamp(0.86rem, 2.4vw, 1rem);
+  }
+
+  .uc-drum__item {
+    padding: 5px 11px;
+    gap: 6px;
+  }
+
+  .uc-drum__dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .uc-drum__name {
+    font-size: 0.7rem !important;
+  }
+
+  .uc-drum__item.is-active .uc-drum__name {
+    font-size: 0.7rem !important;
+  }
+
+  .uc-case--primary {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 0.8rem;
+  }
+
+  .uc-case--secondary {
+    height: 28px;
+    padding: 0 11px;
+    font-size: 0.72rem;
+  }
+
+  .uc-case--tertiary {
+    height: 23px;
+    padding: 0 9px;
+    font-size: 0.66rem;
+  }
+
+  .uc-field__grid {
+    gap: 5px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -6137,6 +6269,73 @@ body::after {
   .slide[data-slide="modules"] .module-card__foot {
     padding-top: 4px;
   }
+
+  /* — Use cases 420px — minimum phone, very compact — */
+  .usecases-shell {
+    row-gap: clamp(8px, 1.6vh, 14px);
+  }
+
+  .usecases-hd {
+    padding-bottom: clamp(8px, 1.4vh, 14px);
+    margin-bottom: 0;
+  }
+
+  .usecases-hd__kicker { font-size: 0.58rem; }
+
+  .usecases-hd__headline {
+    font-size: clamp(0.78rem, 3.6vw, 0.92rem);
+  }
+
+  .uc-drum__item {
+    padding: 4px 9px;
+    gap: 5px;
+  }
+
+  .uc-drum__dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  .uc-drum__name {
+    font-size: 0.62rem !important;
+  }
+
+  .uc-drum__item.is-active .uc-drum__name {
+    font-size: 0.62rem !important;
+  }
+
+  .uc-field__header {
+    margin-bottom: clamp(8px, 1.4vh, 14px);
+  }
+
+  .uc-field__eyebrow { font-size: 0.6rem; }
+
+  .uc-field__desc {
+    font-size: 0.74rem;
+    line-height: 1.42;
+  }
+
+  .uc-case--primary {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 0.74rem;
+  }
+
+  .uc-case--secondary {
+    height: 25px;
+    padding: 0 9px;
+    font-size: 0.66rem;
+  }
+
+  .uc-case--tertiary {
+    height: 21px;
+    padding: 0 8px;
+    font-size: 0.6rem;
+  }
+
+  .uc-field__grid { gap: 4px; }
+
+  .usecases-ft__hint { font-size: 0.54rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
