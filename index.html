@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260418l" />
+  <link rel="stylesheet" href="style.css?v=20260418m" />
   <noscript>
     <style>
       html, body {
@@ -533,11 +533,54 @@
   </section>
 
   <!-- 12 -->
-  <section class="slide" data-slide="usecases">
+  <section class="slide has-canvas usecases-slide" data-slide="usecases">
     <canvas class="slide-canvas" id="canvas-usecases"></canvas>
-    <div class="slide-content">
-      <h2>Use cases</h2>
-      <p class="sub">Hover a term to see how SPACE applies to that use case.</p>
+    <div class="usecases-shell">
+      <header class="usecases-hd">
+        <p class="usecases-hd__kicker">Use cases</p>
+        <p class="usecases-hd__headline">Anywhere there's structure to define.</p>
+      </header>
+      <nav class="uc-drum" id="uc-drum" aria-label="Domain families">
+        <div class="uc-drum__rail" aria-hidden="true"></div>
+        <button class="uc-drum__item is-active" data-family="0" type="button" aria-pressed="true">
+          <span class="uc-drum__dot" aria-hidden="true"></span>
+          <div class="uc-drum__body">
+            <strong class="uc-drum__name">Operations</strong>
+            <span class="uc-drum__sub">Run business, logistics, and support flows.</span>
+            <span class="uc-drum__count">11 domains</span>
+          </div>
+        </button>
+        <button class="uc-drum__item" data-family="1" type="button" aria-pressed="false">
+          <span class="uc-drum__dot" aria-hidden="true"></span>
+          <div class="uc-drum__body">
+            <strong class="uc-drum__name">Platform</strong>
+            <span class="uc-drum__sub">Compose systems, data, and automation.</span>
+            <span class="uc-drum__count">14 domains</span>
+          </div>
+        </button>
+        <button class="uc-drum__item" data-family="2" type="button" aria-pressed="false">
+          <span class="uc-drum__dot" aria-hidden="true"></span>
+          <div class="uc-drum__body">
+            <strong class="uc-drum__name">Research</strong>
+            <span class="uc-drum__sub">Simulate, measure, and model knowledge.</span>
+            <span class="uc-drum__count">9 domains</span>
+          </div>
+        </button>
+        <button class="uc-drum__item" data-family="3" type="button" aria-pressed="false">
+          <span class="uc-drum__dot" aria-hidden="true"></span>
+          <div class="uc-drum__body">
+            <strong class="uc-drum__name">Experience</strong>
+            <span class="uc-drum__sub">Publish, design, and communicate.</span>
+            <span class="uc-drum__count">11 domains</span>
+          </div>
+        </button>
+      </nav>
+      <div class="uc-field" id="uc-field" aria-live="polite" aria-label="Domain use cases">
+        <div class="uc-field__inner" id="uc-field-inner"></div>
+      </div>
+      <footer class="usecases-ft">
+        <span class="usecases-ft__hint">Scroll on the selector · hover a domain for detail</span>
+      </footer>
     </div>
   </section>
 
@@ -824,6 +867,6 @@
 
 </div>
 
-<script src="script.js?v=20260418f"></script>
+<script src="script.js?v=20260418n"></script>
 </body>
 </html>

@@ -110,6 +110,7 @@ const ACTION_HOVER_SELECTOR = [
   '.graphos-context-menu__toggle',
   '.graphos-context-menu__swatch',
   '.graphos-color-picker canvas',
+  '.uc-case',
 ].join(', ');
 const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -514,6 +515,27 @@ function buildHoverPayload(el) {
       title: collapseText(contactCta.textContent),
       detail: 'Open the mail client to continue the conversation.',
       meta: 'electronic-artefacts@gmail.com',
+    };
+  }
+
+  const ucCase = el.closest('.uc-case');
+  if (ucCase) {
+    const word = ucCase.dataset.word || collapseText(ucCase.textContent);
+    const familyTitle = ucCase.dataset.familyTitle || 'SPACE';
+    const familyKey   = ucCase.dataset.familyKey   || 'general';
+    const detailMap = {
+      operations: `Use SPACE to map ${word} as graph nodes — tracking status, ownership, and exceptions in a single source of truth.`,
+      platform:   `Use SPACE to model ${word} as composable primitives so integrations stay consistent across the graph.`,
+      research:   `Use SPACE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
+      experience: `Use SPACE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
+    };
+    return {
+      key: `uc:${word}`,
+      kind: 'usecase',
+      kicker: familyTitle,
+      title: word,
+      detail: detailMap[familyKey] || `Use SPACE to model ${word} as nodes, edges, and surfaces in a single system.`,
+      meta: familyTitle,
     };
   }
 
@@ -4288,42 +4310,29 @@ class BuildScene {
 
 
 // =============================================
-// SCENE: USE CASES
-// Cloud of drifting terms showing combinatorial potential.
+// SCENE: USE CASES — Ambient atmosphere
+// Color-reactive background for the drum/field layout.
 // =============================================
 
 class UseCasesScene {
-  constructor(canvas, opts = {}) {
+  constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.opts = opts;
     this.running = false;
     this.raf = null;
     this.t = 0;
-    this.words = [];
-    this.isFinePointer = HAS_FINE_POINTER;
-    this.wordBank = [
-      'CRM', 'Logistics', 'Web', 'Domotics', 'Simulation', 'Physics', 'Biology', 'Genome',
-      'Consciousness', 'Systems', 'Data', 'Infrastructure', 'Education', 'Retail', 'Media',
-      'Robotics', 'Research', 'Marketplace', 'Operations', 'Energy', 'Finance', 'Health',
-      'Navigation', 'Design', 'Music', 'Culture', 'Planning', 'Strategy', 'Computation',
-      'Automation', 'Analytics', 'Archive', 'Workflow', 'Collaboration', 'Knowledge',
-      'Publishing', 'Signals', 'Support', 'Sensors', 'Agents', 'Catalog', 'Content',
-      'Experience', 'Protocol', 'Telemetry', 'Audience', 'Scheduling', 'Interfaces',
-    ];
-    this.useCasePalette = [
-      { fill: [124, 160, 255], stroke: [209, 223, 255], glow: [124, 160, 255] },
-      { fill: [93, 229, 214], stroke: [202, 255, 247], glow: [93, 229, 214] },
-      { fill: [141, 204, 120], stroke: [221, 250, 212], glow: [141, 204, 120] },
-      { fill: [255, 194, 102], stroke: [255, 233, 191], glow: [255, 194, 102] },
-      { fill: [255, 145, 196], stroke: [255, 223, 238], glow: [255, 145, 196] },
-      { fill: [180, 146, 255], stroke: [226, 210, 255], glow: [180, 146, 255] },
-      { fill: [110, 214, 255], stroke: [214, 244, 255], glow: [110, 214, 255] },
-      { fill: [255, 166, 122], stroke: [255, 228, 211], glow: [255, 166, 122] },
-    ];
-    this.hoveredWordIndex = -1;
+    this.accent = [124, 160, 255];
+    this.targetAccent = [124, 160, 255];
+    this.particles = [];
+    this.dpr = 1;
+    this.w = 0;
+    this.h = 0;
     this._resize();
-    this._init();
+    this._initParticles();
+  }
+
+  setAccent(rgb) {
+    this.targetAccent = [...rgb];
   }
 
   _resize() {
@@ -4335,170 +4344,16 @@ class UseCasesScene {
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
 
-  _init() {
-    const layers = this.isFinePointer ? [0.30, 0.48, 0.66, 0.84, 1] : [0.42, 0.64, 0.82, 1];
-    const count = this.isFinePointer ? 44 : 30;
-    this.words = Array.from({ length: count }, (_, i) => {
-      const word = this.wordBank[i % this.wordBank.length];
-      const layer = randChoice(layers);
-      const color = this._pickUseCaseColor(word, i);
-      const family = this._resolveUseCaseFamily(word);
-      const baseX = rand(this.w * 0.08, this.w * 0.92);
-      const baseY = rand(this.h * 0.10, this.h * 0.90);
-      return {
-        text: word,
-        color,
-        family,
-        baseX,
-        baseY,
-        x: baseX,
-        y: baseY,
-        orbitX: rand(18, 82) * layer,
-        orbitY: rand(10, 52) * layer,
-        speed: rand(0.08, 0.24) + layer * 0.09,
-        base: 9 + rand(0, 10) * layer + (layer > 0.9 ? 5 : layer > 0.8 ? 3 : 0),
-        depth: layer,
-        phase: rand(0, Math.PI * 2),
-        alpha: rand(0.14, 0.30) + layer * 0.10,
-        blur: layer < 0.45 ? rand(1.6, 3.4) : layer < 0.7 ? rand(0.8, 1.8) : rand(0.1, 0.85),
-        wobble: rand(0.6, 1.8) + layer * 0.5,
-        twist: rand(-0.018, 0.018),
-        drift: rand(0.3, 1.2),
-      };
-    });
-  }
-
-  _resolveUseCaseFamily(word) {
-    const key = word.toLowerCase();
-    if (['crm', 'web', 'marketplace', 'finance', 'retail', 'data', 'content', 'catalog'].includes(key)) return 'enterprise';
-    if (['logistics', 'operations', 'navigation', 'planning', 'infrastructure', 'scheduling', 'workflow'].includes(key)) return 'ops';
-    if (['domotics', 'robotics', 'systems', 'consciousness', 'strategy', 'agents', 'interfaces'].includes(key)) return 'systems';
-    if (['simulation', 'physics', 'research', 'computation', 'telemetry', 'protocol'].includes(key)) return 'science';
-    if (['biology', 'genome', 'health', 'education', 'knowledge', 'signals'].includes(key)) return 'bio';
-    if (['media', 'music', 'culture', 'design', 'experience', 'publishing', 'audience'].includes(key)) return 'culture';
-    if (['automation', 'analytics', 'archive', 'collaboration', 'support'].includes(key)) return 'platform';
-    return 'general';
-  }
-
-  _pickUseCaseColor(word, index) {
-    const key = word.toLowerCase();
-    const paletteIndex = (() => {
-      if (['crm', 'web', 'marketplace', 'finance', 'retail', 'data', 'content', 'catalog'].includes(key)) return 0;
-      if (['logistics', 'operations', 'navigation', 'planning', 'infrastructure', 'scheduling', 'workflow'].includes(key)) return 1;
-      if (['domotics', 'robotics', 'systems', 'consciousness', 'strategy', 'agents', 'interfaces'].includes(key)) return 5;
-      if (['simulation', 'physics', 'research', 'computation', 'telemetry', 'protocol'].includes(key)) return 3;
-      if (['biology', 'genome', 'health', 'education', 'knowledge', 'signals'].includes(key)) return 2;
-      if (['media', 'music', 'culture', 'design', 'experience', 'publishing', 'audience'].includes(key)) return 4;
-      if (['automation', 'analytics', 'archive', 'collaboration', 'support'].includes(key)) return 6;
-      const seed = [...word].reduce((acc, ch) => acc + ch.charCodeAt(0), index * 17);
-      return seed % this.useCasePalette.length;
-    })();
-
-    return this.useCasePalette[paletteIndex];
-  }
-
-  _getUseCaseFamilyLabel(family) {
-    return {
-      enterprise: 'Enterprise',
-      ops: 'Operations',
-      systems: 'Systems',
-      science: 'Science',
-      bio: 'Knowledge',
-      culture: 'Culture',
-      platform: 'Platform',
-      general: 'General',
-    }[family] || 'General';
-  }
-
-  _getUseCaseHoverCopy(word) {
-    const family = this._resolveUseCaseFamily(word);
-    const template = {
-      enterprise: 'Use SPACE to turn {word} into nodes, links, and action surfaces with one shared source of truth.',
-      ops: 'Use SPACE to route {word} through one graph so status, exceptions, and ownership stay traceable.',
-      systems: 'Use SPACE to model {word} as composable primitives with clear boundaries and shared semantics.',
-      science: 'Use SPACE to connect {word} data to the same graph so experiments, telemetry, and outcomes stay linked.',
-      bio: 'Use SPACE to structure {word} knowledge as a graph so relationships stay consistent across views.',
-      culture: 'Use SPACE to publish {word} as a living surface instead of an isolated artifact.',
-      platform: 'Use SPACE to make {word} reusable as modules, automations, and shared structure.',
-      general: 'Use SPACE to keep {word} in the graph: nodes for entities, edges for relations, and surfaces for presentation.',
-    }[family] || 'Use SPACE to model {word} as nodes, links, and surfaces in a single system.';
-
-    return {
-      detail: template.replace('{word}', word),
-      meta: this._getUseCaseFamilyLabel(family),
-    };
-  }
-
-  _updateHoverState() {
-    if (!this.isFinePointer) {
-      if (this.hoveredWordIndex !== -1) {
-        this.hoveredWordIndex = -1;
-        syncHoverHud(null);
-      }
-      return;
-    }
-
-    const rect = this.canvas.getBoundingClientRect();
-    const mx = mouseX - rect.left;
-    const my = mouseY - rect.top;
-    if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) {
-      if (this.hoveredWordIndex !== -1) {
-        this.hoveredWordIndex = -1;
-        syncHoverHud(null);
-      }
-      return;
-    }
-    let hoveredIndex = -1;
-    let hoveredWord = null;
-
-    this.words.forEach((w, i) => {
-      if (hoveredIndex !== -1) return;
-      const pulse = 0.6 + 0.4 * Math.sin(this.t * 1.2 + w.phase);
-      const far = clamp(1 - w.depth, 0, 1);
-      const familyBoost = w.family === 'science' || w.family === 'systems' ? 0.05 : 0;
-      const scale = 0.88 + far * 0.52 + pulse * 0.06 + familyBoost;
-      const weight = Math.round(420 + far * 360 + pulse * 40);
-      this.ctx.save();
-      this.ctx.font = `${weight} ${Math.round(w.base)}px Inter, sans-serif`;
-      const metrics = this.ctx.measureText(w.text);
-      const width = metrics.width * scale;
-      const ascent = metrics.actualBoundingBoxAscent || Math.round(w.base * 0.78);
-      const descent = metrics.actualBoundingBoxDescent || Math.round(w.base * 0.24);
-      this.ctx.restore();
-
-      const padX = 14;
-      const padY = 8;
-      const left = w.x - padX;
-      const top = w.y - ascent * scale - padY;
-      const right = w.x + width + padX;
-      const bottom = w.y + descent * scale + padY;
-      const centerX = w.x + width * 0.5;
-      const centerY = w.y + (descent - ascent) * 0.15;
-      const nearBox = mx >= left && mx <= right && my >= top && my <= bottom;
-      const nearCenter = Math.hypot(mx - centerX, my - centerY) <= Math.max(width * 0.34, w.base * scale * 1.5);
-      if (nearBox || nearCenter) {
-        hoveredIndex = i;
-        hoveredWord = w;
-      }
-    });
-
-    if (hoveredIndex === this.hoveredWordIndex) return;
-    this.hoveredWordIndex = hoveredIndex;
-
-    if (!hoveredWord) {
-      syncHoverHud(null);
-      return;
-    }
-
-    const copy = this._getUseCaseHoverCopy(hoveredWord.text);
-    syncHoverHud({
-      key: `usecase:${hoveredWord.text}`,
-      kind: 'usecase',
-      kicker: 'Use case',
-      title: hoveredWord.text,
-      detail: copy.detail,
-      meta: copy.meta,
-    });
+  _initParticles() {
+    this.particles = Array.from({ length: 34 }, () => ({
+      x: rand(0, this.w || 800),
+      y: rand(0, this.h || 600),
+      r: rand(0.6, 2.4),
+      vx: rand(-0.22, 0.22),
+      vy: rand(-0.48, -0.08),
+      alpha: rand(0.03, 0.11),
+      phase: rand(0, Math.PI * 2),
+    }));
   }
 
   start() {
@@ -4510,149 +4365,259 @@ class UseCasesScene {
 
   stop() {
     this.running = false;
-    if (this.raf) {
-      cancelAnimationFrame(this.raf);
-      this.raf = null;
-    }
+    if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
     this.ctx.clearRect(0, 0, this.w, this.h);
   }
 
   resize() {
     this._resize();
-    this._init();
+    this._initParticles();
   }
 
   _loop() {
     if (!this.running) return;
-    this.t += 0.006;
-    this._tick();
+    this.t += 0.004;
+    this.accent[0] = lerp(this.accent[0], this.targetAccent[0], 0.02);
+    this.accent[1] = lerp(this.accent[1], this.targetAccent[1], 0.02);
+    this.accent[2] = lerp(this.accent[2], this.targetAccent[2], 0.02);
     this._draw();
     this.raf = requestAnimationFrame(() => this._loop());
   }
 
-  _tick() {
-    const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
-    const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
-    this.words.forEach((w, i) => {
-      const orbit = this.t * w.speed + w.phase;
-      const sway = Math.sin(orbit + i * 0.09);
-      const lift = Math.cos(orbit * 0.92 + i * 0.07);
-      const mousePullX = nx * 18 * w.depth;
-      const mousePullY = ny * 16 * w.depth;
-      w.x = w.baseX + sway * w.orbitX + mousePullX;
-      w.y = w.baseY + lift * w.orbitY + mousePullY;
-      if (!this.isFinePointer) {
-        w.x += Math.sin(this.t * 0.32 + w.phase) * 1.4;
-        w.y += Math.cos(this.t * 0.28 + w.phase) * 1.1;
-      }
-      if (i % 3 === 0) {
-        const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.72 + w.phase);
-        w.alpha = 0.12 + w.depth * 0.16 + pulse * (0.16 + w.depth * 0.08);
-      }
-    });
-  }
-
   _draw() {
-    const { ctx, words, t } = this;
-    const light = isLightTheme();
-    this._updateHoverState();
-    ctx.clearRect(0, 0, this.w, this.h);
+    const { ctx, w, h, t } = this;
+    const [r, g, b] = this.accent;
+    ctx.clearRect(0, 0, w, h);
 
-    const bg = ctx.createRadialGradient(this.w * 0.48, this.h * 0.42, 30, this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.8);
-    bg.addColorStop(0, 'rgba(10,10,12,1)');
-    bg.addColorStop(1, 'rgba(3,3,4,1)');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, this.w, this.h);
+    ctx.fillStyle = 'rgb(5,5,8)';
+    ctx.fillRect(0, 0, w, h);
 
+    // Ambient glow on the field side (right ~65%)
+    const pulse = 0.5 + 0.5 * Math.sin(t * 0.52);
+    const gx = w * 0.68, gy = h * 0.5;
+    const gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.min(w, h) * 0.86);
+    gr.addColorStop(0, `rgba(${r},${g},${b},${0.072 + pulse * 0.022})`);
+    gr.addColorStop(0.48, `rgba(${r},${g},${b},0.022)`);
+    gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, w, h);
+
+    // Soft wash on the drum side (left ~32%)
+    const gl = ctx.createLinearGradient(0, 0, w * 0.34, 0);
+    gl.addColorStop(0, `rgba(${r},${g},${b},${0.038 + pulse * 0.008})`);
+    gl.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = gl;
+    ctx.fillRect(0, 0, w * 0.34, h);
+
+    // Column divider trace
     ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    words
-      .slice()
-      .sort((a, b) => a.depth - b.depth)
-      .forEach((w, i) => {
-        const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
-        const far = clamp(1 - w.depth, 0, 1);
-        const familyBoost = w.family === 'science' || w.family === 'systems' ? 0.05 : 0;
-        const hovered = this.hoveredWordIndex === i;
-        const scale = 0.88 + far * 0.52 + pulse * 0.06 + familyBoost;
-        const fillAlpha = clamp((0.24 + w.depth * 0.56) * (0.84 + pulse * 0.16), 0.12, 0.98);
-        const strokeAlpha = clamp((0.14 + far * 0.38) * (0.78 + pulse * 0.22), 0.06, 0.68);
-        const glowAlpha = clamp((0.10 + far * 0.28) * (0.84 + pulse * 0.16), 0.04, 0.40);
-        const fillColor = w.color?.fill || [255, 255, 255];
-        const strokeColor = w.color?.stroke || [255, 255, 255];
-        const glowColor = w.color?.glow || [255, 255, 255];
-        ctx.save();
-        ctx.translate(w.x, w.y);
-        ctx.rotate(Math.sin(t * 0.22 + w.phase) * (0.012 + w.depth * 0.02) + w.twist);
-        ctx.scale(scale, scale);
-        const weight = Math.round(420 + far * 360 + pulse * 40);
-        ctx.font = `${weight} ${Math.round(w.base)}px Inter, sans-serif`;
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'left';
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.lineWidth = hovered ? 1.05 : 0.62 + far * 0.98 + pulse * 0.06;
-        const strokeBase = light
-          ? [strokeColor[0] * 0.68, strokeColor[1] * 0.68, strokeColor[2] * 0.68]
-          : strokeColor;
-        ctx.strokeStyle = hovered
-          ? `rgba(${strokeColor.join(',')},${Math.min(0.82, strokeAlpha + 0.18)})`
-          : `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
-        const blur = far > 0.72
-          ? clamp(w.blur * 0.75 + far * 1.1 + Math.max(0, 0.7 - pulse) * 0.18, 0, 2.2)
-          : far > 0.38
-            ? clamp(w.blur * 0.22 + Math.max(0, 0.7 - pulse) * 0.08, 0, 0.72)
-            : 0;
-        ctx.filter = hovered ? 'none' : blur > 0.16 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        if (far > 0.18 || pulse > 0.72) {
-          ctx.strokeText(w.text, 0, 0);
-        }
-        ctx.shadowBlur = hovered ? 20 : far > 0.8 ? 14 : far > 0.55 ? 8 : far > 0.3 ? 4 : 0;
-        ctx.shadowColor = hovered ? `rgba(${glowColor.join(',')},0.32)` : `rgba(${glowColor.join(',')},${light ? 0.10 : 0.20})`;
-        const fillBase = light
-          ? [fillColor[0] * 0.74, fillColor[1] * 0.74, fillColor[2] * 0.74]
-          : fillColor;
-        ctx.fillStyle = hovered
-          ? `rgba(${fillColor.join(',')},${Math.min(0.96, fillAlpha + 0.18)})`
-          : `rgba(${fillBase.map(v => Math.round(v)).join(',')},${fillAlpha})`;
-
-        if (hovered) {
-          const textWidth = ctx.measureText(w.text).width;
-          ctx.save();
-          ctx.fillStyle = light ? 'rgba(255,255,255,0.12)' : `rgba(${fillColor.join(',')},0.16)`;
-          roundRect(ctx, -10, -Math.round(w.base * 0.72), textWidth + 20, Math.round(w.base * 1.42), 999);
-          ctx.fill();
-          ctx.strokeStyle = `rgba(${strokeColor.join(',')},0.34)`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        ctx.fillText(w.text, 0, 0);
-        if (far > 0.82) {
-          ctx.filter = 'none';
-          ctx.shadowBlur = 0;
-          ctx.globalAlpha = 1;
-          ctx.lineWidth = 0.7;
-          ctx.strokeStyle = `rgba(${strokeColor.join(',')},${Math.min(0.16, strokeAlpha * 0.7)})`;
-          ctx.strokeText(w.text, 0, 0);
-        }
-        ctx.filter = 'none';
-        ctx.shadowBlur = 0;
-        ctx.restore();
-      });
+    ctx.strokeStyle = `rgba(${r},${g},${b},${0.05 + pulse * 0.015})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 14]);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.335, h * 0.1);
+    ctx.lineTo(w * 0.335, h * 0.9);
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
 
-    // Soft depth veil to keep the cloud legible.
-    const veil = ctx.createLinearGradient(0, 0, 0, this.h);
-    veil.addColorStop(0, 'rgba(0,0,0,0.18)');
-    veil.addColorStop(0.4, 'rgba(0,0,0,0)');
-    veil.addColorStop(0.8, 'rgba(0,0,0,0.10)');
-    veil.addColorStop(1, 'rgba(0,0,0,0.24)');
-    ctx.fillStyle = veil;
-    ctx.fillRect(0, 0, this.w, this.h);
+    // Drifting particles (screen blend)
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    this.particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y < -8) { p.y = h + 8; p.x = rand(0, w); }
+      if (p.x < -8) p.x = w + 8;
+      if (p.x > w + 8) p.x = -8;
+      const pa = p.alpha * (0.5 + 0.5 * Math.sin(t * 0.9 + p.phase));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${pa})`;
+      ctx.fill();
+    });
+    ctx.restore();
+
+    // Edge vignette
+    const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.28, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.52)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, w, h);
   }
 }
+
+
+// =============================================
+// CONTROLLER: USE CASES — Drum + Field
+// Manages category selector and case chips.
+// =============================================
+
+let ucController = null;
+
+class UseCasesController {
+  constructor(slideEl) {
+    this.el = slideEl;
+    this.activeIndex = 0;
+    this.staggerTimers = [];
+    this.families = [
+      {
+        key: 'operations',
+        title: 'Operations',
+        desc: 'Run business, logistics, and support flows.',
+        accent: [124, 160, 255],
+        cases: ['CRM', 'Logistics', 'Finance', 'Retail', 'Marketplace', 'Support', 'Planning', 'Scheduling', 'Workflow', 'Operations', 'Infrastructure'],
+      },
+      {
+        key: 'platform',
+        title: 'Platform',
+        desc: 'Compose systems, data, and automation.',
+        accent: [93, 229, 214],
+        cases: ['Web', 'Systems', 'Data', 'Automation', 'Analytics', 'Protocol', 'Telemetry', 'Sensors', 'Agents', 'Domotics', 'Robotics', 'Computation', 'Energy', 'Navigation'],
+      },
+      {
+        key: 'research',
+        title: 'Research',
+        desc: 'Simulate, measure, and model knowledge.',
+        accent: [180, 146, 255],
+        cases: ['Simulation', 'Physics', 'Biology', 'Genome', 'Research', 'Education', 'Knowledge', 'Archive', 'Signals'],
+      },
+      {
+        key: 'experience',
+        title: 'Experience',
+        desc: 'Publish, design, and communicate.',
+        accent: [255, 194, 102],
+        cases: ['Media', 'Music', 'Culture', 'Design', 'Experience', 'Publishing', 'Audience', 'Content', 'Collaboration', 'Strategy', 'Interfaces'],
+      },
+    ];
+    this.drumItems = [];
+    this.fieldInner = null;
+    this._init();
+  }
+
+  _init() {
+    this.drumItems = [...(this.el.querySelectorAll('.uc-drum__item') || [])];
+    this.fieldInner = this.el.querySelector('#uc-field-inner');
+    if (!this.drumItems.length || !this.fieldInner) return;
+
+    // Set initial CSS accent
+    this.el.style.setProperty('--uc-active', this.families[0].accent.join(','));
+
+    // Drum item clicks
+    this.drumItems.forEach((item, i) => {
+      item.addEventListener('click', () => this.setActive(i));
+      item.addEventListener('mouseenter', () => {
+        if (i !== this.activeIndex) item.classList.add('is-hover');
+      });
+      item.addEventListener('mouseleave', () => item.classList.remove('is-hover'));
+    });
+
+    // Wheel on drum: cycle families
+    const drum = this.el.querySelector('#uc-drum');
+    if (drum) {
+      let wAcc = 0, wTimer = null;
+      drum.addEventListener('wheel', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        wAcc += e.deltaY;
+        clearTimeout(wTimer);
+        wTimer = setTimeout(() => {
+          if (Math.abs(wAcc) > 10) {
+            const next = (this.activeIndex + (wAcc > 0 ? 1 : -1) + this.families.length) % this.families.length;
+            this.setActive(next);
+          }
+          wAcc = 0;
+        }, 38);
+      }, { passive: false });
+    }
+
+    // Populate initial field without animation
+    this._renderField(0, false);
+  }
+
+  setActive(index) {
+    if (index === this.activeIndex && this.fieldInner && this.fieldInner.querySelector('.uc-case')) return;
+    const prev = this.activeIndex;
+    this.activeIndex = index;
+
+    // Update drum state
+    this.drumItems.forEach((item, i) => {
+      const on = i === index;
+      item.classList.toggle('is-active', on);
+      item.classList.remove('is-hover');
+      item.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+
+    // Update CSS accent var
+    const family = this.families[index];
+    this.el.style.setProperty('--uc-active', family.accent.join(','));
+
+    // Notify canvas scene to shift color
+    if (scenes.usecases && scenes.usecases.setAccent) {
+      scenes.usecases.setAccent(family.accent);
+    }
+
+    this._renderField(index, prev !== index);
+  }
+
+  _renderField(index, animate) {
+    if (!this.fieldInner) return;
+    this.staggerTimers.forEach(clearTimeout);
+    this.staggerTimers = [];
+
+    if (animate) {
+      this.fieldInner.classList.add('is-exiting');
+      const t1 = setTimeout(() => {
+        this._buildField(index);
+        this.fieldInner.classList.remove('is-exiting');
+        this.fieldInner.classList.add('is-entering');
+        const t2 = setTimeout(() => this.fieldInner.classList.remove('is-entering'), 440);
+        this.staggerTimers.push(t2);
+      }, 185);
+      this.staggerTimers.push(t1);
+    } else {
+      this._buildField(index);
+    }
+  }
+
+  _buildField(index) {
+    const fam = this.families[index];
+    const [r, g, b] = fam.accent;
+
+    let html = `
+      <div class="uc-field__header">
+        <p class="uc-field__eyebrow" style="color:rgba(${r},${g},${b},0.82)">${fam.title}</p>
+        <p class="uc-field__desc">${fam.desc}</p>
+      </div>
+      <div class="uc-field__grid">
+    `;
+
+    fam.cases.forEach((word, i) => {
+      const tier = i < 3 ? 'primary' : i < 7 ? 'secondary' : 'tertiary';
+      html += `<span class="uc-case uc-case--${tier}" data-word="${word}" data-family-title="${fam.title}" data-family-key="${fam.key}" style="--uc-a:${r},${g},${b};--uc-delay:${i * 24}ms">${word}</span>`;
+    });
+
+    html += `</div>`;
+    this.fieldInner.innerHTML = html;
+
+  }
+
+  _detail(word, key) {
+    const map = {
+      operations: `Use SPACE to map ${word} as graph nodes — tracking status, ownership, and exceptions in a single source of truth.`,
+      platform:   `Use SPACE to model ${word} as composable primitives so integrations stay consistent across the graph.`,
+      research:   `Use SPACE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
+      experience: `Use SPACE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
+    };
+    return map[key] || `Use SPACE to model ${word} as nodes, edges, and surfaces in a single system.`;
+  }
+
+  destroy() {
+    this.staggerTimers.forEach(clearTimeout);
+    this.staggerTimers = [];
+  }
+}
+
 
 
 // =============================================
@@ -7541,6 +7506,10 @@ function initScenes() {
     if (!el) return;
     scenes[key] = opts ? new Cls(el, opts) : new Cls(el);
   });
+
+  // Use cases drum controller (HTML-driven)
+  const ucSlide = document.querySelector('[data-slide="usecases"]');
+  if (ucSlide) ucController = new UseCasesController(ucSlide);
 }
 
 function startScene(key) { if (scenes[key]) scenes[key].start(); }
