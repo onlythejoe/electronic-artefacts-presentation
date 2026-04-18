@@ -4321,13 +4321,18 @@ class UseCasesScene {
       { fill: [110, 214, 255], stroke: [214, 244, 255], glow: [110, 214, 255] },
       { fill: [255, 166, 122], stroke: [255, 228, 211], glow: [255, 166, 122] },
     ];
+    this.hoveredWordIndex = -1;
     this._resize();
     this._init();
   }
 
   _resize() {
-    this.w = this.canvas.width = this.canvas.offsetWidth;
-    this.h = this.canvas.height = this.canvas.offsetHeight;
+    this.dpr = window.devicePixelRatio || 1;
+    this.w = this.canvas.offsetWidth || 1;
+    this.h = this.canvas.offsetHeight || 1;
+    this.canvas.width = Math.max(1, Math.floor(this.w * this.dpr));
+    this.canvas.height = Math.max(1, Math.floor(this.h * this.dpr));
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
 
   _init() {
@@ -4392,6 +4397,110 @@ class UseCasesScene {
     return this.useCasePalette[paletteIndex];
   }
 
+  _getUseCaseFamilyLabel(family) {
+    return {
+      enterprise: 'Enterprise',
+      ops: 'Operations',
+      systems: 'Systems',
+      science: 'Science',
+      bio: 'Knowledge',
+      culture: 'Culture',
+      platform: 'Platform',
+      general: 'General',
+    }[family] || 'General';
+  }
+
+  _getUseCaseHoverCopy(word) {
+    const family = this._resolveUseCaseFamily(word);
+    const template = {
+      enterprise: 'Use SPACE to turn {word} into nodes, links, and action surfaces with one shared source of truth.',
+      ops: 'Use SPACE to route {word} through one graph so status, exceptions, and ownership stay traceable.',
+      systems: 'Use SPACE to model {word} as composable primitives with clear boundaries and shared semantics.',
+      science: 'Use SPACE to connect {word} data to the same graph so experiments, telemetry, and outcomes stay linked.',
+      bio: 'Use SPACE to structure {word} knowledge as a graph so relationships stay consistent across views.',
+      culture: 'Use SPACE to publish {word} as a living surface instead of an isolated artifact.',
+      platform: 'Use SPACE to make {word} reusable as modules, automations, and shared structure.',
+      general: 'Use SPACE to keep {word} in the graph: nodes for entities, edges for relations, and surfaces for presentation.',
+    }[family] || 'Use SPACE to model {word} as nodes, links, and surfaces in a single system.';
+
+    return {
+      detail: template.replace('{word}', word),
+      meta: this._getUseCaseFamilyLabel(family),
+    };
+  }
+
+  _updateHoverState() {
+    if (!this.isFinePointer) {
+      if (this.hoveredWordIndex !== -1) {
+        this.hoveredWordIndex = -1;
+        syncHoverHud(null);
+      }
+      return;
+    }
+
+    const rect = this.canvas.getBoundingClientRect();
+    const mx = mouseX - rect.left;
+    const my = mouseY - rect.top;
+    if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) {
+      if (this.hoveredWordIndex !== -1) {
+        this.hoveredWordIndex = -1;
+        syncHoverHud(null);
+      }
+      return;
+    }
+    let hoveredIndex = -1;
+    let hoveredWord = null;
+
+    this.words.forEach((w, i) => {
+      if (hoveredIndex !== -1) return;
+      const pulse = 0.6 + 0.4 * Math.sin(this.t * 1.2 + w.phase);
+      const far = clamp(1 - w.depth, 0, 1);
+      const familyBoost = w.family === 'science' || w.family === 'systems' ? 0.05 : 0;
+      const scale = 0.88 + far * 0.52 + pulse * 0.06 + familyBoost;
+      const weight = Math.round(420 + far * 360 + pulse * 40);
+      this.ctx.save();
+      this.ctx.font = `${weight} ${Math.round(w.base)}px Inter, sans-serif`;
+      const metrics = this.ctx.measureText(w.text);
+      const width = metrics.width * scale;
+      const ascent = metrics.actualBoundingBoxAscent || Math.round(w.base * 0.78);
+      const descent = metrics.actualBoundingBoxDescent || Math.round(w.base * 0.24);
+      this.ctx.restore();
+
+      const padX = 14;
+      const padY = 8;
+      const left = w.x - padX;
+      const top = w.y - ascent * scale - padY;
+      const right = w.x + width + padX;
+      const bottom = w.y + descent * scale + padY;
+      const centerX = w.x + width * 0.5;
+      const centerY = w.y + (descent - ascent) * 0.15;
+      const nearBox = mx >= left && mx <= right && my >= top && my <= bottom;
+      const nearCenter = Math.hypot(mx - centerX, my - centerY) <= Math.max(width * 0.34, w.base * scale * 1.5);
+      if (nearBox || nearCenter) {
+        hoveredIndex = i;
+        hoveredWord = w;
+      }
+    });
+
+    if (hoveredIndex === this.hoveredWordIndex) return;
+    this.hoveredWordIndex = hoveredIndex;
+
+    if (!hoveredWord) {
+      syncHoverHud(null);
+      return;
+    }
+
+    const copy = this._getUseCaseHoverCopy(hoveredWord.text);
+    syncHoverHud({
+      key: `usecase:${hoveredWord.text}`,
+      kind: 'usecase',
+      kicker: 'Use case',
+      title: hoveredWord.text,
+      detail: copy.detail,
+      meta: copy.meta,
+    });
+  }
+
   start() {
     if (this.running) return;
     this.running = true;
@@ -4446,6 +4555,7 @@ class UseCasesScene {
   _draw() {
     const { ctx, words, t } = this;
     const light = isLightTheme();
+    this._updateHoverState();
     ctx.clearRect(0, 0, this.w, this.h);
 
     const bg = ctx.createRadialGradient(this.w * 0.48, this.h * 0.42, 30, this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.8);
@@ -4463,6 +4573,7 @@ class UseCasesScene {
         const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + w.phase);
         const far = clamp(1 - w.depth, 0, 1);
         const familyBoost = w.family === 'science' || w.family === 'systems' ? 0.05 : 0;
+        const hovered = this.hoveredWordIndex === i;
         const scale = 0.88 + far * 0.52 + pulse * 0.06 + familyBoost;
         const fillAlpha = clamp((0.24 + w.depth * 0.56) * (0.84 + pulse * 0.16), 0.12, 0.98);
         const strokeAlpha = clamp((0.14 + far * 0.38) * (0.78 + pulse * 0.22), 0.06, 0.68);
@@ -4480,26 +4591,43 @@ class UseCasesScene {
         ctx.textAlign = 'left';
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-        ctx.lineWidth = 0.62 + far * 0.98 + pulse * 0.06;
+        ctx.lineWidth = hovered ? 1.05 : 0.62 + far * 0.98 + pulse * 0.06;
         const strokeBase = light
           ? [strokeColor[0] * 0.68, strokeColor[1] * 0.68, strokeColor[2] * 0.68]
           : strokeColor;
-        ctx.strokeStyle = `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
+        ctx.strokeStyle = hovered
+          ? `rgba(${strokeColor.join(',')},${Math.min(0.82, strokeAlpha + 0.18)})`
+          : `rgba(${strokeBase.map(v => Math.round(v)).join(',')},${strokeAlpha})`;
         const blur = far > 0.72
           ? clamp(w.blur * 0.75 + far * 1.1 + Math.max(0, 0.7 - pulse) * 0.18, 0, 2.2)
           : far > 0.38
             ? clamp(w.blur * 0.22 + Math.max(0, 0.7 - pulse) * 0.08, 0, 0.72)
             : 0;
-        ctx.filter = blur > 0.16 ? `blur(${blur.toFixed(2)}px)` : 'none';
+        ctx.filter = hovered ? 'none' : blur > 0.16 ? `blur(${blur.toFixed(2)}px)` : 'none';
         if (far > 0.18 || pulse > 0.72) {
           ctx.strokeText(w.text, 0, 0);
         }
-        ctx.shadowBlur = far > 0.8 ? 14 : far > 0.55 ? 8 : far > 0.3 ? 4 : 0;
-        ctx.shadowColor = `rgba(${glowColor.join(',')},${light ? 0.10 : 0.20})`;
+        ctx.shadowBlur = hovered ? 20 : far > 0.8 ? 14 : far > 0.55 ? 8 : far > 0.3 ? 4 : 0;
+        ctx.shadowColor = hovered ? `rgba(${glowColor.join(',')},0.32)` : `rgba(${glowColor.join(',')},${light ? 0.10 : 0.20})`;
         const fillBase = light
           ? [fillColor[0] * 0.74, fillColor[1] * 0.74, fillColor[2] * 0.74]
           : fillColor;
-        ctx.fillStyle = `rgba(${fillBase.map(v => Math.round(v)).join(',')},${fillAlpha})`;
+        ctx.fillStyle = hovered
+          ? `rgba(${fillColor.join(',')},${Math.min(0.96, fillAlpha + 0.18)})`
+          : `rgba(${fillBase.map(v => Math.round(v)).join(',')},${fillAlpha})`;
+
+        if (hovered) {
+          const textWidth = ctx.measureText(w.text).width;
+          ctx.save();
+          ctx.fillStyle = light ? 'rgba(255,255,255,0.12)' : `rgba(${fillColor.join(',')},0.16)`;
+          roundRect(ctx, -10, -Math.round(w.base * 0.72), textWidth + 20, Math.round(w.base * 1.42), 999);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(${strokeColor.join(',')},0.34)`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.restore();
+        }
+
         ctx.fillText(w.text, 0, 0);
         if (far > 0.82) {
           ctx.filter = 'none';
