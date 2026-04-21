@@ -1732,6 +1732,189 @@ class PulseScene {
 
 
 // =============================================
+// SCENE: INQUIRY
+// A question bridge between autonomy and SPACE.
+// =============================================
+
+class InquiryScene {
+  constructor(canvas, opts = {}) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.opts = {
+      speed: opts.speed || 0.16,
+      edgeAlpha: opts.edgeAlpha || 0.18,
+    };
+    this.running = false;
+    this.raf = null;
+    this.t = 0;
+    this.nodes = [];
+    this._resize();
+    this._init();
+  }
+
+  _resize() {
+    this.dpr = window.devicePixelRatio || 1;
+    this.w = this.canvas.offsetWidth || 1;
+    this.h = this.canvas.offsetHeight || 1;
+    this.canvas.width = Math.max(1, Math.floor(this.w * this.dpr));
+    this.canvas.height = Math.max(1, Math.floor(this.h * this.dpr));
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.cx = this.w * 0.67;
+    this.cy = this.h * 0.48;
+    this.orbit = Math.min(this.w, this.h) * 0.22;
+    this.outer = Math.min(this.w, this.h) * 0.34;
+  }
+
+  _init() {
+    this.nodes = [
+      { kind: 'core', angle: 0, radius: 0, size: 7.2, spin: 0, wobble: 0, alpha: 1 },
+      { kind: 'primary', angle: -2.55, radius: this.orbit * 0.84, size: 3.3, spin: 0.15, wobble: 4.5, alpha: 0.9 },
+      { kind: 'primary', angle: -1.2, radius: this.orbit * 0.94, size: 3.0, spin: -0.11, wobble: 5.5, alpha: 0.84 },
+      { kind: 'primary', angle: 0.22, radius: this.orbit * 0.86, size: 3.1, spin: 0.1, wobble: 4.2, alpha: 0.86 },
+      { kind: 'primary', angle: 1.27, radius: this.orbit * 1.02, size: 3.05, spin: -0.13, wobble: 5.0, alpha: 0.82 },
+      { kind: 'primary', angle: 2.48, radius: this.orbit * 0.92, size: 3.2, spin: 0.12, wobble: 4.8, alpha: 0.88 },
+      { kind: 'secondary', angle: 3.05, radius: this.outer * 0.62, size: 2.5, spin: -0.08, wobble: 6.0, alpha: 0.52 },
+    ];
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this._loop();
+  }
+
+  stop() {
+    this.running = false;
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  resize() {
+    this._resize();
+    this._init();
+  }
+
+  _loop() {
+    if (!this.running) return;
+    this.t += 0.008;
+    this._draw();
+    this.raf = requestAnimationFrame(() => this._loop());
+  }
+
+  _nodePosition(node) {
+    const wobble = node.kind === 'core' ? 0 : Math.sin(this.t * (1.1 + node.spin * 0.2) + node.angle * 1.7) * node.wobble;
+    const radius = node.radius + wobble;
+    const angle = node.angle + this.t * node.spin;
+    return {
+      x: this.cx + Math.cos(angle) * radius,
+      y: this.cy + Math.sin(angle) * radius * 0.8,
+      pulse: 0.6 + 0.4 * Math.sin(this.t * 1.5 + node.angle * 2.0),
+    };
+  }
+
+  _draw() {
+    const { ctx, w, h } = this;
+    const light = isLightTheme();
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalCompositeOperation = light ? 'multiply' : 'screen';
+
+    const bg = ctx.createRadialGradient(this.cx, this.cy, 0, this.cx, this.cy, this.outer * 1.25);
+    if (light) {
+      bg.addColorStop(0, 'rgba(0,0,0,0.06)');
+      bg.addColorStop(0.55, 'rgba(0,0,0,0.03)');
+      bg.addColorStop(1, 'rgba(0,0,0,0)');
+    } else {
+      bg.addColorStop(0, 'rgba(255,255,255,0.07)');
+      bg.addColorStop(0.55, 'rgba(255,255,255,0.03)');
+      bg.addColorStop(1, 'rgba(255,255,255,0)');
+    }
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    const nodes = this.nodes.map(node => ({ ...node, ...this._nodePosition(node) }));
+    const core = nodes[0];
+    const satellites = nodes.slice(1);
+
+    ctx.strokeStyle = light ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(this.cx, this.cy, this.orbit * 0.95, 0, Math.PI * 2);
+    ctx.stroke();
+
+    satellites.forEach((node, index) => {
+      const strength = this.opts.edgeAlpha * node.alpha;
+      const alpha = clamp(strength * (0.72 + node.pulse * 0.28), 0.03, 0.24);
+      const grad = ctx.createLinearGradient(core.x, core.y, node.x, node.y);
+      grad.addColorStop(0, light ? `rgba(0,0,0,${alpha * 0.65})` : `rgba(255,255,255,${alpha * 0.8})`);
+      grad.addColorStop(1, light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(core.x, core.y);
+      ctx.lineTo(node.x, node.y);
+      ctx.stroke();
+
+      const next = satellites[(index + 1) % satellites.length];
+      const chainAlpha = alpha * 0.42;
+      ctx.strokeStyle = light ? `rgba(0,0,0,${chainAlpha})` : `rgba(255,255,255,${chainAlpha})`;
+      ctx.beginPath();
+      ctx.moveTo(node.x, node.y);
+      ctx.lineTo(next.x, next.y);
+      ctx.stroke();
+    });
+
+    const glow = ctx.createRadialGradient(core.x, core.y, 0, core.x, core.y, this.orbit * 0.95);
+    glow.addColorStop(0, light ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.2)');
+    glow.addColorStop(0.4, light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)');
+    glow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(core.x, core.y, this.orbit * 0.95, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = light ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(core.x, core.y, 14 + core.pulse * 4, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(core.x, core.y, 5.5 + core.pulse * 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = light ? 'rgba(0,0,0,0.82)' : 'rgba(255,255,255,0.86)';
+    ctx.fill();
+
+    nodes.forEach(node => {
+      const radius = node.kind === 'core'
+        ? 5.5 + core.pulse * 1.2
+        : node.size + node.pulse * (node.kind === 'primary' ? 0.9 : 0.55);
+      const alpha = node.kind === 'core'
+        ? 0.92
+        : node.alpha * (0.72 + node.pulse * 0.2);
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = node.kind === 'core'
+        ? (light ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.92)')
+        : (light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`);
+      ctx.fill();
+
+      if (node.kind !== 'core') {
+        ctx.strokeStyle = light ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
+
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+
+// =============================================
 // SCENE: ASSEMBLE
 // Scattered nodes snap into a grid structure, then dissolve.
 // Used for: Build, Combination
@@ -7425,6 +7608,9 @@ const SCENE_MAP = {
   // Focused autonomy — single slow ring, very minimal
   autonomy:    [PulseScene,       { maxR: 220, interval: 3400, maxAlpha: 0.09, speed: 0.45 }],
 
+  // Inquiry — question bridge into SPACE
+  bridge:      [InquiryScene,     { speed: 0.16, edgeAlpha: 0.18 }],
+
   // SPACE — standard graph, baseline visual language
   space:       [GraphScene,       { nodeCount: 22, speed: 0.45, thresh: 0.28,
                                     edgeAlpha: 0.22, nodeAlpha: [0.32, 0.48] }],
@@ -7483,6 +7669,7 @@ function initScenes() {
     intro:       'canvas-intro',
     rd:          'canvas-rd',
     autonomy:    'canvas-autonomy',
+    bridge:      'canvas-bridge',
     space:       'canvas-space',
     graphos:     'canvas-graphos',
     unification: 'canvas-unification',

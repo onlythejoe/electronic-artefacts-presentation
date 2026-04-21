@@ -534,6 +534,148 @@ body[data-theme="light"]::after {
   cursor: grab;
 }
 
+.slide[data-slide="bridge"] {
+  justify-content: center;
+}
+
+.slide[data-slide="bridge"] .slide-canvas {
+  opacity: 0.9;
+}
+
+.bridge-layout {
+  width: min(100%, 1160px);
+  min-height: calc(100svh - (var(--slide-pad) * 2));
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  align-items: center;
+  gap: clamp(28px, 4vw, 60px);
+}
+
+.bridge-copy {
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.8vh, 18px);
+}
+
+.bridge-kicker {
+  margin-top: 0;
+  font-size: clamp(0.7rem, 0.92vw, 0.82rem);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.34);
+}
+
+.bridge-copy h2 {
+  max-width: 12ch;
+  font-size: clamp(2.75rem, 5.4vw, 5rem);
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+}
+
+.bridge-lead {
+  max-width: 560px;
+  margin-top: 2px;
+  font-size: clamp(1.02rem, 1.45vw, 1.16rem);
+  color: rgba(255,255,255,0.58);
+}
+
+.bridge-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.bridge-questions span {
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.74);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(12px) saturate(118%);
+  -webkit-backdrop-filter: blur(12px) saturate(118%);
+}
+
+.bridge-answer {
+  position: relative;
+  padding: clamp(22px, 2.9vw, 30px);
+  border-radius: clamp(26px, 3.2vw, 36px);
+  border: 1px solid rgba(255,255,255,0.09);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)),
+    rgba(255,255,255,0.025);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.32),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  overflow: hidden;
+}
+
+.bridge-answer::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10% auto auto;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(122, 146, 255, 0.18), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.bridge-answer__kicker {
+  margin-top: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.52);
+}
+
+.bridge-answer__grid {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.bridge-answer__grid article {
+  padding: 13px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+}
+
+.bridge-answer__grid strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.92);
+}
+
+.bridge-answer__grid span {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(0.86rem, 1.05vw, 0.98rem);
+  line-height: 1.55;
+  color: rgba(255,255,255,0.52);
+}
+
+.bridge-answer__footer {
+  margin-top: 16px;
+  max-width: 26ch;
+  font-size: clamp(0.9rem, 1.1vw, 1rem);
+  color: rgba(255,255,255,0.64);
+}
+
 /* ===== SLIDE CONTENT ===== */
 .slide-content {
   position: relative;
@@ -5292,6 +5434,56 @@ body::after {
 
   .slide[data-slide="businessmodel"] .brief-summary {
     margin-top: 4px;
+  }
+
+  .bridge-layout {
+    width: min(100%, 520px);
+    min-height: calc(100svh - (var(--slide-pad) * 2));
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-content: center;
+  }
+
+  .bridge-copy {
+    max-width: 100%;
+    gap: 10px;
+  }
+
+  .bridge-copy h2 {
+    max-width: 11ch;
+    font-size: clamp(1.95rem, 8vw, 3rem);
+  }
+
+  .bridge-lead {
+    max-width: 100%;
+    font-size: clamp(0.96rem, 3.55vw, 1.08rem);
+  }
+
+  .bridge-questions {
+    gap: 8px;
+  }
+
+  .bridge-questions span {
+    padding: 8px 11px;
+    font-size: 0.7rem;
+  }
+
+  .bridge-answer {
+    padding: 18px;
+  }
+
+  .bridge-answer__grid {
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .bridge-answer__grid article {
+    padding: 11px 12px;
+  }
+
+  .bridge-answer__footer {
+    max-width: 100%;
+    margin-top: 12px;
   }
 
   .modules-kicker,
