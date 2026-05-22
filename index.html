@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Electronic Artefacts — SPACE</title>
+  <title>Electronic Artefacts — VASTE</title>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -78,10 +78,10 @@
     <div class="slide-content intro-content">
       <div class="intro-shell">
         <p class="intro-note" role="note">Expérience interactive · desktop recommandé</p>
-        <p class="intro-eyebrow">SPACE briefing</p>
+        <p class="intro-eyebrow">VASTE briefing</p>
         <h2 class="intro-title" data-intro-type>Salut, merci de prendre un moment.</h2>
         <p class="intro-sub">Ceci est une expérience interactive pensée pour desktop.</p>
-        <p class="sub intro-sub intro-sub--secondary">Certaines pages sont entièrement manipulables. Vous parcourez une démo du logiciel SPACE, pas le logiciel lui-même.</p>
+        <p class="sub intro-sub intro-sub--secondary">Certaines pages sont entièrement manipulables. Vous parcourez une démo du système VASTE, pas le système lui-même.</p>
         <p class="intro-nav">
           <span class="intro-nav__icon" aria-hidden="true">⇅</span>
           <span>Pour naviguer, utilisez la molette, les flèches du clavier ou le rail de droite.</span>
@@ -132,7 +132,7 @@
     <canvas class="slide-canvas" id="canvas-bridge"></canvas>
     <div class="bridge-layout slide-content">
       <div class="bridge-copy">
-        <p class="bridge-kicker">Before SPACE</p>
+        <p class="bridge-kicker">Before VASTE</p>
         <h2>What if every answer had a node?</h2>
         <p class="bridge-lead">Who owns it? What is it? Where does it live? Why does it matter? How does it connect? The graph is the simplest way to keep those questions alive.</p>
         <div class="bridge-questions" aria-label="Core questions">
@@ -147,30 +147,38 @@
         <p class="bridge-answer__kicker">The logic layer</p>
         <div class="bridge-answer__grid">
           <article>
-            <strong>Nodes</strong>
+            <strong>Vertex</strong>
             <span>Entities stay named and traceable.</span>
           </article>
           <article>
-            <strong>Edges</strong>
+            <strong>Tie</strong>
             <span>Relations stay explicit and reusable.</span>
           </article>
           <article>
-            <strong>Context</strong>
+            <strong>Surface</strong>
+            <span>Public projection stays visible and usable.</span>
+          </article>
+          <article>
+            <strong>Environnement</strong>
             <span>Meaning stays local, consistent, and alive.</span>
           </article>
+          <article>
+            <strong>Actions</strong>
+            <span>Changes stay routed into the graph.</span>
+          </article>
         </div>
-        <p class="bridge-answer__footer">SPACE turns those questions into a graph that can be built, read, and extended.</p>
+        <p class="bridge-answer__footer">VASTE turns those questions into a graph that can be built, read, and extended.</p>
       </div>
     </div>
   </section>
 
-  <!-- 06 — SPACE: animated graph -->
-  <section class="slide center has-canvas" data-slide="space">
-    <canvas class="slide-canvas" id="canvas-space"></canvas>
+  <!-- 06 — VASTE: animated graph -->
+  <section class="slide center has-canvas" data-slide="vaste">
+    <canvas class="slide-canvas" id="canvas-vaste"></canvas>
     <div class="slide-content">
-      <h2>SPACE</h2>
-      <p class="tagline">A space for everything.</p>
-      <p class="sub">Inspired by reality. Designed to run it.</p>
+      <h2>VASTE</h2>
+      <p class="tagline">A universal, composable capacity system.</p>
+      <p class="sub">A core that can assemble almost any software domain from the same primitives.</p>
     </div>
   </section>
 
@@ -179,59 +187,59 @@
     <canvas class="slide-canvas" id="canvas-graphos"></canvas>
     <aside class="graphos-note" aria-label="About this demonstration">
       <span class="graphos-note__kicker">Interactive demo</span>
-      <strong>Node & Edge logic</strong>
-      <p>Create nodes, nest them, connect relations, and shape context. This is a demo of the logic, not the operating system itself.</p>
+      <strong>Vertex & Tie logic</strong>
+      <p>Create vertices, nest them, connect ties, and shape environment. This is a demo of the logic, not the operating system itself.</p>
     </aside>
-    <div class="graphos-window" aria-label="Context window">
-      <button class="graphos-window__header" type="button" aria-label="Move context window">
-        <span class="graphos-window__eyebrow">GraphOS</span>
-        <span class="graphos-window__status"><span class="graphos-window__dot" aria-hidden="true"></span>live node demo</span>
+    <div class="graphos-window" aria-label="Core primitives window">
+      <button class="graphos-window__header" type="button" aria-label="Move primitive window">
+        <span class="graphos-window__eyebrow">VASTE</span>
+        <span class="graphos-window__status"><span class="graphos-window__dot" aria-hidden="true"></span>live primitive demo</span>
       </button>
       <div class="graphos-window__meta">
-        <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-nodes" type="button">Nodes</button>
-        <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-links" type="button">Links</button>
+        <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-nodes" type="button">Vertices</button>
+        <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-links" type="button">Ties</button>
         <label class="graphos-window__chip graphos-window__chip--select" for="graphos-type-filter">
           <span>Type</span>
           <select id="graphos-type-filter" aria-label="Filter node type"></select>
         </label>
-        <button class="graphos-window__chip graphos-window__chip--action graphos-window__chip--mobile-action" id="graphos-open-menu" type="button" aria-label="Open GraphOS actions menu">Actions</button>
+        <button class="graphos-window__chip graphos-window__chip--action graphos-window__chip--mobile-action" id="graphos-open-menu" type="button" aria-label="Open VASTE actions menu">Actions</button>
         <span class="graphos-window__chip graphos-window__chip--info" id="graphos-selection-info">0 selected</span>
       </div>
       <div class="graphos-window__body">
-        <div class="graphos-window__feed" role="list" aria-label="Context primitives">
-          <button class="graphos-row" type="button" data-layer="node" role="listitem" aria-label="Focus nodes" aria-pressed="false">
-            <strong>Node</strong>
+        <div class="graphos-window__feed" role="list" aria-label="Core primitives">
+          <button class="graphos-row" type="button" data-layer="node" role="listitem" aria-label="Focus vertices" aria-pressed="false">
+            <strong>Vertex</strong>
             <span>identity / owner / state</span>
             <small>canonical primitive</small>
           </button>
-          <button class="graphos-row" type="button" data-layer="edge" role="listitem" aria-label="Focus edges" aria-pressed="false">
-            <strong>Edge</strong>
+          <button class="graphos-row" type="button" data-layer="edge" role="listitem" aria-label="Focus ties" aria-pressed="false">
+            <strong>Tie</strong>
             <span>relation / flow / contract</span>
             <small>connective path</small>
-          </button>
-          <button class="graphos-row" type="button" data-layer="group" role="listitem" aria-label="Focus groups" aria-pressed="false">
-            <strong>Group</strong>
-            <span>cluster / scope / structure</span>
-            <small>bounded topology</small>
           </button>
           <button class="graphos-row" type="button" data-layer="surface" role="listitem" aria-label="Focus surface" aria-pressed="false">
             <strong>Surface</strong>
             <span>public view / projection / display</span>
             <small>visible layer</small>
           </button>
-          <button class="graphos-row" type="button" data-layer="context" role="listitem" aria-label="Focus context" aria-pressed="false">
-            <strong>Context</strong>
+          <button class="graphos-row" type="button" data-layer="context" role="listitem" aria-label="Focus environment" aria-pressed="false">
+            <strong>Environnement</strong>
             <span>signals / memory / semantics</span>
             <small>semantic registry</small>
           </button>
+          <button class="graphos-row" type="button" data-layer="intents" role="listitem" aria-label="Focus actions" aria-pressed="false">
+            <strong>Actions</strong>
+            <span>triggers / routing / effects</span>
+            <small>routed change</small>
+          </button>
         </div>
-        <p class="graphos-window__hint">Tap rows to focus. On touch, tap empty space to create a node and tap a node to open its context.</p>
+        <p class="graphos-window__hint">Tap rows to focus. On touch, tap empty space to create a vertex and tap a vertex to open its Environnement.</p>
       </div>
     </div>
     <div class="slide-content">
-      <h2>Graph OS</h2>
-      <p>Interactive live demo of the node system. Tap rows to focus, drag nodes in place, and explore how context and surfaces shape the graph.</p>
-      <p class="sub">Desktop: right-click to edit. Mobile: use Actions for color, type, and delete. This is a demonstration of the logic, not the OS itself.</p>
+      <h2>VASTE Core</h2>
+      <p>Interactive live demo of the primitive system. Tap rows to focus, drag vertices in place, and explore how environment and surfaces shape the graph.</p>
+      <p class="sub">Desktop: right-click to edit. Mobile: use Actions for color, type, and delete. This is a demonstration of the logic, not the system itself.</p>
     </div>
     <div class="graphos-context-menu" id="graphos-context-menu" hidden></div>
     <div class="graphos-color-picker" id="graphos-color-picker" hidden>
@@ -254,20 +262,20 @@
     <div class="slide-content infra-layout">
       <div class="infra-intro">
         <p class="tagline">Infrastructure</p>
-        <h2>Surface projects. Context defines semantics.</h2>
-        <p class="infra-lead">The system is organized as a canonical core graph. Surface turns the system into a public projection, context stores the registry, intents route actions, and modules enrich the middle layer.</p>
-        <p class="infra-path" aria-label="Reading order: Surface, Context, Intents, Modules, Core">
+        <h2>Surface projects. Environnement defines semantics.</h2>
+        <p class="infra-lead">The system is organized as a canonical core graph. Surface turns the system into a public projection, Environnement stores the registry, Actions route changes, and extensions enrich the middle layer.</p>
+        <p class="infra-path" aria-label="Reading order: Surface, Environnement, Actions, Extensions, Core">
           <span class="infra-step" data-layer="surface" role="button" tabindex="0">Surface</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="context" role="button" tabindex="0">Context</span>
+          <span class="infra-step" data-layer="context" role="button" tabindex="0">Environnement</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="intents" role="button" tabindex="0">Intents</span>
+          <span class="infra-step" data-layer="intents" role="button" tabindex="0">Actions</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
-          <span class="infra-step" data-layer="modules" role="button" tabindex="0">Modules</span>
+          <span class="infra-step" data-layer="modules" role="button" tabindex="0">Extensions</span>
           <span class="infra-step__arrow" aria-hidden="true">→</span>
           <span class="infra-step" data-layer="core" role="button" tabindex="0">Core</span>
         </p>
-        <p class="sub">Core is the first canonical node. Inside it, only nodes and edges define topology.</p>
+        <p class="sub">Core is the first canonical vertex. Inside it, only vertices and ties define topology.</p>
       </div>
 
       <div class="infra-stack" aria-label="Infrastructure layers">
@@ -277,23 +285,23 @@
           <small>Pages, UI, visible output.</small>
         </div>
         <div class="infra-card" data-layer="context" role="button" tabindex="0">
-          <span>Context</span>
+          <span>Environnement</span>
           <strong>Global registry</strong>
           <small>Semantics, policy, state.</small>
         </div>
         <div class="infra-card" data-layer="intents" role="button" tabindex="0">
-          <span>Intents</span>
+          <span>Actions</span>
           <strong>Action corridor</strong>
-          <small>User & System actions routed into the graph.</small>
+          <small>User & system changes routed into the graph.</small>
         </div>
         <div class="infra-card" data-layer="modules" role="button" tabindex="0">
-          <span>Modules</span>
+          <span>Extensions</span>
           <strong>Middle layer enrichment</strong>
           <small>Capabilities attached to canonical nodes.</small>
         </div>
         <div class="infra-card" data-layer="core" role="button" tabindex="0">
           <span>Core</span>
-          <strong>Nodes and edges only</strong>
+          <strong>Vertices and ties only</strong>
           <small>Topology remains canonical.</small>
         </div>
       </div>
@@ -302,33 +310,35 @@
     </div>
   </section>
 
-  <!-- 09 — Modules: store / catalog -->
+  <!-- 09 — Extensions: store / catalog -->
   <section class="slide has-canvas modules-slide" data-slide="modules">
     <canvas class="slide-canvas" id="canvas-modules"></canvas>
     <div class="modules-orbits" aria-hidden="true">
-      <div class="module-pill" data-module="identity">Identity</div>
-      <div class="module-pill" data-module="workspace">Workspace</div>
+      <div class="module-pill" data-module="actor">Actor</div>
       <div class="module-pill" data-module="assets">Assets</div>
-      <div class="module-pill" data-module="programs">Programs</div>
-      <div class="module-pill" data-module="domotics">Domotics</div>
-      <div class="module-pill" data-module="logistics">Logistics</div>
-      <div class="module-pill" data-module="flux">Flux</div>
+      <div class="module-pill" data-module="flow">Flow</div>
+      <div class="module-pill" data-module="intelligence">Intelligence</div>
+      <div class="module-pill" data-module="knowledge">Knowledge</div>
+      <div class="module-pill" data-module="perception">Perception</div>
+      <div class="module-pill" data-module="program">Program</div>
+      <div class="module-pill" data-module="studio">Studio</div>
+      <div class="module-pill" data-module="workspace">Workspace</div>
     </div>
     <div class="slide-content modules-layout">
       <div class="modules-intro">
-        <p class="modules-kicker">Module store</p>
-        <h2>Modules</h2>
-        <p>A curated module store for installable capabilities. Core packages stay canonical, add-ons stay composable, and new modules can ship independently.</p>
+        <p class="modules-kicker">Extension store</p>
+        <h2>Extensions</h2>
+        <p>A curated extension store for installable capacities. Core primitives stay canonical, add-ons stay composable, and new extensions can ship independently.</p>
         <p class="sub">The store is the product layer: install, bundle, and extend without breaking the runtime.</p>
       </div>
       <div class="modules-store">
         <article class="modules-feature" style="--module-accent: rgba(124, 160, 255, 0.78);">
           <div class="modules-feature__top">
             <span class="modules-feature__eyebrow">Curated marketplace</span>
-            <span class="modules-feature__status">7 packages</span>
+            <span class="modules-feature__status">9 packages</span>
           </div>
-          <strong>Modules ship like products.</strong>
-          <p>Every capability sits on the same primitive layer, so the catalog can grow without turning the core into a monolith.</p>
+          <strong>Extensions ship like capacities.</strong>
+          <p>Every capacity sits on the same primitive layer, so the catalog can grow without turning the core into a monolith.</p>
           <div class="modules-feature__chips">
             <span>Core</span>
             <span>Public</span>
@@ -341,88 +351,112 @@
           </div>
         </article>
         <div class="modules-grid">
-          <article class="module-card" tabindex="0" data-module="identity" data-status="included" style="--module-accent: #7ca0ff;">
+          <article class="module-card" tabindex="0" data-module="actor" data-status="included" style="--module-accent: #7ca0ff;">
             <div class="module-card__top">
               <span class="module-card__index">01</span>
               <span class="module-card__badge">Included</span>
             </div>
-            <strong>Identity</strong>
-            <p>Auth, profiles, permissions, trusted state.</p>
+            <strong>Actor</strong>
+            <p>Entry into the graph, authentication, identity, permissions.</p>
             <div class="module-card__foot">
               <span>Core package</span>
               <span class="module-card__cta">Open</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="workspace" data-status="included" style="--module-accent: #9fe4ff;">
+          <article class="module-card" tabindex="0" data-module="assets" data-status="included" style="--module-accent: #9fe4ff;">
             <div class="module-card__top">
               <span class="module-card__index">02</span>
               <span class="module-card__badge">Included</span>
             </div>
-            <strong>Workspace</strong>
-            <p>Spaces, projects, collaboration, routing.</p>
+            <strong>Assets</strong>
+            <p>Create files, import any file type, and keep all resources attached to the graph.</p>
             <div class="module-card__foot">
               <span>Core package</span>
               <span class="module-card__cta">Open</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="assets" data-status="available" style="--module-accent: #f4c26f;">
+          <article class="module-card" tabindex="0" data-module="flow" data-status="available" style="--module-accent: #f4c26f;">
             <div class="module-card__top">
               <span class="module-card__index">03</span>
               <span class="module-card__badge">Available</span>
             </div>
-            <strong>Assets</strong>
-            <p>Files, media, artifacts, and memory layers.</p>
+            <strong>Flow</strong>
+            <p>Automations, workflows, triggers, and event routing.</p>
             <div class="module-card__foot">
               <span>Library</span>
               <span class="module-card__cta">Install</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="programs" data-status="available" style="--module-accent: #a8f0c7;">
+          <article class="module-card" tabindex="0" data-module="intelligence" data-status="available" style="--module-accent: #a8f0c7;">
             <div class="module-card__top">
               <span class="module-card__index">04</span>
               <span class="module-card__badge">Available</span>
             </div>
-            <strong>Programs</strong>
-            <p>Automations, workflows, jobs, and runtime logic.</p>
+            <strong>Intelligence</strong>
+            <p>AI, agents, binding, negotiation, planning, reasoning, reflection, strategy, cognition.</p>
             <div class="module-card__foot">
-              <span>Automation</span>
+              <span>AI stack</span>
               <span class="module-card__cta">Install</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="domotics" data-status="bridge" style="--module-accent: #e0b4ff;">
+          <article class="module-card" tabindex="0" data-module="knowledge" data-status="available" style="--module-accent: #e0b4ff;">
             <div class="module-card__top">
               <span class="module-card__index">05</span>
-              <span class="module-card__badge">Bridge</span>
+              <span class="module-card__badge">Available</span>
             </div>
-            <strong>Domotics</strong>
-            <p>Devices, rooms, environments, and control layers.</p>
+            <strong>Knowledge</strong>
+            <p>Knowledge graph enrichment, memory, retrieval, and deeper graph semantics.</p>
             <div class="module-card__foot">
-              <span>Connected systems</span>
-              <span class="module-card__cta">Connect</span>
+              <span>Knowledge layer</span>
+              <span class="module-card__cta">Install</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="logistics" data-status="available" style="--module-accent: #ffc59d;">
+          <article class="module-card" tabindex="0" data-module="perception" data-status="available" style="--module-accent: #ffc59d;">
             <div class="module-card__top">
               <span class="module-card__index">06</span>
               <span class="module-card__badge">Available</span>
             </div>
-            <strong>Logistics</strong>
-            <p>Routing, supply, operations, and coordination.</p>
+            <strong>Perception</strong>
+            <p>Connect the physical world to the graph: sensors, devices, domotics, real-world signals.</p>
             <div class="module-card__foot">
-              <span>Operations</span>
-              <span class="module-card__cta">Deploy</span>
+              <span>Real world</span>
+              <span class="module-card__cta">Connect</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="flux" data-status="experimental" style="--module-accent: #c9d0ff;">
+          <article class="module-card" tabindex="0" data-module="program" data-status="available" style="--module-accent: #c9d0ff;">
             <div class="module-card__top">
               <span class="module-card__index">07</span>
-              <span class="module-card__badge">Experimental</span>
+              <span class="module-card__badge">Available</span>
             </div>
-            <strong>Flux</strong>
-            <p>Streams, sync, transitions, and state flow.</p>
+            <strong>Program</strong>
+            <p>Code inside the graph: workflows, automation logic, and executable behavior.</p>
             <div class="module-card__foot">
-              <span>Research package</span>
-              <span class="module-card__cta">Preview</span>
+              <span>Logic layer</span>
+              <span class="module-card__cta">Open</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="studio" data-status="available" style="--module-accent: #d8b8ff;">
+            <div class="module-card__top">
+              <span class="module-card__index">08</span>
+              <span class="module-card__badge">Available</span>
+            </div>
+            <strong>Studio</strong>
+            <p>Create and edit any experience surface: websites, apps, audio, 3D, and more.</p>
+            <div class="module-card__foot">
+              <span>Creative surface</span>
+              <span class="module-card__cta">Open</span>
+            </div>
+          </article>
+          <article class="module-card" tabindex="0" data-module="workspace" data-status="included" style="--module-accent: #8ee0d0;">
+            <div class="module-card__top">
+              <span class="module-card__index">09</span>
+              <span class="module-card__badge">Included</span>
+            </div>
+            <strong>Workspace</strong>
+            <p>Workspaces inside the graph: spaces to develop, organize, and operate inside VASTE.</p>
+            <div class="module-card__foot">
+              <span>Core package</span>
+              <span class="module-card__cta">Open</span>
             </div>
           </article>
         </div>
@@ -436,19 +470,19 @@
     <div class="slide-content build-layout">
       <div class="build-intro">
         <p class="tagline">Build</p>
-        <h2>Surface Studio designs surfaces. Programs wire nodes. Context gives them type.</h2>
-        <p class="build-lead">SPACE is built from surfaces. Surface Studio composes the public layer, programs orchestrate node relations, context defines what a node is in context, modules enrich the middle layer, and Assets lets any file type land on a node.</p>
-        <p class="sub build-summary">Domotics can drive several things at once. The core remains canonical; everything else attaches around it.</p>
+        <h2>Studio designs experiences. Program codes the graph. Environnement gives them type.</h2>
+        <p class="build-lead">VASTE is built from capacities. Studio composes the public layer, Program orchestrates logical behavior, Environnement defines the local registry for each vertex, extensions enrich the middle layer, and Assets lets any file type land on a vertex.</p>
+        <p class="sub build-summary">The core remains canonical; everything else attaches around it as composable capacity.</p>
         <p class="build-path" aria-label="Build sequence">
-          <span class="build-step" data-layer="surface" role="button" tabindex="0">Surface Studio</span>
+          <span class="build-step" data-layer="surface" role="button" tabindex="0">Studio</span>
           <span class="build-step__arrow" aria-hidden="true">→</span>
-          <span class="build-step" data-layer="programs" role="button" tabindex="0">Programs</span>
+          <span class="build-step" data-layer="programs" role="button" tabindex="0">Program</span>
           <span class="build-step__arrow" aria-hidden="true">→</span>
-          <span class="build-step" data-layer="context" role="button" tabindex="0">Context</span>
+          <span class="build-step" data-layer="context" role="button" tabindex="0">Environnement</span>
           <span class="build-step__arrow" aria-hidden="true">→</span>
-          <span class="build-step" data-layer="nodes" role="button" tabindex="0">Nodes</span>
+          <span class="build-step" data-layer="nodes" role="button" tabindex="0">Vertex</span>
           <span class="build-step__arrow" aria-hidden="true">→</span>
-          <span class="build-step" data-layer="modules" role="button" tabindex="0">Modules</span>
+          <span class="build-step" data-layer="modules" role="button" tabindex="0">Extensions</span>
           <span class="build-step__arrow" aria-hidden="true">→</span>
           <span class="build-step" data-layer="assets" role="button" tabindex="0">Assets</span>
         </p>
@@ -457,7 +491,7 @@
       <div class="build-workbench">
         <div class="build-surface" data-layer="surface" role="button" tabindex="0" aria-pressed="false">
           <div class="build-surface__top">
-            <span>Surface Studio</span>
+            <span>Studio</span>
             <span>Public surface</span>
           </div>
           <div class="build-surface__window">
@@ -467,13 +501,13 @@
                 <i></i>
                 <i></i>
               </span>
-              <span class="build-surface__url">surface studio / preview</span>
+              <span class="build-surface__url">studio / preview</span>
             </div>
             <div class="build-surface__viewport">
               <div class="build-surface__hero">
-                <span class="build-surface__kicker">Surface projects the system</span>
-                <strong>Design the visible layer</strong>
-                <p>Pages, screens, outputs, projections.</p>
+                <span class="build-surface__kicker">Studio projects experience</span>
+                <strong>Design the creative layer</strong>
+                <p>Pages, screens, audio, 3D, outputs, projections.</p>
               </div>
               <div class="build-surface__chips" aria-hidden="true">
                 <span>Layout</span>
@@ -490,8 +524,8 @@
               <span class="build-card__index">01</span>
               <span class="build-card__badge">Orchestration</span>
             </div>
-            <strong>Programs</strong>
-            <p>Orchestrate flows, trigger actions, and compose nodes into repeatable systems.</p>
+            <strong>Program</strong>
+            <p>Orchestrate flows, trigger actions, and compose vertices into repeatable systems.</p>
             <div class="build-card__foot">
               <span>compose / route / publish</span>
               <span class="build-card__cta">Live</span>
@@ -503,8 +537,8 @@
               <span class="build-card__index">02</span>
               <span class="build-card__badge">Registry</span>
             </div>
-            <strong>Context</strong>
-            <p>Define what a node is in context. Registry, semantics, policy.</p>
+            <strong>Environnement</strong>
+            <p>Define what a vertex is in Environnement. Registry, semantics, policy.</p>
             <div class="build-card__foot">
               <span>type / semantics / policy</span>
               <span class="build-card__cta">Global</span>
@@ -516,10 +550,10 @@
               <span class="build-card__index">03</span>
               <span class="build-card__badge">Topology</span>
             </div>
-            <strong>Nodes</strong>
-            <p>Relations define topology. Edges keep the graph canonical.</p>
+            <strong>Vertices</strong>
+            <p>Ties define topology. Vertices keep the graph canonical.</p>
             <div class="build-card__foot">
-              <span>nodes / edges / graph</span>
+              <span>vertices / ties / graph</span>
               <span class="build-card__cta">Canonical</span>
             </div>
           </article>
@@ -529,20 +563,20 @@
               <span class="build-card__index">04</span>
               <span class="build-card__badge">Capabilities</span>
             </div>
-            <strong>Modules</strong>
-            <p>Attach behavior. Domotics can drive several things at once.</p>
+            <strong>Extensions</strong>
+            <p>Attach capacity. The system can assemble actor, assets, flow, intelligence, knowledge, perception, program, studio, and workspace.</p>
             <div class="build-card__chips" aria-hidden="true">
-              <span>Domotics</span>
-              <span>Logistics</span>
-              <span>Flux</span>
+              <span>Actor</span>
+              <span>Flow</span>
+              <span>Intelligence</span>
             </div>
           </article>
         </div>
 
         <div class="build-assets" data-layer="assets" role="button" tabindex="0" aria-pressed="false">
           <div class="build-assets__lead">
-            <span>Assets module</span>
-            <strong>Any file type on a node</strong>
+            <span>Assets extension</span>
+            <strong>Any file type on a vertex</strong>
             <p>3D, images, video, code, documents, data.</p>
           </div>
           <div class="build-assets__chips" aria-hidden="true">
@@ -625,9 +659,9 @@
   <section class="slide has-canvas" data-slide="physical">
     <canvas class="slide-canvas" id="canvas-physical"></canvas>
     <div class="slide-content">
-      <h2>Physical Layer</h2>
+      <h2>Perception</h2>
       <p>Digital structure meeting the physical world.</p>
-      <p class="sub">Sensors · objects · space · behavior</p>
+      <p class="sub">Sensors · objects · home · behavior</p>
     </div>
   </section>
 
@@ -767,7 +801,7 @@
       <div class="brief-intro">
         <p class="tagline">Current state</p>
         <h2>Architecture conceptuelle verrouillée.</h2>
-        <p class="brief-lead">Les primitives sont en cours de purification pour rendre le core réellement agnostique.</p>
+        <p class="brief-lead">Les primitives du core sont maintenant vertex, tie, surface, Environnement et actions.</p>
         <p class="sub">Le raffinage de l'architecture est en place, la migration des modules a commencé, et les premiers tests ont déjà validé la direction sur Raspberry comme en local.</p>
       </div>
 
@@ -833,7 +867,7 @@
       <div class="brief-intro">
         <p class="tagline">Business model</p>
         <h2>Subscriptions keep the platform moving.</h2>
-        <p class="brief-lead">The core can stay agnostic while recurring plans and paid modules finance the system's evolution.</p>
+        <p class="brief-lead">The core can stay agnostic while recurring plans and paid extensions finance the system's evolution.</p>
         <p class="sub">A public foundation, premium capabilities, and institutional access.</p>
       </div>
 
@@ -843,7 +877,7 @@
           <strong>Recurring access</strong>
         </div>
         <div class="brief-card">
-          <span>Modules</span>
+          <span>Extensions</span>
           <strong>Paid capabilities</strong>
         </div>
         <div class="brief-card">

@@ -289,9 +289,9 @@ function buildHoverPayload(el) {
     return {
       key: 'graphos-header',
       kind: 'drag',
-      kicker: 'GraphOS',
-      title: 'Move the context window',
-      detail: 'Drag the header to reposition the live node demo.',
+      kicker: 'VASTE',
+      title: 'Move the primitive window',
+      detail: 'Drag the header to reposition the live primitive demo.',
       meta: 'Glass panel',
     };
   }
@@ -302,19 +302,19 @@ function buildHoverPayload(el) {
     const selectValue = graphosTypeFilterEl ? collapseText(graphosTypeFilterEl.selectedOptions?.[0]?.textContent || graphosTypeFilterEl.value) : '';
     const chipId = graphosChip.id || '';
     const chipTitleMap = {
-      'graphos-toggle-nodes': 'Nodes',
-      'graphos-toggle-links': 'Links',
+      'graphos-toggle-nodes': 'Vertices',
+      'graphos-toggle-links': 'Ties',
       'graphos-open-menu': 'Actions',
     };
     const chipDetailMap = {
-      'graphos-toggle-nodes': 'Show or hide the node field.',
-      'graphos-toggle-links': 'Reveal or hide connective paths.',
+      'graphos-toggle-nodes': 'Show or hide the vertex field.',
+      'graphos-toggle-links': 'Reveal or hide connective ties.',
       'graphos-open-menu': 'Open the touch-safe actions menu.',
     };
     return {
       key: `graphos-chip:${collapseText(graphosChip.textContent)}`,
       kind: isSelect ? 'action' : 'action',
-      kicker: 'GraphOS',
+      kicker: 'VASTE',
       title: isSelect ? 'Type filter' : chipTitleMap[chipId] || collapseText(graphosChip.textContent),
       detail: isSelect ? `Current filter: ${selectValue || 'All types'}` : chipDetailMap[chipId] || 'Toggle the corresponding graph control.',
       meta: isSelect ? 'Semantic filter' : 'Live control',
@@ -326,7 +326,7 @@ function buildHoverPayload(el) {
     return {
       key: `graphos-row:${graphosRow.dataset.layer || 'row'}`,
       kind: 'action',
-      kicker: 'GraphOS layer',
+      kicker: 'VASTE layer',
       title: readText(graphosRow, 'strong') || collapseText(graphosRow.textContent),
       detail: readText(graphosRow, 'span'),
       meta: readText(graphosRow, 'small'),
@@ -338,9 +338,9 @@ function buildHoverPayload(el) {
     return {
       key: 'graphos-canvas',
       kind: 'drag',
-      kicker: 'GraphOS',
-      title: 'Live node field',
-      detail: 'Drag nodes, edit relations, and use the canvas to explore the surface projection.',
+      kicker: 'VASTE',
+      title: 'Live vertex field',
+      detail: 'Drag vertices, edit ties, and use the canvas to explore the surface projection.',
       meta: 'Interactive canvas',
     };
   }
@@ -350,10 +350,10 @@ function buildHoverPayload(el) {
     const layer = infraStep.dataset.layer || collapseText(infraStep.textContent).toLowerCase();
     const detailMap = {
       surface: 'Public view and projected output.',
-      context: 'Registry, semantics, and policy.',
+      context: 'Environnement, semantics, and policy.',
       intents: 'Actions routed into the graph.',
       modules: 'Capabilities enriching the middle layer.',
-      core: 'Canonical topology: nodes and edges only.',
+      core: 'Canonical topology: vertices and ties only.',
     };
     return {
       key: `infra-step:${layer}`,
@@ -383,10 +383,10 @@ function buildHoverPayload(el) {
     const detailMap = {
       surface: 'Public surface and visible projection.',
       programs: 'Orchestrate flows, triggers, and routing.',
-      context: 'Registry, semantics, and policy.',
+      context: 'Environnement, semantics, and policy.',
       nodes: 'Topology and canonical relations.',
       modules: 'Capabilities that enrich the system.',
-      assets: 'Any file type can land on a node.',
+      assets: 'Any file type can land on a vertex.',
     };
     return {
       key: `build-step:${step}`,
@@ -463,10 +463,10 @@ function buildHoverPayload(el) {
     return {
       key: `graphos-menu:${collapseText(graphosContextMenuItem.textContent)}`,
       kind: 'action',
-      kicker: 'GraphOS',
+      kicker: 'VASTE',
       title: collapseText(graphosContextMenuItem.textContent),
-      detail: 'Apply this action to the selected node.',
-      meta: 'Context menu',
+      detail: 'Apply this action to the selected vertex.',
+      meta: 'Environment menu',
     };
   }
 
@@ -475,9 +475,9 @@ function buildHoverPayload(el) {
     return {
       key: `graphos-toggle:${collapseText(graphosContextMenuToggle.textContent)}`,
       kind: 'action',
-      kicker: 'GraphOS',
+      kicker: 'VASTE',
       title: collapseText(graphosContextMenuToggle.textContent),
-      detail: 'Switch the canonical state for the active node.',
+      detail: 'Switch the canonical state for the active vertex.',
       meta: 'Core toggle',
     };
   }
@@ -487,9 +487,9 @@ function buildHoverPayload(el) {
     return {
       key: 'graphos-swatch',
       kind: 'pick',
-      kicker: 'GraphOS',
-      title: 'Node color',
-      detail: 'Pick a color for the selected node.',
+      kicker: 'VASTE',
+      title: 'Vertex color',
+      detail: 'Pick a color for the selected vertex.',
       meta: 'Palette',
     };
   }
@@ -499,9 +499,9 @@ function buildHoverPayload(el) {
     return {
       key: 'graphos-color-wheel',
       kind: 'pick',
-      kicker: 'GraphOS',
+      kicker: 'VASTE',
       title: 'Color wheel',
-      detail: 'Drag to assign a new node color.',
+      detail: 'Drag to assign a new vertex color.',
       meta: 'Fine control',
     };
   }
@@ -521,20 +521,20 @@ function buildHoverPayload(el) {
   const ucCase = el.closest('.uc-case');
   if (ucCase) {
     const word = ucCase.dataset.word || collapseText(ucCase.textContent);
-    const familyTitle = ucCase.dataset.familyTitle || 'SPACE';
+    const familyTitle = ucCase.dataset.familyTitle || 'VASTE';
     const familyKey   = ucCase.dataset.familyKey   || 'general';
     const detailMap = {
-      operations: `Use SPACE to map ${word} as graph nodes — tracking status, ownership, and exceptions in a single source of truth.`,
-      platform:   `Use SPACE to model ${word} as composable primitives so integrations stay consistent across the graph.`,
-      research:   `Use SPACE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
-      experience: `Use SPACE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
+      operations: `Use VASTE to map ${word} as graph vertices — tracking status, ownership, and exceptions in a single source of truth.`,
+      platform:   `Use VASTE to model ${word} as composable capacities so integrations stay consistent across the graph.`,
+      research:   `Use VASTE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
+      experience: `Use VASTE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
     };
     return {
       key: `uc:${word}`,
       kind: 'usecase',
       kicker: familyTitle,
       title: word,
-      detail: detailMap[familyKey] || `Use SPACE to model ${word} as nodes, edges, and surfaces in a single system.`,
+      detail: detailMap[familyKey] || `Use VASTE to model ${word} as vertices, ties, and surfaces in a single system.`,
       meta: familyTitle,
     };
   }
@@ -1514,7 +1514,7 @@ function animLoop(time) {
 // =============================================
 // SCENE: GRAPH
 // Configurable organic node graph.
-// Used for: SPACE (standard), GraphOS (sparse), R&D (dense+trails), Physical (spread)
+// Used for: VASTE (standard), VASTE graph demo (sparse), R&D (dense+trails), Physical (spread)
 // =============================================
 
 class GraphScene {
@@ -1605,7 +1605,7 @@ class GraphScene {
 
     const d = Math.min(w, h) * thresh;
 
-    // Edges
+    // Ties
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx   = nodes[j].x - nodes[i].x;
@@ -1622,7 +1622,7 @@ class GraphScene {
       }
     }
 
-    // Nodes
+    // Vertices
     nodes.forEach(n => {
       const pulse = 0.5 + 0.5 * Math.sin(t * 1.4 + n.phase);
       ctx.beginPath();
@@ -1733,7 +1733,7 @@ class PulseScene {
 
 // =============================================
 // SCENE: INQUIRY
-// A question bridge between autonomy and SPACE.
+// A question bridge between autonomy and VASTE.
 // =============================================
 
 class InquiryScene {
@@ -2112,6 +2112,10 @@ class ConvergenceScene {
     this._loop();
   }
 
+  _setMobilePanelOpen(open) {
+    this.mobilePanelOpen = !!open;
+  }
+
   stop() {
     this.running = false;
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
@@ -2178,8 +2182,8 @@ class ConvergenceScene {
 
 // =============================================
 // SCENE: INFRASTRUCTURE
-// Surface projects. Context defines semantics.
-// Intents move changes into a canonical core graph.
+// Surface projects. Environnement defines semantics.
+// Actions move changes into a canonical core graph.
 // =============================================
 
 class InfrastructureScene {
@@ -2225,7 +2229,7 @@ class InfrastructureScene {
   }
 
   _init() {
-    const moduleLabels = ['Identity', 'Workspace', 'Assets', 'Programs', 'Domotics', 'Logistics', 'Flux'];
+    const moduleLabels = ['Actor', 'Workspace', 'Assets', 'Program', 'Intelligence', 'Knowledge', 'Perception', 'Studio', 'Flow'];
     const moduleTargets = [1, 2, 4, 6, 3, 7, 5];
     const moduleStartX = this.w * 0.18;
     const moduleEndX = this.w * 0.82;
@@ -2252,14 +2256,14 @@ class InfrastructureScene {
       { key: 'intent', value: 'surface action' },
       { key: 'projection', value: 'surface output' },
       { key: 'scope', value: 'module boundary' },
-      { key: 'metadata', value: 'graph context' },
+      { key: 'metadata', value: 'graph environment' },
       { key: 'routing', value: 'edge path' },
       { key: 'linkage', value: 'node relation' },
       { key: 'semantics', value: 'registry layer' },
       { key: 'contracts', value: 'interface' },
     ];
 
-    // Canonical core graph: a stable internal topology of nodes and edges.
+    // Canonical core graph: a stable internal topology of vertices and ties.
     this.coreLayout = [
       { ox: 0.00, oy: 0.00, r: 4.8, wobble: 1.0 },
       { ox: -0.26, oy: -0.18, r: 2.9, wobble: 0.85 },
@@ -2518,7 +2522,7 @@ class InfrastructureScene {
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
-    ctx.fillText('Context', x + 16, y + 18);
+    ctx.fillText('Environnement', x + 16, y + 18);
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.56)' : 'rgba(255,255,255,0.42)';
     ctx.fillText('global registry', x + w - 96, y + 18);
 
@@ -2554,7 +2558,7 @@ class InfrastructureScene {
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
 
-    // Intent spine: the action corridor from semantics into the core.
+    // Action spine: the action corridor from semantics into the core.
     const spine = ctx.createLinearGradient(spineX, spineTop, spineX, spineBottom);
     spine.addColorStop(0, 'rgba(255,255,255,0)');
     spine.addColorStop(0.28, focused ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)');
@@ -2567,7 +2571,7 @@ class InfrastructureScene {
     ctx.lineTo(spineX, spineBottom);
     ctx.stroke();
 
-    this._drawTag('Intents', spineX, bandBottom + 18, 0.7, 'center');
+    this._drawTag('Actions', spineX, bandBottom + 18, 0.7, 'center');
 
     this.intents.forEach((intent, index) => {
       const module = this.modules[intent.moduleIndex];
@@ -2575,8 +2579,8 @@ class InfrastructureScene {
       if (!module || !target) return;
 
       const start = {
-        x: module.x,
-        y: module.y + module.h * 0.55,
+        x: module.baseX,
+        y: module.baseY + module.h * 0.55,
       };
       const control = {
         x: lerp(start.x, spineX, 0.45) + Math.sin(this.t * 0.9 + intent.phase) * 16,
@@ -2640,7 +2644,7 @@ class InfrastructureScene {
     ctx.stroke();
     ctx.clip();
 
-    // Internal canonical graph: only nodes and edges live here.
+    // Internal canonical graph: only vertices and ties live here.
     const nodes = this.coreLayout.map((layout, index) => ({
       x: x + layout.ox * r * 0.80 + Math.sin(this.t * 0.7 + layout.ox * 9 + index) * layout.wobble * (focused ? 1.16 : 1),
       y: y + layout.oy * r * 0.80 + Math.cos(this.t * 0.64 + layout.oy * 7 + index) * layout.wobble * 0.78 * (focused ? 1.16 : 1),
@@ -2688,7 +2692,7 @@ class InfrastructureScene {
 
     this._drawTag('Core', x, y - r - 28, 0.9, 'center');
 
-    // Tiny legend inside the core: nodes and edges define topology.
+    // Tiny legend inside the core: vertices and ties define topology.
     ctx.save();
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
@@ -2698,14 +2702,14 @@ class InfrastructureScene {
     ctx.beginPath();
     ctx.arc(legendX, legendY, 2.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillText('Node', legendX + 9, legendY + 0.4);
+    ctx.fillText('Vertex', legendX + 9, legendY + 0.4);
     ctx.strokeStyle = 'rgba(255,255,255,0.38)';
     ctx.lineWidth = 0.9;
     ctx.beginPath();
     ctx.moveTo(legendX + 42, legendY);
     ctx.lineTo(legendX + 70, legendY);
     ctx.stroke();
-    ctx.fillText('Edge', legendX + 76, legendY + 0.4);
+    ctx.fillText('Tie', legendX + 76, legendY + 0.4);
     ctx.restore();
   }
 
@@ -2792,8 +2796,8 @@ class InfrastructureScene {
       ctx.fill();
     });
 
-    this._drawTag('Node', 10, 86, 0.58, 'center');
-    this._drawTag('Edge', 46, 14, 0.42, 'center');
+    this._drawTag('Vertex', 10, 86, 0.58, 'center');
+    this._drawTag('Tie', 46, 14, 0.42, 'center');
 
     // Tiny action hint: the diagram feels present but stays discreet.
     const beam = ctx.createLinearGradient(-18, 14, 62, 70);
@@ -2820,10 +2824,10 @@ class InfrastructureScene {
     // Surface projects the system.
     this._drawSurfaceWindow(focusLayer);
 
-    // Context sits between surface and core, carrying the global registry.
+    // Environnement sits between surface and core, carrying the global registry.
     this._drawContextBand(focusLayer);
 
-    // Modules are in the middle layer, same conceptual band as context.
+    // Extensions are in the middle layer, same conceptual band as Environnement.
     this.modules.forEach((module, index) => {
       const drift = this._parallax(12);
       const moduleBoost = focusLayer === 'modules' ? 1.14 : focusLayer === 'intents' ? 1.08 : 1;
@@ -2882,7 +2886,7 @@ class InfrastructureScene {
       r: layout.r,
     }));
 
-    // Intents route through the semantic layer into the core graph.
+    // Actions route through the semantic layer into the core graph.
     this._drawIntents(coreNodes, focusLayer);
 
     // The canonical core graph remains the visual anchor.
@@ -2917,13 +2921,15 @@ class ModulesScene {
     this.raf     = null;
     this.t       = 0;
     this.modules = [
-      { label: 'Identity',  angle: -Math.PI * 0.42, delay: 0.0, lane: 0, color: '#7ca0ff', status: 'included' },
-      { label: 'Workspace', angle: -Math.PI * 0.12, delay: 0.18, lane: 1, color: '#9fe4ff', status: 'included' },
-      { label: 'Assets',    angle:  Math.PI * 0.14, delay: 0.36, lane: 2, color: '#f4c26f', status: 'available' },
-      { label: 'Programs',  angle:  Math.PI * 0.42, delay: 0.54, lane: 0, color: '#a8f0c7', status: 'available' },
-      { label: 'Domotics',  angle:  Math.PI * 0.78, delay: 0.72, lane: 1, color: '#e0b4ff', status: 'bridge' },
-      { label: 'Logistics', angle:  Math.PI * 1.06, delay: 0.90, lane: 2, color: '#ffc59d', status: 'available' },
-      { label: 'Flux',      angle:  Math.PI * 1.38, delay: 1.08, lane: 1, color: '#c9d0ff', status: 'experimental' },
+      { label: 'Actor',        angle: -Math.PI * 0.50, delay: 0.0, lane: 0, color: '#7ca0ff', status: 'included' },
+      { label: 'Assets',       angle: -Math.PI * 0.20, delay: 0.18, lane: 1, color: '#9fe4ff', status: 'included' },
+      { label: 'Flow',         angle:  Math.PI * 0.06, delay: 0.36, lane: 2, color: '#f4c26f', status: 'available' },
+      { label: 'Intelligence', angle:  Math.PI * 0.30, delay: 0.54, lane: 0, color: '#a8f0c7', status: 'available' },
+      { label: 'Knowledge',    angle:  Math.PI * 0.58, delay: 0.72, lane: 1, color: '#e0b4ff', status: 'available' },
+      { label: 'Perception',   angle:  Math.PI * 0.84, delay: 0.90, lane: 2, color: '#ffc59d', status: 'available' },
+      { label: 'Program',      angle:  Math.PI * 1.12, delay: 1.08, lane: 1, color: '#c9d0ff', status: 'available' },
+      { label: 'Studio',       angle:  Math.PI * 1.40, delay: 1.26, lane: 0, color: '#d8b8ff', status: 'available' },
+      { label: 'Workspace',    angle:  Math.PI * 1.68, delay: 1.44, lane: 2, color: '#8ee0d0', status: 'included' },
     ];
     this.cardEls = this.slideEl ? [...this.slideEl.querySelectorAll('.module-card')] : [];
     this.featureEl = this.slideEl ? this.slideEl.querySelector('.modules-feature') : null;
@@ -3382,7 +3388,7 @@ class VestigeScene {
     }
     ctx.restore();
 
-    // Nodes in black with slight bright halos.
+    // Vertices in black with slight bright halos.
     this.nodes.forEach((n, i) => {
       const pulse = 0.5 + 0.5 * Math.sin(this.t * 1.7 + n.phase);
       const radius = n.r * (0.95 + 0.2 * pulse);
@@ -3484,7 +3490,7 @@ class VestigeScene {
 
 // =============================================
 // SCENE: GRAPH OS
-// Living graph with draggable context window, stable groups, and surface projections.
+// Living graph with draggable primitive window, stable groups, and surface projections.
 // =============================================
 
 class GraphOSScene {
@@ -3568,8 +3574,8 @@ class GraphOSScene {
       };
     });
     this.labels = [
-      { text: 'Node', node: 0, dx: -36, dy: -30 },
-      { text: 'Edge', node: 3, dx: 22, dy: -18 },
+      { text: 'Vertex', node: 0, dx: -36, dy: -30 },
+      { text: 'Tie', node: 3, dx: 22, dy: -18 },
       { text: 'Groups', node: 7, dx: -14, dy: 44 },
       { text: 'Surface', node: 12, dx: 30, dy: -12 },
     ];
@@ -3775,7 +3781,7 @@ class GraphOSScene {
 
     this.groups.forEach((group, index) => this._drawGroupShell(group, index, focusLayer));
 
-    // Edges.
+    // Ties.
     const threshold = Math.min(this.w, this.h) * this.opts.thresh;
     const edgeFocusBoost = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.12 : 1;
     for (let i = 0; i < nodes.length; i++) {
@@ -3799,7 +3805,7 @@ class GraphOSScene {
       }
     }
 
-    // Nodes.
+    // Vertices.
     nodes.forEach(n => {
       const pulse = 0.5 + 0.5 * Math.sin(t * 1.4 + n.phase);
       const nodeBoost = focusLayer === 'node' ? 1.22 : focusLayer === 'group' ? 1.08 : 1;
@@ -3838,7 +3844,7 @@ class GraphOSScene {
       this._drawLabel(label.text, n.x + label.dx + drift, n.y + label.dy, 0.8, focusLayer);
     });
 
-    // Context streams.
+    // Environment streams.
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     const streamBoost = focusLayer === 'context' ? 1.6 : focusLayer === 'surface' ? 0.9 : 1;
@@ -3868,14 +3874,14 @@ class GraphOSScene {
 
     // Surface label.
     this._drawLabel('Surface', this.w * 0.75, this.surfaceY - 40, 0.5, focusLayer);
-    this._drawLabel('Context', this.w * 0.08, this.contextY - 8, 0.8, focusLayer);
+    this._drawLabel('Environnement', this.w * 0.08, this.contextY - 8, 0.8, focusLayer);
   }
 }
 
 
 // =============================================
 // SCENE: BUILD
-// Surface Studio, programs, context, canonical core,
+// Studio, Program, Environnement, canonical core,
 // modules, and assets as one construction system.
 // =============================================
 
@@ -3934,7 +3940,7 @@ class BuildScene {
       { key: 'semantics', value: 'global registry' },
       { key: 'intent', value: 'surface action' },
       { key: 'contracts', value: 'interface type' },
-      { key: 'metadata', value: 'graph context' },
+      { key: 'metadata', value: 'graph environment' },
       { key: 'linkage', value: 'node relation' },
       { key: 'projection', value: 'surface output' },
     ];
@@ -3955,7 +3961,7 @@ class BuildScene {
       [3, 7], [4, 6], [6, 7],
     ];
 
-    const moduleLabels = ['Identity', 'Workspace', 'Domotics', 'Logistics', 'Flux'];
+    const moduleLabels = ['Actor', 'Assets', 'Flow', 'Intelligence', 'Knowledge', 'Perception', 'Program', 'Studio', 'Workspace'];
     this.modules = moduleLabels.map((label, index) => ({
       label,
       angle: (index / moduleLabels.length) * Math.PI * 2 - Math.PI / 2,
@@ -4125,7 +4131,7 @@ class BuildScene {
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.56)';
-    ctx.fillText('Surface Studio', -w / 2 + 56, -h / 2 + 14);
+    ctx.fillText('Studio', -w / 2 + 56, -h / 2 + 14);
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)';
     roundRect(ctx, -w / 2 + 41, -h / 2 + 8, w - 58, 12, 6);
     ctx.fill();
@@ -4227,7 +4233,7 @@ class BuildScene {
       ctx.fill();
     });
 
-    this._drawTag('Programs', lerp(start.x, end.x, 0.34), lerp(start.y, end.y, 0.27), 0.78, 'center');
+    this._drawTag('Program', lerp(start.x, end.x, 0.34), lerp(start.y, end.y, 0.27), 0.78, 'center');
     ctx.restore();
   }
 
@@ -4267,9 +4273,9 @@ class BuildScene {
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
-    ctx.fillText('Context', x + 16, y + 18);
+    ctx.fillText('Environnement', x + 16, y + 18);
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.54)' : 'rgba(255,255,255,0.42)';
-    ctx.fillText('type in context', x + w - 108, y + 18);
+    ctx.fillText('type in environment', x + w - 114, y + 18);
 
     for (let i = -1; i < rows; i++) {
       const entryIndex = ((i + Math.floor(this.t * 1.6)) % this.registry.length + this.registry.length) % this.registry.length;
@@ -4372,14 +4378,14 @@ class BuildScene {
     ctx.beginPath();
     ctx.arc(legendX, legendY, 2.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillText('Node', legendX + 9, legendY + 0.4);
+    ctx.fillText('Vertex', legendX + 9, legendY + 0.4);
     ctx.strokeStyle = 'rgba(255,255,255,0.38)';
     ctx.lineWidth = 0.9;
     ctx.beginPath();
     ctx.moveTo(legendX + 42, legendY);
     ctx.lineTo(legendX + 70, legendY);
     ctx.stroke();
-    ctx.fillText('Edge', legendX + 76, legendY + 0.4);
+    ctx.fillText('Tie', legendX + 76, legendY + 0.4);
     ctx.restore();
   }
 
@@ -4423,7 +4429,7 @@ class BuildScene {
     });
     ctx.restore();
 
-    this._drawTag('Modules', x - this.core.r * 0.05, y + this.core.r + 28, 0.76, 'center');
+    this._drawTag('Extensions', x - this.core.r * 0.05, y + this.core.r + 28, 0.76, 'center');
   }
 
   _drawAssets(focusLayer) {
@@ -4621,7 +4627,7 @@ class UseCasesScene {
     });
     ctx.restore();
 
-    // Edge vignette
+    // Tie vignette
     const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.28, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(1, 'rgba(0,0,0,0.52)');
@@ -4787,12 +4793,12 @@ class UseCasesController {
 
   _detail(word, key) {
     const map = {
-      operations: `Use SPACE to map ${word} as graph nodes — tracking status, ownership, and exceptions in a single source of truth.`,
-      platform:   `Use SPACE to model ${word} as composable primitives so integrations stay consistent across the graph.`,
-      research:   `Use SPACE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
-      experience: `Use SPACE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
+      operations: `Use VASTE to map ${word} as graph vertices — tracking status, ownership, and exceptions in a single source of truth.`,
+      platform:   `Use VASTE to model ${word} as composable capacities so integrations stay consistent across the graph.`,
+      research:   `Use VASTE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
+      experience: `Use VASTE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
     };
-    return map[key] || `Use SPACE to model ${word} as nodes, edges, and surfaces in a single system.`;
+    return map[key] || `Use VASTE to model ${word} as vertices, ties, and surfaces in a single system.`;
   }
 
   destroy() {
@@ -5491,7 +5497,7 @@ class PhysicalLayerScene {
     }
     ctx.restore();
 
-    // Nodes, with anchored points receiving an environment tether.
+    // Vertices, with anchored points receiving an environment tether.
     nodes.forEach((n, i) => {
       const pulse = 0.5 + 0.5 * Math.sin(t * 1.8 + n.phase);
       const alpha = n.anchor ? 0.34 + 0.18 * pulse : 0.16 + 0.16 * pulse;
@@ -5570,7 +5576,7 @@ class GraphOSLiveNode {
     this.selected = false;
     this.isContainedPreview = false;
     this.createdAt = opts.createdAt ?? Date.now();
-    this.name = opts.name ?? 'Node';
+    this.name = opts.name ?? 'Vertex';
     this.color = opts.color ?? '#5a78ff';
     this.type = opts.type ?? null;
     this.showCore = opts.showCore ?? true;
@@ -6153,14 +6159,14 @@ class GraphOSLiveScene {
       showCore: true,
     });
     const contextNode = this.createNode(this.w * 0.18, this.h * 0.29, {
-      name: 'Context',
+      name: 'Environnement',
       type: 'context',
       color: '#c3b2ff',
       baseR: 12,
       r: 12,
     });
     const intentNode = this.createNode(this.w * 0.50, this.h * 0.84, {
-      name: 'Intent',
+      name: 'Action',
       type: 'intent',
       color: '#9ae6c7',
       baseR: 11,
@@ -6346,14 +6352,14 @@ class GraphOSLiveScene {
       const selectedCount = this.selectedNodes.size;
       if (selectedCount === 1) {
         const node = [...this.selectedNodes][0];
-        graphosSelectionInfoEl.textContent = `${node.name || 'Node'} · 1 selected`;
+        graphosSelectionInfoEl.textContent = `${node.name || 'Vertex'} · 1 selected`;
       } else if (selectedCount > 1) {
         graphosSelectionInfoEl.textContent = `${selectedCount} selected`;
       } else if (this.selectedLink) {
-        const label = `${this.selectedLink.a?.name || 'Node'} ↔ ${this.selectedLink.b?.name || 'Node'}`;
+        const label = `${this.selectedLink.a?.name || 'Vertex'} ↔ ${this.selectedLink.b?.name || 'Vertex'}`;
         graphosSelectionInfoEl.textContent = label;
       } else {
-        graphosSelectionInfoEl.textContent = `${this.nodes.length} nodes · ${this.links.length} links`;
+        graphosSelectionInfoEl.textContent = `${this.nodes.length} vertices · ${this.links.length} ties`;
       }
     }
 
@@ -6645,7 +6651,7 @@ class GraphOSLiveScene {
         {
           label: node.type ? `Type: ${node.type}` : 'Set type',
           action: () => {
-            const newType = prompt('Set node type:', node.type || '');
+            const newType = prompt('Set vertex type:', node.type || '');
             node.type = newType || null;
             this.saveGraph();
             this._refreshTypeFilter();
@@ -6661,9 +6667,9 @@ class GraphOSLiveScene {
           },
         },
         {
-          label: 'Rename node',
+          label: 'Rename vertex',
           action: () => {
-            const newName = prompt('Rename node:', node.name);
+            const newName = prompt('Rename vertex:', node.name);
             if (newName) {
               node.name = newName;
               this.saveGraph();
@@ -6672,7 +6678,7 @@ class GraphOSLiveScene {
           },
         },
         {
-          label: deleteSelection ? 'Delete selected nodes' : 'Delete node',
+          label: deleteSelection ? 'Delete selected vertices' : 'Delete vertex',
           action: () => {
             if (deleteSelection) {
               this._deleteNodes(Array.from(this.selectedNodes));
@@ -6690,7 +6696,7 @@ class GraphOSLiveScene {
     if (link) {
       this._showMenu(e.clientX, e.clientY, [
         {
-          label: `Delete link (${link.a?.name || 'Node'} ↔ ${link.b?.name || 'Node'})`,
+          label: `Delete tie (${link.a?.name || 'Vertex'} ↔ ${link.b?.name || 'Vertex'})`,
           action: () => this._deleteLink(link),
         },
       ]);
@@ -6700,16 +6706,16 @@ class GraphOSLiveScene {
     const items = [];
     if (this.selectedNodes.size > 0) {
       items.push({
-        label: this.selectedNodes.size > 1 ? 'Delete selected nodes' : 'Delete selected node',
+        label: this.selectedNodes.size > 1 ? 'Delete selected vertices' : 'Delete selected vertex',
         action: () => this._deleteNodes(Array.from(this.selectedNodes)),
       });
     }
 
     items.push({
-      label: 'Create node',
+      label: 'Create vertex',
       action: () => {
         const created = this.createNode(x, y, {
-          name: 'Node',
+          name: 'Vertex',
           type: null,
           color: randChoice(GRAPHOS_LIVE_COLORS),
           baseR: 12,
@@ -6737,7 +6743,7 @@ class GraphOSLiveScene {
       swatch.type = 'button';
       swatch.className = 'graphos-context-menu__swatch';
       swatch.style.background = this.contextTarget.color;
-      swatch.title = 'Change node color';
+      swatch.title = 'Change vertex color';
       swatch.addEventListener('pointerdown', e => {
         e.stopPropagation();
         this._openColorPicker(e.clientX, e.clientY);
@@ -6758,10 +6764,10 @@ class GraphOSLiveScene {
       const nameBlock = document.createElement('div');
       nameBlock.className = 'graphos-context-menu__name';
       nameBlock.textContent = this.contextTarget.name;
-      nameBlock.title = 'Rename node';
+      nameBlock.title = 'Rename vertex';
       nameBlock.addEventListener('click', e => {
         e.stopPropagation();
-        const newName = prompt('Rename node:', this.contextTarget.name);
+        const newName = prompt('Rename vertex:', this.contextTarget.name);
         if (newName) {
           this.contextTarget.name = newName;
           this.saveGraph();
@@ -6901,7 +6907,7 @@ class GraphOSLiveScene {
       const extraItems = [];
       if (this.selectedNodes.size >= 2) {
         extraItems.push({
-          label: 'Link selected nodes',
+          label: 'Link selected vertices',
           action: () => {
             const arr = Array.from(this.selectedNodes);
             for (let i = 0; i < arr.length; i++) {
@@ -6932,15 +6938,15 @@ class GraphOSLiveScene {
     const items = [];
     if (this.selectedNodes.size > 0) {
       items.push({
-        label: this.selectedNodes.size > 1 ? 'Delete selected nodes' : 'Delete selected node',
+        label: this.selectedNodes.size > 1 ? 'Delete selected vertices' : 'Delete selected vertex',
         action: () => this._deleteNodes(Array.from(this.selectedNodes)),
       });
     }
     items.push({
-      label: 'Create node',
+      label: 'Create vertex',
       action: () => {
         const created = this.createNode(x, y, {
-          name: 'Node',
+          name: 'Vertex',
           type: null,
           color: randChoice(GRAPHOS_LIVE_COLORS),
           baseR: 12,
@@ -7590,7 +7596,7 @@ class GraphOSLiveScene {
 // Maps slide data-slide keys → [SceneClass, options]
 // Visual vocabulary per concept:
 //   pulse     → open, potential, breath (intro / autonomy / closing)
-//   graph     → complexity, connection (SPACE / GraphOS / R&D / Physical)
+//   graph     → complexity, connection (VASTE / VASTE graph demo / R&D / Physical)
 //   modules   → composability, docking
 //   assemble  → construction, combination
 //   converge  → unification (gentle → dramatic based on opts.sharp)
@@ -7608,35 +7614,35 @@ const SCENE_MAP = {
   // Focused autonomy — single slow ring, very minimal
   autonomy:    [PulseScene,       { maxR: 220, interval: 3400, maxAlpha: 0.09, speed: 0.45 }],
 
-  // Inquiry — question bridge into SPACE
+  // Inquiry — question bridge into VASTE
   bridge:      [InquiryScene,     { speed: 0.16, edgeAlpha: 0.18 }],
 
-  // SPACE — standard graph, baseline visual language
-  space:       [GraphScene,       { nodeCount: 22, speed: 0.45, thresh: 0.28,
+  // VASTE — standard graph, baseline visual language
+  vaste:       [GraphScene,       { nodeCount: 22, speed: 0.45, thresh: 0.28,
                                     edgeAlpha: 0.22, nodeAlpha: [0.32, 0.48] }],
 
-  // GraphOS — primitives, draggable context window, groups, and surface projection
+  // VASTE graph demo — primitives, draggable window, and surface projection
   graphos:     [GraphOSLiveScene, null],
 
   // Unification — gentle convergence
   unification: [ConvergenceScene, { cycleDur: 4.5, particles: 30, spread: 260, sharp: false }],
 
-  // Modules — core + capsules docking
+  // Extensions — core + capacities docking
   modules:     [ModulesScene,     null],
 
   // Vestiges — archival field with nodes and artifacts
   vestiges:    [VestigeScene,     null],
 
-  // Infrastructure — surface, context, intents, and canonical core
+  // Infrastructure — surface, Environnement, Actions, and canonical core
   infrastructure: [InfrastructureScene, null],
 
-  // Build — construction system with surface, context, nodes, modules, and assets
+  // Build — construction system with studio, program, environment, vertices, extensions, and assets
   build:       [BuildScene,       null],
 
   // Combination — same system, larger grid, centered
   combination: [AssembleScene,    { cols: 5, rows: 4, gap: 26, cx: 0.5, cy: 0.5 }],
 
-  // Physical layer — network meets environment
+  // Physical layer — network meets perception
   physical:    [PhysicalLayerScene, { nodeCount: 22, speed: 0.24 }],
 
   // One system — standard convergence
@@ -7670,7 +7676,7 @@ function initScenes() {
     rd:          'canvas-rd',
     autonomy:    'canvas-autonomy',
     bridge:      'canvas-bridge',
-    space:       'canvas-space',
+    vaste:       'canvas-vaste',
     graphos:     'canvas-graphos',
     unification: 'canvas-unification',
     vestiges:    'canvas-vestiges',

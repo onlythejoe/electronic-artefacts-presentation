@@ -1,0 +1,21 @@
+[   57065ms] TypeError: this._setMobilePanelOpen is not a function
+    at ConvergenceScene.start (http://127.0.0.1:8000/script.js?v=20260421a:2111:10)
+    at startScene (http://127.0.0.1:8000/script.js?v=20260421a:7704:57)
+    at http://127.0.0.1:8000/script.js?v=20260421a:995:38
+[   58992ms] TypeError: Failed to execute 'createRadialGradient' on 'CanvasRenderingContext2D': The provided double value is non-finite.
+    at http://127.0.0.1:8000/script.js?v=20260421a:2592:24
+    at Array.forEach (<anonymous>)
+    at InfrastructureScene._drawIntents (http://127.0.0.1:8000/script.js?v=20260421a:2572:18)
+    at InfrastructureScene._draw (http://127.0.0.1:8000/script.js?v=20260421a:2886:10)
+    at InfrastructureScene._loop (http://127.0.0.1:8000/script.js?v=20260421a:2308:10)
+    at InfrastructureScene.start (http://127.0.0.1:8000/script.js?v=20260421a:2291:10)
+    at startScene (http://127.0.0.1:8000/script.js?v=20260421a:7704:57)
+    at http://127.0.0.1:8000/script.js?v=20260421a:995:38
+[  125672ms] TypeError: this._setMobilePanelOpen is not a function
+    at ConvergenceScene.start (http://127.0.0.1:8000/script.js?v=20260421a:2111:10)
+    at startScene (http://127.0.0.1:8000/script.js?v=20260421a:7704:57)
+    at http://127.0.0.1:8000/script.js?v=20260421a:995:38
+[  128057ms] TypeError: this._setMobilePanelOpen is not a function
+    at ConvergenceScene.start (http://127.0.0.1:8000/script.js?v=20260421a:2111:10)
+    at startScene (http://127.0.0.1:8000/script.js?v=20260421a:7704:57)
+    at http://127.0.0.1:8000/script.js?v=20260421a:995:38
