@@ -83,7 +83,7 @@ const graphosWindowState = {
   pointerId: null,
 };
 const INTRO_TYPEWRITER_PHRASES = [
-  'Salut, merci de prendre un moment.',
+  'Hello, thanks for taking a moment.',
 ];
 const ACTION_HOVER_SELECTOR = [
   '#nav-track',
@@ -424,7 +424,7 @@ function buildHoverPayload(el) {
     const layer = infraStep.dataset.layer || collapseText(infraStep.textContent).toLowerCase();
     const detailMap = {
       surface: 'Public view and projected output.',
-      context: 'Environnement, semantics, and policy.',
+      context: 'Environment, semantics, and policy.',
       intents: 'Actions routed into the graph.',
       modules: 'Capabilities enriching the middle layer.',
       core: 'Canonical topology: vertices and ties only.',
@@ -457,7 +457,7 @@ function buildHoverPayload(el) {
     const detailMap = {
       surface: 'Public surface and visible projection.',
       programs: 'Orchestrate flows, triggers, and routing.',
-      context: 'Environnement, semantics, and policy.',
+      context: 'Environment, semantics, and policy.',
       nodes: 'Topology and canonical relations.',
       modules: 'Capabilities that enrich the system.',
       assets: 'Any file type can land on a vertex.',
@@ -2256,7 +2256,7 @@ class ConvergenceScene {
 
 // =============================================
 // SCENE: INFRASTRUCTURE
-// Surface projects. Environnement defines semantics.
+// Surface projects. Environment defines semantics.
 // Actions move changes into a canonical core graph.
 // =============================================
 
@@ -2596,7 +2596,7 @@ class InfrastructureScene {
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
-    ctx.fillText('Environnement', x + 16, y + 18);
+    ctx.fillText('Environment', x + 16, y + 18);
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.56)' : 'rgba(255,255,255,0.42)';
     ctx.fillText('global registry', x + w - 96, y + 18);
 
@@ -2898,10 +2898,10 @@ class InfrastructureScene {
     // Surface projects the system.
     this._drawSurfaceWindow(focusLayer);
 
-    // Environnement sits between surface and core, carrying the global registry.
+    // Environment sits between surface and core, carrying the global registry.
     this._drawContextBand(focusLayer);
 
-    // Extensions are in the middle layer, same conceptual band as Environnement.
+    // Extensions are in the middle layer, same conceptual band as Environment.
     this.modules.forEach((module, index) => {
       const drift = this._parallax(12);
       const moduleBoost = focusLayer === 'modules' ? 1.14 : focusLayer === 'intents' ? 1.08 : 1;
@@ -3948,14 +3948,14 @@ class GraphOSScene {
 
     // Surface label.
     this._drawLabel('Surface', this.w * 0.75, this.surfaceY - 40, 0.5, focusLayer);
-    this._drawLabel('Environnement', this.w * 0.08, this.contextY - 8, 0.8, focusLayer);
+    this._drawLabel('Environment', this.w * 0.08, this.contextY - 8, 0.8, focusLayer);
   }
 }
 
 
 // =============================================
 // SCENE: BUILD
-// Studio, Program, Environnement, canonical core,
+// Studio, Program, Environment, canonical core,
 // modules, and assets as one construction system.
 // =============================================
 
@@ -4347,7 +4347,7 @@ class BuildScene {
     ctx.font = '500 10px Inter, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.72)';
-    ctx.fillText('Environnement', x + 16, y + 18);
+    ctx.fillText('Environment', x + 16, y + 18);
     ctx.fillStyle = focused ? 'rgba(255,255,255,0.54)' : 'rgba(255,255,255,0.42)';
     ctx.fillText('type in environment', x + w - 114, y + 18);
 
@@ -6233,7 +6233,7 @@ class GraphOSLiveScene {
       showCore: true,
     });
     const contextNode = this.createNode(this.w * 0.18, this.h * 0.29, {
-      name: 'Environnement',
+      name: 'Environment',
       type: 'context',
       color: '#c3b2ff',
       baseR: 12,
@@ -7707,7 +7707,7 @@ const SCENE_MAP = {
   // Vestiges — archival field with nodes and artifacts
   vestiges:    [VestigeScene,     null],
 
-  // Infrastructure — surface, Environnement, Actions, and canonical core
+  // Infrastructure — surface, Environment, Actions, and canonical core
   infrastructure: [InfrastructureScene, null],
 
   // Build — construction system with studio, program, environment, vertices, extensions, and assets
