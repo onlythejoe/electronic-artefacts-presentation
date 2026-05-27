@@ -130,6 +130,11 @@ const TOUCH_NAV_LOCK_SELECTOR = [
   '.graphos-window__body',
   '.graphos-context-menu',
   '.graphos-color-picker',
+  '.slide[data-slide="modules"] .slide-content',
+  '.slide[data-slide="build"] .slide-content',
+  '.slide[data-slide="infrastructure"] .slide-content',
+  '.brief-layout',
+  '.bridge-layout',
   '.graphos-window__chip',
   '.graphos-row',
   '#canvas-graphos',
@@ -149,6 +154,11 @@ const WHEEL_NAV_LOCK_SELECTOR = [
   '.graphos-window__body',
   '.graphos-context-menu',
   '.graphos-color-picker',
+  '.slide[data-slide="modules"] .slide-content',
+  '.slide[data-slide="build"] .slide-content',
+  '.slide[data-slide="infrastructure"] .slide-content',
+  '.brief-layout',
+  '.bridge-layout',
   '#canvas-graphos',
   'button',
   'input',
@@ -176,6 +186,11 @@ const graphosWindowBodyEl = document.querySelector('.graphos-window__body');
 const graphosFeedEl = document.querySelector('.graphos-window__feed');
 const graphosNoteEl = document.querySelector('.graphos-note');
 const graphosRowEls = graphosFeedEl ? [...graphosFeedEl.querySelectorAll('.graphos-row')] : [];
+const bridgeQuestionEls = [...document.querySelectorAll('.bridge-question')];
+const bridgeResponseEl = document.querySelector('.bridge-response');
+const bridgeResponseTitleEl = bridgeResponseEl ? bridgeResponseEl.querySelector('.bridge-response__title') : null;
+const bridgeResponseBodyEl = bridgeResponseEl ? bridgeResponseEl.querySelector('.bridge-response__body') : null;
+const bridgeResponseMetaEl = bridgeResponseEl ? bridgeResponseEl.querySelector('.bridge-response__meta') : null;
 graphosToggleNodesEl = document.getElementById('graphos-toggle-nodes');
 graphosToggleLinksEl = document.getElementById('graphos-toggle-links');
 graphosTypeFilterEl = document.getElementById('graphos-type-filter');
@@ -189,6 +204,34 @@ hoverHudKickerEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__kicker') :
 hoverHudTitleEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__title') : null;
 hoverHudDetailEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__detail') : null;
 hoverHudMetaEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__meta') : null;
+
+const BRIDGE_ANSWER_MAP = {
+  who: {
+    title: 'For individuals, companies, and researchers.',
+    body: 'It is built for people who need clarity at a personal scale, for companies that need a unified operating layer, and for researchers who need a system they can inspect, extend, and validate.',
+    meta: ['Individuals', 'Companies', 'Researchers'],
+  },
+  what: {
+    title: 'A system for creating systems.',
+    body: 'VASTE is a metasystem of universal composable capacities. It can model everything from a back-office simulation to the most complex operational systems, because its primitives stay generic while the capacities stay composable.',
+    meta: ['System of systems', 'Composable capacities', 'Metasystem'],
+  },
+  where: {
+    title: 'It lives in the cloud, and it can be accessed from anywhere.',
+    body: 'The primary access point is the browser, with a mobile application planned for later. For companies, it can live on enterprise servers. A local machine version is possible in the long term, but it is not the current plan.',
+    meta: ['Browser', 'Mobile later', 'Enterprise servers'],
+  },
+  why: {
+    title: 'To put everything on the same level.',
+    body: 'The core problem is fragmentation. VASTE is designed to unify research and enterprise paradigms by mapping every element into a shared terrain, so work happens on a single consistent base instead of a stack of disconnected systems.',
+    meta: ['Unify paradigms', 'Shared terrain', 'Single base'],
+  },
+  how: {
+    title: 'Through one universal substrate and five primitives.',
+    body: 'The kernel and the five primitives are the universal layer that models and maps existing real-world systems. They are displayed in the logic layer below, and together they make it possible to represent almost any system with the same underlying grammar.',
+    meta: ['Kernel', 'Five primitives', 'Logic layer below'],
+  },
+};
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -208,7 +251,13 @@ function getGraphosScrollBody(target) {
 }
 function getScrollableAncestor(target) {
   if (!isElementTarget(target)) return null;
-  return target.closest('.graphos-window__body, .graphos-context-menu, .graphos-color-picker');
+  return target.closest(
+    '.graphos-window__body, .graphos-context-menu, .graphos-color-picker, ' +
+    '.slide[data-slide="modules"] .slide-content, ' +
+    '.slide[data-slide="build"] .slide-content, ' +
+    '.slide[data-slide="infrastructure"] .slide-content, ' +
+    '.brief-layout, .bridge-layout'
+  );
 }
 function canElementScroll(el, deltaY = 0) {
   if (!el) return false;
@@ -243,6 +292,31 @@ function shouldLockTouchNav(target) {
 function shouldLockWheelNav(target) {
   return targetMatchesSelector(target, WHEEL_NAV_LOCK_SELECTOR);
 }
+
+function renderBridgeAnswer(key) {
+  const answer = BRIDGE_ANSWER_MAP[key] || BRIDGE_ANSWER_MAP.who;
+  if (bridgeResponseTitleEl) bridgeResponseTitleEl.textContent = answer.title;
+  if (bridgeResponseBodyEl) bridgeResponseBodyEl.textContent = answer.body;
+  if (bridgeResponseMetaEl) {
+    bridgeResponseMetaEl.innerHTML = answer.meta.map(label => `<span>${label}</span>`).join('');
+  }
+  bridgeQuestionEls.forEach(btn => {
+    const active = btn.dataset.bridgeQuestion === key;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
+function initBridgeQuestions() {
+  if (!bridgeQuestionEls.length || !bridgeResponseTitleEl || !bridgeResponseBodyEl || !bridgeResponseMetaEl) return;
+  bridgeQuestionEls.forEach(btn => {
+    btn.addEventListener('click', () => {
+      renderBridgeAnswer(btn.dataset.bridgeQuestion || 'who');
+    });
+  });
+  renderBridgeAnswer('who');
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -7842,6 +7916,7 @@ window.addEventListener('beforeunload', cleanup);
 function init() {
   initUI();
   initScenes();
+  initBridgeQuestions();
   applyClasses();
   setThemeForSlide(slideEls[0].dataset.slide);
   startScene(slideEls[0].dataset.slide);

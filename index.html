@@ -133,14 +133,24 @@
     <div class="bridge-layout slide-content">
       <div class="bridge-copy">
         <p class="bridge-kicker">Before VASTE</p>
-        <h2>What if every answer had a node?</h2>
-        <p class="bridge-lead">Who owns it? What is it? Where does it live? Why does it matter? How does it connect? The graph is the simplest way to keep those questions alive.</p>
+        <h2>What if every answer had a Vertex?</h2>
+        <p class="bridge-lead">Who owns it? What is it? Where does it live? Why does it matter? How does it connect? The graph keeps those questions alive, and the logic layer below gives them a stable form.</p>
         <div class="bridge-questions" aria-label="Core questions">
-          <span>Who</span>
-          <span>What</span>
-          <span>Where</span>
-          <span>Why</span>
-          <span>How</span>
+          <button class="bridge-question is-active" type="button" data-bridge-question="who">Who</button>
+          <button class="bridge-question" type="button" data-bridge-question="what">What</button>
+          <button class="bridge-question" type="button" data-bridge-question="where">Where</button>
+          <button class="bridge-question" type="button" data-bridge-question="why">Why</button>
+          <button class="bridge-question" type="button" data-bridge-question="how">How</button>
+        </div>
+        <div class="bridge-response" aria-live="polite" aria-atomic="true">
+          <p class="bridge-response__kicker">Answer</p>
+          <h3 class="bridge-response__title">For people, companies, and researchers.</h3>
+          <p class="bridge-response__body">VASTE is designed for individuals who need structure, for businesses that need a unified operating layer, and for researchers who need a system they can probe, extend, and validate.</p>
+          <div class="bridge-response__meta">
+            <span>Individuals</span>
+            <span>Companies</span>
+            <span>Researchers</span>
+          </div>
         </div>
       </div>
       <div class="bridge-answer" aria-label="Graph logic">
@@ -167,7 +177,7 @@
             <span>Changes stay routed into the graph.</span>
           </article>
         </div>
-        <p class="bridge-answer__footer">VASTE turns those questions into a graph that can be built, read, and extended.</p>
+        <p class="bridge-answer__footer">The five primitives below can map any existing real-world system into a common substrate.</p>
       </div>
     </div>
   </section>
@@ -800,9 +810,9 @@
     <div class="slide-content brief-layout">
       <div class="brief-intro">
         <p class="tagline">Current state</p>
-        <h2>Architecture conceptuelle verrouillée.</h2>
-        <p class="brief-lead">Les primitives du core sont maintenant vertex, tie, surface, Environnement et actions.</p>
-        <p class="sub">Le raffinage de l'architecture est en place, la migration des modules a commencé, et les premiers tests ont déjà validé la direction sur Raspberry comme en local.</p>
+        <h2>Kernel stable, pur et figé.</h2>
+        <p class="brief-lead">Les primitives du core sont verrouillées: Vertex, Tie, Surface, Environnement et Actions.</p>
+        <p class="sub">Le système a été testé sur Raspberry et en environnement local. Les benchmarks tournent à plein régime, plus de 1800 tests de l'infrastructure passent, et tout est au vert.</p>
       </div>
 
       <div class="brief-stack" aria-label="Status overview">
@@ -815,16 +825,16 @@
           <strong>Local environment</strong>
         </div>
         <div class="brief-card">
-          <span>In progress</span>
-          <strong>Module migration</strong>
+          <span>Validated</span>
+          <strong>Benchmarks running at full speed</strong>
         </div>
         <div class="brief-card">
-          <span>Next flagship</span>
-          <strong>Vestiges</strong>
+          <span>Validated</span>
+          <strong>1800+ tests green</strong>
         </div>
       </div>
 
-      <p class="sub brief-summary">Transition courte avant le premier flagship : Vestiges.</p>
+      <p class="sub brief-summary">Actor et Workspace sont confirmés, validés et figés. La prochaine étape est de développer les autres extensions sur un kernel totalement pur, en vue du lancement du premier flagship.</p>
     </div>
   </section>
 
@@ -899,8 +909,8 @@
     <canvas class="slide-canvas" id="canvas-next"></canvas>
     <div class="slide-content">
       <h2>Next</h2>
-      <p>Accélérer</p>
-      <p class="sub">Marketing · Communication · Acquisition</p>
+      <p>Développer les autres extensions</p>
+      <p class="sub">Kernel pur · Primitives figées · Premier flagship proche</p>
     </div>
   </section>
 
@@ -938,6 +948,6 @@
 
 </div>
 
-<script src="script.js?v=20260421a"></script>
+<script src="script.js?v=20260527b"></script>
 </body>
 </html>
