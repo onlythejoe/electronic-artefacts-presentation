@@ -100,6 +100,7 @@ const ACTION_HOVER_SELECTOR = [
   '.build-card',
   '.build-step',
   '.build-surface',
+  '.horizon-stage',
   '.build-grid',
   '.build-path',
   '.build-assets',
@@ -112,7 +113,7 @@ const ACTION_HOVER_SELECTOR = [
   '.graphos-color-picker canvas',
   '.uc-case',
 ].join(', ');
-const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step';
+const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const GRAPHOS_TOUCH_HIT_SCALE = HAS_FINE_POINTER ? 1 : 1.6;
 const KEYBOARD_NAV_LOCK_SELECTOR = [
@@ -144,6 +145,7 @@ const TOUCH_NAV_LOCK_SELECTOR = [
   '.build-card',
   '.build-surface',
   '.build-assets',
+  '.horizon-stage',
   '.infra-card',
   '.infra-step',
   '.contact-cta',
@@ -157,6 +159,7 @@ const WHEEL_NAV_LOCK_SELECTOR = [
   '.slide[data-slide="modules"] .slide-content',
   '.slide[data-slide="build"] .slide-content',
   '.slide[data-slide="infrastructure"] .slide-content',
+  '.slide[data-slide="horizon"] .slide-content',
   '.brief-layout',
   '.bridge-layout',
   '#canvas-graphos',
@@ -256,6 +259,7 @@ function getScrollableAncestor(target) {
     '.slide[data-slide="modules"] .slide-content, ' +
     '.slide[data-slide="build"] .slide-content, ' +
     '.slide[data-slide="infrastructure"] .slide-content, ' +
+    '.slide[data-slide="horizon"] .slide-content, ' +
     '.brief-layout, .bridge-layout'
   );
 }
@@ -529,6 +533,37 @@ function buildHoverPayload(el) {
       title: readText(buildAssets, '.build-assets__lead strong'),
       detail: readText(buildAssets, '.build-assets__lead p'),
       meta: readText(buildAssets, '.build-assets__chips'),
+    };
+  }
+
+  const horizonStage = el.closest('.horizon-stage');
+  if (horizonStage) {
+    const stage = horizonStage.dataset.horizonStage || 'today';
+    const horizonMap = {
+      today: {
+        title: 'Enterprise operating systems',
+        detail: 'CRM / CMS, AI-assisted workflows, semantic knowledge systems, and composable runtime environments.',
+        meta: 'Current substrate',
+      },
+      next: {
+        title: 'Orchestration systems',
+        detail: 'Intelligent automation, simulation environments, distributed runtime infrastructures, and robotic coordination.',
+        meta: 'Next layer',
+      },
+      longterm: {
+        title: 'Autonomous infrastructure',
+        detail: 'Factories, aerospace runtime systems, medical orchestration, transport, fleets, and scientific infrastructures.',
+        meta: 'Long horizon',
+      },
+    };
+    const data = horizonMap[stage] || horizonMap.today;
+    return {
+      key: `horizon-stage:${stage}`,
+      kind: 'action',
+      kicker: 'Horizon',
+      title: data.title,
+      detail: data.detail,
+      meta: data.meta,
     };
   }
 
@@ -920,6 +955,8 @@ function applyTextMotion() {
     ? 0.45
     : slideKey === 'intro'
       ? 0.38
+      : slideKey === 'horizon'
+        ? 0.72
       : 1;
 
   activeTextNodes.forEach((node, index) => {
@@ -939,7 +976,7 @@ function refreshActiveSlideCache() {
   activeContentEl = activeSlideEl ? activeSlideEl.querySelector('.slide-content') : null;
   const activeSlideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
   activeTextNodes = activeContentEl && activeSlideKey !== 'founder'
-    ? [...activeContentEl.querySelectorAll('h2, p, a, .phase-timeline, .continuum-flow, .infra-card, .infra-step')]
+    ? [...activeContentEl.querySelectorAll('h2, p, a, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage')]
     : [];
   activeIntroTitleEl = activeSlideEl && activeSlideKey === 'intro'
     ? activeSlideEl.querySelector('[data-intro-type]')
@@ -5254,6 +5291,393 @@ class NextScene {
 
 
 // =============================================
+// SCENE: HORIZON
+// A long-range systems projection: today becomes infrastructure.
+// =============================================
+
+class HorizonScene {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.running = false;
+    this.raf = null;
+    this.t = 0;
+    this.stageDefs = [
+      {
+        key: 'today',
+        label: 'Today',
+        x: 0.66,
+        y: 0.29,
+        radius: 78,
+        nodeCount: 20,
+        nodeMin: 4.5,
+        nodeMax: 11,
+        hue: 210,
+      },
+      {
+        key: 'next',
+        label: 'Next',
+        x: 0.70,
+        y: 0.51,
+        radius: 112,
+        nodeCount: 28,
+        nodeMin: 5,
+        nodeMax: 13,
+        hue: 225,
+      },
+      {
+        key: 'longterm',
+        label: 'Long term',
+        x: 0.74,
+        y: 0.73,
+        radius: 150,
+        nodeCount: 38,
+        nodeMin: 5.5,
+        nodeMax: 14,
+        hue: 200,
+      },
+    ];
+    this._resize();
+    this._init();
+  }
+
+  _resize() {
+    this.w = this.canvas.width = this.canvas.offsetWidth;
+    this.h = this.canvas.height = this.canvas.offsetHeight;
+    this.mouseInfluence = Math.max(this.w, this.h) * 0.018;
+    this.anchors = this.stageDefs.map((stage, index) => ({
+      ...stage,
+      x: this.w * stage.x,
+      y: this.h * stage.y,
+      sway: index * 0.9,
+    }));
+  }
+
+  _init() {
+    this.clusters = this.stageDefs.map((stage, stageIndex) => {
+      const nodes = Array.from({ length: stage.nodeCount }, (_, i) => ({
+        angle: rand(0, Math.PI * 2),
+        radius: rand(stage.radius * 0.34, stage.radius * 1.02),
+        speed: rand(0.08, 0.18) * (0.8 + stageIndex * 0.18),
+        wobble: rand(0.2, 1),
+        size: rand(stage.nodeMin, stage.nodeMax),
+        alpha: rand(0.45, 1),
+        branch: i % 4 === 0,
+      }));
+
+      const links = [];
+      for (let i = 0; i < nodes.length; i++) {
+        links.push([i, (i + 1) % nodes.length]);
+        if (i % 3 === 0) {
+          links.push([i, (i + Math.floor(nodes.length / 2)) % nodes.length]);
+        }
+        if (i % 5 === 0) {
+          links.push([i, (i + 7) % nodes.length]);
+        }
+      }
+
+      return { ...stage, nodes, links };
+    });
+
+    this.pulses = Array.from({ length: 18 }, (_, i) => ({
+      phase: rand(0, 1),
+      speed: rand(0.065, 0.16),
+      lane: i % 3,
+      size: rand(1.5, 2.6),
+      tint: i % 3,
+    }));
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.t = 0;
+    this._loop();
+  }
+
+  stop() {
+    this.running = false;
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  resize() {
+    this._resize();
+    this._init();
+  }
+
+  _loop() {
+    if (!this.running) return;
+    this.t += 0.0062;
+    this._draw();
+    this.raf = requestAnimationFrame(() => this._loop());
+  }
+
+  _stageFocus(stageIndex) {
+    const cycle = (this.t * 0.22) % 3;
+    const dist = Math.min(
+      Math.abs(cycle - stageIndex),
+      3 - Math.abs(cycle - stageIndex),
+    );
+    return Math.max(0, 1 - dist);
+  }
+
+  _pathPoint(progress) {
+    const a = this.anchors[0];
+    const b = this.anchors[1];
+    const c = this.anchors[2];
+    if (progress <= 0.5) {
+      const t = progress / 0.5;
+      return {
+        x: lerp(a.x, b.x, easeInOutCubic(t)),
+        y: lerp(a.y, b.y, easeInOutCubic(t)),
+      };
+    }
+    const t = (progress - 0.5) / 0.5;
+    return {
+      x: lerp(b.x, c.x, easeInOutCubic(t)),
+      y: lerp(b.y, c.y, easeInOutCubic(t)),
+    };
+  }
+
+  _drawBackground(light) {
+    const { ctx } = this;
+    const bg = ctx.createRadialGradient(this.w * 0.56, this.h * 0.44, 10, this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.85);
+    bg.addColorStop(0, light ? 'rgba(255,255,255,1)' : 'rgba(8,8,10,1)');
+    bg.addColorStop(1, light ? 'rgba(240,239,234,1)' : 'rgba(2,2,3,1)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, this.w, this.h);
+
+    ctx.save();
+    ctx.strokeStyle = light ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+      const y = this.h * (0.18 + i * 0.11);
+      ctx.beginPath();
+      ctx.moveTo(this.w * 0.06, y);
+      ctx.lineTo(this.w * 0.94, y);
+      ctx.stroke();
+    }
+    for (let i = -3; i <= 3; i++) {
+      const x = this.w * 0.5 + i * (this.w * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(x, this.h * 0.1);
+      ctx.lineTo(x + this.w * 0.04, this.h * 0.88);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  _drawBackbone(light) {
+    const { ctx } = this;
+    const a = this.anchors[0];
+    const b = this.anchors[1];
+    const c = this.anchors[2];
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const glow = ctx.createLinearGradient(a.x - 40, a.y, c.x + 80, c.y);
+    glow.addColorStop(0, 'rgba(255,255,255,0)');
+    glow.addColorStop(0.24, light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.10)');
+    glow.addColorStop(0.52, light ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.18)');
+    glow.addColorStop(0.8, light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)');
+    glow.addColorStop(1, 'rgba(255,255,255,0)');
+
+    ctx.shadowColor = light ? 'rgba(0,0,0,0.12)' : 'rgba(124,160,255,0.14)';
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = glow;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(a.x - 20, a.y - 10);
+    ctx.bezierCurveTo(
+      a.x + 90, a.y - 40,
+      b.x - 30, b.y + 36,
+      b.x + 16, b.y,
+    );
+    ctx.bezierCurveTo(
+      b.x + 52, b.y - 28,
+      c.x - 30, c.y + 18,
+      c.x + 22, c.y - 6,
+    );
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.10)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(a.x - 20, a.y - 10);
+    ctx.bezierCurveTo(
+      a.x + 90, a.y - 40,
+      b.x - 30, b.y + 36,
+      b.x + 16, b.y,
+    );
+    ctx.bezierCurveTo(
+      b.x + 52, b.y - 28,
+      c.x - 30, c.y + 18,
+      c.x + 22, c.y - 6,
+    );
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  _drawStage(stage, cluster, stageIndex, light) {
+    const { ctx } = this;
+    const anchor = this.anchors[stageIndex];
+    const focus = this._stageFocus(stageIndex);
+    const mouseXNorm = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
+    const mouseYNorm = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
+    const swayX = mouseXNorm * this.mouseInfluence * (0.8 + stageIndex * 0.15);
+    const swayY = mouseYNorm * this.mouseInfluence * (0.6 + stageIndex * 0.12);
+
+    ctx.save();
+    ctx.translate(anchor.x + swayX, anchor.y + swayY);
+
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, stage.radius * (1.5 + focus * 0.7));
+    halo.addColorStop(0, light ? `rgba(0,0,0,${0.12 + focus * 0.07})` : `rgba(255,255,255,${0.15 + focus * 0.12})`);
+    halo.addColorStop(0.42, light ? `rgba(0,0,0,${0.05 + focus * 0.04})` : `rgba(255,255,255,${0.07 + focus * 0.06})`);
+    halo.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, stage.radius * (1.5 + focus * 0.7), 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = light ? `rgba(0,0,0,${0.10 + focus * 0.08})` : `rgba(255,255,255,${0.10 + focus * 0.12})`;
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.arc(0, 0, stage.radius * 0.56, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, stage.radius * 0.9, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.globalCompositeOperation = 'screen';
+    cluster.links.forEach(([fromIndex, toIndex], linkIndex) => {
+      const from = cluster.nodes[fromIndex];
+      const to = cluster.nodes[toIndex];
+      if (!from || !to) return;
+      const p1 = this._clusterPoint(from, stageIndex, swayX, swayY);
+      const p2 = this._clusterPoint(to, stageIndex, swayX, swayY);
+      const alpha = 0.03 + focus * 0.08 + (linkIndex % 3) * 0.008;
+      ctx.strokeStyle = light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`;
+      ctx.lineWidth = linkIndex % 5 === 0 ? 1.1 : 0.8;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    });
+
+    cluster.nodes.forEach((node, nodeIndex) => {
+      const p = this._clusterPoint(node, stageIndex, swayX, swayY);
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * (0.8 + stageIndex * 0.18) + node.angle);
+      const radius = node.size * (0.76 + pulse * 0.36 + focus * 0.12);
+      const alpha = (0.06 + node.alpha * 0.12 + focus * 0.10) * (stageIndex === 2 ? 1.1 : 1);
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.sin(node.angle + this.t * 0.3) * 0.4);
+      ctx.fillStyle = light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`;
+      ctx.strokeStyle = light ? `rgba(0,0,0,${alpha * 0.72})` : `rgba(255,255,255,${alpha * 0.72})`;
+      ctx.lineWidth = 1;
+
+      if (nodeIndex % 7 === 0) {
+        roundRect(ctx, -radius * 0.7, -radius * 0.42, radius * 1.4, radius * 0.84, radius * 0.32);
+        ctx.fill();
+      } else if (nodeIndex % 5 === 0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.68, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (node.branch) {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 1.15, 0, Math.PI * 2);
+        ctx.strokeStyle = light ? `rgba(0,0,0,${alpha * 0.26})` : `rgba(255,255,255,${alpha * 0.28})`;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  _clusterPoint(node, stageIndex, swayX, swayY) {
+    const anchor = this.anchors[stageIndex];
+    const clusterSpeed = 0.78 + stageIndex * 0.18;
+    const x = anchor.x + swayX + Math.cos(node.angle + this.t * (node.speed * clusterSpeed)) * node.radius;
+    const y = anchor.y + swayY + Math.sin(node.angle * 1.18 + this.t * (node.speed * clusterSpeed * 0.86)) * node.radius * 0.58;
+    return { x, y };
+  }
+
+  _drawPulses(light) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    this.pulses.forEach((pulse, index) => {
+      const progress = (this.t * pulse.speed + pulse.phase) % 1;
+      const point = this._pathPoint(progress);
+      const nextPoint = this._pathPoint((progress + 0.012) % 1);
+      const dx = nextPoint.x - point.x;
+      const dy = nextPoint.y - point.y;
+      const angle = Math.atan2(dy, dx);
+      const offset = Math.sin(this.t * 1.8 + index) * (14 + pulse.lane * 6);
+      const size = pulse.size * (1 + pulse.lane * 0.22);
+      const alpha = 0.12 + pulse.lane * 0.03 + Math.sin(this.t * 0.9 + pulse.phase * Math.PI * 2) * 0.02;
+      const color = pulse.tint === 0
+        ? `rgba(124,160,255,${alpha})`
+        : pulse.tint === 1
+          ? `rgba(255,255,255,${alpha})`
+          : `rgba(159,228,255,${alpha})`;
+
+      ctx.save();
+      ctx.translate(point.x + Math.cos(angle + Math.PI / 2) * offset, point.y + Math.sin(angle + Math.PI / 2) * offset);
+      ctx.rotate(angle);
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      roundRect(ctx, -size * 1.2, -size * 0.55, size * 2.4, size * 1.1, size);
+      ctx.fill();
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  _draw() {
+    const { ctx } = this;
+    const light = isLightTheme();
+    ctx.clearRect(0, 0, this.w, this.h);
+
+    this._drawBackground(light);
+
+    const centerGlow = ctx.createRadialGradient(this.w * 0.64, this.h * 0.48, 0, this.w * 0.64, this.h * 0.48, Math.max(this.w, this.h) * 0.5);
+    centerGlow.addColorStop(0, light ? 'rgba(0,0,0,0.04)' : 'rgba(124,160,255,0.09)');
+    centerGlow.addColorStop(0.35, light ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)');
+    centerGlow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = centerGlow;
+    ctx.fillRect(0, 0, this.w, this.h);
+
+    this._drawBackbone(light);
+
+    this.clusters.forEach((cluster, index) => {
+      this._drawStage(this.stageDefs[index], cluster, index, light);
+    });
+
+    this._drawPulses(light);
+  }
+}
+
+
+// =============================================
 // SCENE: POSITIONING
 // A convergence climax: system collapses into a single realization point.
 // =============================================
@@ -7731,6 +8155,9 @@ const SCENE_MAP = {
   // Next — acceleration cloud of plus signs
   next:        [NextScene,        null],
 
+  // Horizon — long-term systems projection and evolution lattice
+  horizon:     [HorizonScene,     null],
+
   // Continuum — knowledge / desire / acquisition progression
   continuum:   [SequenceScene,    null],
 
@@ -7760,6 +8187,7 @@ function initScenes() {
     combination: 'canvas-combination',
     usecases:    'canvas-usecases',
     next:        'canvas-next',
+    horizon:     'canvas-horizon',
     physical:    'canvas-physical',
     onesystem:   'canvas-onesystem',
     rupture:     'canvas-rupture',

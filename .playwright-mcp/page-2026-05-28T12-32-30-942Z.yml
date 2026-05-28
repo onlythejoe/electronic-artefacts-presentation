@@ -1,0 +1,601 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 01 / 30
+  - navigation "Slide navigation" [ref=e3]
+  - complementary:
+    - generic: Hover
+  - generic [ref=e6]:
+    - generic [ref=e9]:
+      - note [ref=e10]: Interactive experience · desktop recommended
+      - paragraph [ref=e11]: VASTE briefing
+      - heading [level=2] [ref=e12]
+      - paragraph [ref=e13]: This is an interactive experience designed for desktop.
+      - paragraph [ref=e14]: Some pages are fully interactive. You are exploring a demo of the VASTE system, not the system itself.
+      - paragraph [ref=e15]:
+        - generic [ref=e16]: ⇅
+        - generic [ref=e17]: To navigate, use the mouse wheel, keyboard arrows, or the rail on the right.
+    - generic:
+      - generic:
+        - heading "Electronic Artefacts" [level=2]
+        - paragraph: Recent structure, designed from the start for a large-scale, scalable infrastructure.
+        - paragraph: Joey-Néot Marquet, founder & CTO
+    - generic:
+      - generic:
+        - heading "Execution" [level=2]
+        - paragraph: Design · Architecture · Development
+        - paragraph: Driven solo to move fast with strong coherence.
+    - generic:
+      - generic:
+        - heading "Research & Systems" [level=2]
+        - paragraph: OS · ML · Simulations · UX
+        - paragraph: Not products yet, but the technological infrastructure.
+    - generic:
+      - generic:
+        - heading "Autonomy" [level=2]
+        - paragraph: Build faster, better, without dependency.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Before VASTE
+          - heading "What if every answer had a Vertex?" [level=2]
+          - paragraph: Who owns it? What is it? Where does it live? Why does it matter? How does it connect? The graph keeps those questions alive, and the logic layer below gives them a stable form.
+          - generic "Core questions":
+            - button "Who" [pressed]
+            - button "What"
+            - button "Where"
+            - button "Why"
+            - button "How"
+          - generic:
+            - paragraph: Answer
+            - heading "For individuals, companies, and researchers." [level=3]
+            - paragraph: It is built for people who need clarity at a personal scale, for companies that need a unified operating layer, and for researchers who need a system they can inspect, extend, and validate.
+            - generic:
+              - generic: Individuals
+              - generic: Companies
+              - generic: Researchers
+        - generic "Graph logic":
+          - paragraph: The logic layer
+          - generic:
+            - article:
+              - strong: Vertex
+              - generic: Entities stay named and traceable.
+            - article:
+              - strong: Tie
+              - generic: Relations stay explicit and reusable.
+            - article:
+              - strong: Surface
+              - generic: Public projection stays visible and usable.
+            - article:
+              - strong: Environment
+              - generic: Meaning stays local, consistent, and alive.
+            - article:
+              - strong: Actions
+              - generic: Changes stay routed into the graph.
+          - paragraph: The five primitives below can map any existing real-world system into a common substrate.
+    - generic:
+      - generic:
+        - heading "VASTE" [level=2]
+        - paragraph: A universal, composable capacity system.
+        - paragraph: A core that can assemble almost any software domain from the same primitives.
+    - generic:
+      - button "About this demonstration":
+        - generic: Interactive demo
+        - strong: Vertex & Tie logic
+      - generic "Core primitives window" [ref=e19]:
+        - button "Move primitive window" [ref=e20]:
+          - generic [ref=e21]: VASTE
+          - generic [ref=e22]: live primitive demo
+        - generic:
+          - button "Vertices" [pressed] [ref=e24]
+          - button "Ties" [pressed] [ref=e25]
+          - generic [ref=e26]:
+            - generic [ref=e27]: Type
+            - combobox "Filter node type" [ref=e28]:
+              - option "All" [selected]
+              - option "context"
+              - option "core"
+              - option "intent"
+              - option "public"
+              - option "surface"
+              - option "user"
+              - option "workspace"
+          - generic [ref=e29]: 7 vertices · 5 ties
+        - generic [ref=e30]:
+          - list "Core primitives" [ref=e31]:
+            - listitem "Focus vertices" [ref=e32]:
+              - strong [ref=e33]: Vertex
+              - generic [ref=e34]: identity / owner / state
+              - generic [ref=e35]: canonical primitive
+            - listitem "Focus ties" [ref=e36]:
+              - strong [ref=e37]: Tie
+              - generic [ref=e38]: relation / flow / contract
+              - generic [ref=e39]: connective path
+            - listitem "Focus surface" [ref=e40]:
+              - strong [ref=e41]: Surface
+              - generic [ref=e42]: public view / projection / display
+              - generic [ref=e43]: visible layer
+            - listitem "Focus environment" [ref=e44]:
+              - strong [ref=e45]: Environment
+              - generic [ref=e46]: signals / memory / semantics
+              - generic [ref=e47]: semantic registry
+            - listitem "Focus actions" [ref=e48]:
+              - strong [ref=e49]: Actions
+              - generic [ref=e50]: triggers / routing / effects
+              - generic [ref=e51]: routed change
+          - paragraph: Tap rows to focus. On touch, tap empty space to create a vertex and tap a vertex to open its Environment.
+      - generic:
+        - heading "VASTE Core" [level=2]
+        - paragraph: Interactive live demo of the primitive system. Tap rows to focus, drag vertices in place, and explore how Environment and surfaces shape the graph.
+        - paragraph: "Desktop: right-click to edit. Mobile: use Actions for color, type, and delete. This is a demonstration of the logic, not the system itself."
+    - generic:
+      - generic:
+        - heading "Unification" [level=2]
+        - paragraph: One system. One structure.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Infrastructure
+          - heading "Surface projects. Environment defines semantics." [level=2]
+          - paragraph: The system is organized as a canonical core graph. Surface turns the system into a public projection, Environment stores the registry, Actions route changes, and extensions enrich the middle layer.
+          - paragraph:
+            - button "Surface"
+            - generic: →
+            - button "Environment"
+            - generic: →
+            - button "Actions"
+            - generic: →
+            - button "Extensions"
+            - generic: →
+            - button "Core"
+          - paragraph: Core is the first canonical vertex. Inside it, only vertices and ties define topology.
+        - generic "Infrastructure layers":
+          - button "Surface Public projection Pages, UI, visible output.":
+            - generic: Surface
+            - strong: Public projection
+            - generic: Pages, UI, visible output.
+          - button "Environment Global registry Semantics, policy, state.":
+            - generic: Environment
+            - strong: Global registry
+            - generic: Semantics, policy, state.
+          - button "Actions Action corridor User & system changes routed into the graph.":
+            - generic: Actions
+            - strong: Action corridor
+            - generic: User & system changes routed into the graph.
+          - button "Extensions Middle layer enrichment Capabilities attached to canonical nodes.":
+            - generic: Extensions
+            - strong: Middle layer enrichment
+            - generic: Capabilities attached to canonical nodes.
+          - button "Core Vertices and ties only Topology remains canonical.":
+            - generic: Core
+            - strong: Vertices and ties only
+            - generic: Topology remains canonical.
+        - paragraph: Hover a layer or move across the canvas to bias the corresponding part of the architecture.
+    - generic:
+      - generic:
+        - generic: Actor
+        - generic: Assets
+        - generic: Flow
+        - generic: Intelligence
+        - generic: Knowledge
+        - generic: Perception
+        - generic: Program
+        - generic: Studio
+        - generic: Workspace
+      - generic:
+        - generic:
+          - paragraph: Extension store
+          - heading "Extensions" [level=2]
+          - paragraph: A curated extension store for installable capacities. Core primitives stay canonical, add-ons stay composable, and new extensions can ship independently.
+          - paragraph: "The store is the product layer: install, bundle, and extend without breaking the runtime."
+        - generic:
+          - article:
+            - generic:
+              - generic: Curated marketplace
+              - generic: 9 packages
+            - strong: Extensions ship like capacities.
+            - paragraph: Every capacity sits on the same primitive layer, so the catalog can grow without turning the core into a monolith.
+            - generic:
+              - generic: Core
+              - generic: Public
+              - generic: Add-ons
+              - generic: Research
+            - generic:
+              - generic: Installable stack
+              - generic: Versioned catalog
+          - generic:
+            - article:
+              - generic:
+                - generic: "01"
+                - generic: Included
+              - strong: Actor
+              - paragraph: Entry into the graph, authentication, identity, permissions.
+              - generic:
+                - generic: Core package
+                - generic: Open
+            - article:
+              - generic:
+                - generic: "02"
+                - generic: Included
+              - strong: Assets
+              - paragraph: Create files, import any file type, and keep all resources attached to the graph.
+              - generic:
+                - generic: Core package
+                - generic: Open
+            - article:
+              - generic:
+                - generic: "03"
+                - generic: Available
+              - strong: Flow
+              - paragraph: Automations, workflows, triggers, and event routing.
+              - generic:
+                - generic: Library
+                - generic: Install
+            - article:
+              - generic:
+                - generic: "04"
+                - generic: Available
+              - strong: Intelligence
+              - paragraph: AI, agents, binding, negotiation, planning, reasoning, reflection, strategy, cognition.
+              - generic:
+                - generic: AI stack
+                - generic: Install
+            - article:
+              - generic:
+                - generic: "05"
+                - generic: Available
+              - strong: Knowledge
+              - paragraph: Knowledge graph enrichment, memory, retrieval, and deeper graph semantics.
+              - generic:
+                - generic: Knowledge layer
+                - generic: Install
+            - article:
+              - generic:
+                - generic: "06"
+                - generic: Available
+              - strong: Perception
+              - paragraph: "Connect the physical world to the graph: sensors, devices, domotics, real-world signals."
+              - generic:
+                - generic: Real world
+                - generic: Connect
+            - article:
+              - generic:
+                - generic: "07"
+                - generic: Available
+              - strong: Program
+              - paragraph: "Code inside the graph: workflows, automation logic, and executable behavior."
+              - generic:
+                - generic: Logic layer
+                - generic: Open
+            - article:
+              - generic:
+                - generic: "08"
+                - generic: Available
+              - strong: Studio
+              - paragraph: "Create and edit any experience surface: websites, apps, audio, 3D, and more."
+              - generic:
+                - generic: Creative surface
+                - generic: Open
+            - article:
+              - generic:
+                - generic: "09"
+                - generic: Included
+              - strong: Workspace
+              - paragraph: "Workspaces inside the graph: spaces to develop, organize, and operate inside VASTE."
+              - generic:
+                - generic: Core package
+                - generic: Open
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Build
+          - heading "Studio designs experiences. Program codes the graph. Environment gives them type." [level=2]
+          - paragraph: VASTE is built from capacities. Studio composes the public layer, Program orchestrates logical behavior, Environment defines the local registry for each vertex, extensions enrich the middle layer, and Assets lets any file type land on a vertex.
+          - paragraph: The core remains canonical; everything else attaches around it as composable capacity.
+          - paragraph:
+            - button "Studio"
+            - generic: →
+            - button "Program"
+            - generic: →
+            - button "Environment"
+            - generic: →
+            - button "Vertex"
+            - generic: →
+            - button "Extensions"
+            - generic: →
+            - button "Assets"
+        - generic:
+          - button "Studio Public surface Studio projects experience Design the creative layer Pages, screens, audio, 3D, outputs, projections.":
+            - generic:
+              - generic: Studio
+              - generic: Public surface
+            - generic:
+              - generic:
+                - generic: studio / preview
+              - generic:
+                - generic:
+                  - generic: Studio projects experience
+                  - strong: Design the creative layer
+                  - paragraph: Pages, screens, audio, 3D, outputs, projections.
+                - generic:
+                  - generic: Layout
+                  - generic: UI
+                  - generic: Projection
+          - generic:
+            - button "01 Orchestration Program Orchestrate flows, trigger actions, and compose vertices into repeatable systems. compose / route / publish Live":
+              - generic:
+                - generic: "01"
+                - generic: Orchestration
+              - strong: Program
+              - paragraph: Orchestrate flows, trigger actions, and compose vertices into repeatable systems.
+              - generic:
+                - generic: compose / route / publish
+                - generic: Live
+            - button "02 Registry Environment Define what a vertex is in Environment. Registry, semantics, policy. type / semantics / policy Global":
+              - generic:
+                - generic: "02"
+                - generic: Registry
+              - strong: Environment
+              - paragraph: Define what a vertex is in Environment. Registry, semantics, policy.
+              - generic:
+                - generic: type / semantics / policy
+                - generic: Global
+            - button "03 Topology Vertices Ties define topology. Vertices keep the graph canonical. vertices / ties / graph Canonical":
+              - generic:
+                - generic: "03"
+                - generic: Topology
+              - strong: Vertices
+              - paragraph: Ties define topology. Vertices keep the graph canonical.
+              - generic:
+                - generic: vertices / ties / graph
+                - generic: Canonical
+            - button "04 Capabilities Extensions Attach capacity. The system can assemble actor, assets, flow, intelligence, knowledge, perception, program, studio, and workspace.":
+              - generic:
+                - generic: "04"
+                - generic: Capabilities
+              - strong: Extensions
+              - paragraph: Attach capacity. The system can assemble actor, assets, flow, intelligence, knowledge, perception, program, studio, and workspace.
+              - generic:
+                - generic: Actor
+                - generic: Flow
+                - generic: Intelligence
+          - button "Assets extension Any file type on a vertex 3D, images, video, code, documents, data.":
+            - generic:
+              - generic: Assets extension
+              - strong: Any file type on a vertex
+              - paragraph: 3D, images, video, code, documents, data.
+            - generic:
+              - generic: .glb
+              - generic: .pdf
+              - generic: .png
+              - generic: .mp4
+              - generic: .md
+              - generic: .csv
+              - generic: .tsx
+              - generic: .json
+    - generic:
+      - generic:
+        - heading "Combination" [level=2]
+        - paragraph: Value comes from assembly.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Use cases
+          - paragraph: Anywhere there's structure to define.
+        - navigation "Domain families":
+          - button "Operations Run business, logistics, and support flows. 11 domains" [pressed]:
+            - generic:
+              - strong: Operations
+              - generic: Run business, logistics, and support flows.
+              - generic: 11 domains
+          - button "Platform Compose systems, data, and automation. 14 domains":
+            - generic:
+              - strong: Platform
+              - generic: Compose systems, data, and automation.
+              - generic: 14 domains
+          - button "Research Simulate, measure, and model knowledge. 9 domains":
+            - generic:
+              - strong: Research
+              - generic: Simulate, measure, and model knowledge.
+              - generic: 9 domains
+          - button "Experience Publish, design, and communicate. 11 domains":
+            - generic:
+              - strong: Experience
+              - generic: Publish, design, and communicate.
+              - generic: 11 domains
+        - generic "Domain use cases":
+          - generic:
+            - generic:
+              - paragraph: Operations
+              - paragraph: Run business, logistics, and support flows.
+            - generic:
+              - generic: CRM
+              - generic: Logistics
+              - generic: Finance
+              - generic: Retail
+              - generic: Marketplace
+              - generic: Support
+              - generic: Planning
+              - generic: Scheduling
+              - generic: Workflow
+              - generic: Operations
+              - generic: Infrastructure
+        - generic: Scroll on the selector · hover a domain for detail
+    - generic:
+      - generic:
+        - heading "Perception" [level=2]
+        - paragraph: Digital structure meeting the physical world.
+        - paragraph: Sensors · objects · home · behavior
+    - generic:
+      - generic:
+        - heading "One system." [level=2]
+        - heading "One language." [level=2]
+        - heading "One source of truth." [level=2]
+    - generic:
+      - generic:
+        - heading "The real break" [level=2]
+        - paragraph: Move from fragmented tools to a single infrastructure.
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - img "Vestiges logo"
+            - paragraph: Material archive
+            - heading "Vestiges" [level=2]
+          - generic:
+            - paragraph: "The flagship material archive: knowledge, craftsmanship, and the memory of matter."
+            - paragraph: A curated field of rare objects, fragments, and digital traces.
+            - link "@vestiges.world":
+              - /url: https://instagram.com/vestiges.world
+    - generic:
+      - generic:
+        - heading "Phases" [level=2]
+        - generic "System phases":
+          - generic:
+            - strong: Knowledge
+            - emphasis: Discovery
+          - generic:
+            - strong: Curation
+            - emphasis: Distillation
+          - generic:
+            - strong: Marketplace
+            - emphasis: Premium flow
+    - generic [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]: Knowledge
+        - generic [ref=e55]: Desire
+        - generic [ref=e56]: Acquisition
+      - paragraph [ref=e57]: The transition from one phase to the next remains fluid, continuous, almost organic.
+    - generic:
+      - generic:
+        - heading "Positioning" [level=2]
+        - paragraph: Premium · Selective
+        - paragraph: Certified works, traceability, global trust
+    - generic:
+      - generic:
+        - heading "Advantage" [level=2]
+        - paragraph: Full-stack solo builder
+        - paragraph: Lower costs · Speed · Coherence
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Current state
+          - heading "Kernel stable, pure, and frozen." [level=2]
+          - paragraph: "The core primitives are locked: Vertex, Tie, Surface, Environment, and Actions."
+          - paragraph: The system has been tested on Raspberry and in a local environment. Benchmarks are running at full speed, more than 1,800 infrastructure tests pass, and everything is green.
+        - generic "Status overview":
+          - generic:
+            - generic: Validated
+            - strong: Raspberry environment
+          - generic:
+            - generic: Validated
+            - strong: Local environment
+          - generic:
+            - generic: Validated
+            - strong: Benchmarks running at full speed
+          - generic:
+            - generic: Validated
+            - strong: 1800+ tests green
+        - paragraph: Actor and Workspace are confirmed, validated, and frozen. The next step is to develop the other extensions on a fully pure kernel, in preparation for the launch of the first flagship.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Partnerships
+          - heading "Build the research OS with schools and institutions." [level=2]
+          - paragraph: Education, public institutions, and research partners can help define new modules and new ways of working.
+          - paragraph: Open to collaborations, co-development, and research partnerships.
+        - generic "Partnership areas":
+          - generic:
+            - generic: Education
+            - strong: Co-design new modules
+          - generic:
+            - generic: Institutions
+            - strong: Pilot and validate workflows
+          - generic:
+            - generic: Public
+            - strong: Open experimentation
+          - generic:
+            - generic: Research
+            - strong: Shared exploration
+        - paragraph: The project grows faster when it is built with partners.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Business model
+          - heading "Subscriptions keep the platform moving." [level=2]
+          - paragraph: The core can stay agnostic while recurring plans and paid extensions finance the system's evolution.
+          - paragraph: A public foundation, premium capabilities, and institutional access.
+        - generic "Business model layers":
+          - generic:
+            - generic: Subscriptions
+            - strong: Recurring access
+          - generic:
+            - generic: Extensions
+            - strong: Paid capabilities
+          - generic:
+            - generic: Institutions
+            - strong: Education and research tiers
+          - generic:
+            - generic: Core
+            - strong: Open, agnostic base
+        - paragraph: The long-term model is continuous access, modular expansion, and partner-backed development.
+    - generic:
+      - generic:
+        - heading "Next" [level=2]
+        - paragraph: Develop the other extensions
+        - paragraph: Pure kernel · Frozen primitives · First flagship close
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Horizon
+          - heading "From composable operating systems to autonomous critical infrastructures." [level=2]
+          - paragraph: "VASTE is designed as an execution substrate: deterministic, graph-native, replayable, and modular enough to absorb more complex operating domains over time."
+          - paragraph: This is an architectural horizon, not a commercial promise.
+          - paragraph: VASTE is not being designed only to run software. It is being designed to orchestrate systems.
+        - generic "Evolution timeline":
+          - button "Today stage":
+            - generic: Today
+            - strong: Enterprise operating systems
+            - paragraph: CRM / CMS, AI-assisted workflows, semantic knowledge systems, composable runtime environments.
+            - generic:
+              - generic: CRM / CMS
+              - generic: AI workflows
+              - generic: Semantic systems
+              - generic: Composable runtime
+          - button "Next stage":
+            - generic: Next
+            - strong: Orchestration systems
+            - paragraph: Intelligent automation, simulation environments, distributed runtime infrastructures, robotic coordination.
+            - generic:
+              - generic: Automation
+              - generic: Simulation
+              - generic: Distributed runtime
+              - generic: Robotic coordination
+          - button "Long term stage":
+            - generic: Long term
+            - strong: Autonomous infrastructure
+            - paragraph: Autonomous factories, aerospace runtime systems, medical orchestration infrastructures, intelligent transportation systems, robotic fleets, distributed machine ecologies, scientific infrastructures.
+            - generic:
+              - generic: Factories
+              - generic: Aerospace
+              - generic: Medical
+              - generic: Transportation
+              - generic: Robotic fleets
+              - generic: Scientific systems
+    - generic:
+      - generic:
+        - heading "Open" [level=2]
+        - paragraph: Collaborations
+        - paragraph: Product · Strategy · Development
+    - generic:
+      - generic:
+        - generic "Electronic Artefacts":
+          - generic: electronic
+          - generic: Artefacts
+        - paragraph: Build systems that do not exist yet.
+        - paragraph: Ready to become products.
+    - generic:
+      - generic:
+        - heading "Let's connect" [level=2]
+        - paragraph: If that resonates, let's talk.
+        - link "electronic-artefacts@gmail.com":
+          - /url: mailto:electronic-artefacts@gmail.com
+        - paragraph: Or write directly by email for a quick introduction.

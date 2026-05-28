@@ -2092,6 +2092,197 @@ body[data-theme="light"] .contact-cta:hover {
   opacity: 0.92;
 }
 
+.slide[data-slide="horizon"] .slide-canvas {
+  opacity: 0.84;
+}
+
+.slide[data-slide="horizon"] .slide-content {
+  width: min(1220px, 92vw);
+  margin: 0 auto;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.92fr) minmax(360px, 1.08fr);
+  gap: clamp(28px, 4vw, 72px);
+  align-items: center;
+  max-height: calc(var(--app-height) - (var(--slide-pad) * 2));
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.slide[data-slide="horizon"] .slide-content::-webkit-scrollbar {
+  display: none;
+}
+
+.horizon-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 560px;
+}
+
+.slide[data-slide="horizon"] h2 {
+  max-width: 12ch;
+  font-size: clamp(2.4rem, 5.2vw, 4.9rem);
+  letter-spacing: -0.055em;
+}
+
+.horizon-lead {
+  max-width: 44ch;
+  font-size: clamp(0.98rem, 1.2vw, 1.12rem);
+  line-height: 1.72;
+  color: rgba(255,255,255,0.64);
+}
+
+.horizon-note {
+  max-width: 30ch;
+}
+
+.horizon-timeline {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  padding: 18px 0 18px 28px;
+}
+
+.horizon-track {
+  position: absolute;
+  left: 12px;
+  top: 18px;
+  bottom: 18px;
+  width: 1px;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.02),
+      rgba(255,255,255,0.16) 14%,
+      rgba(255,255,255,0.10) 50%,
+      rgba(255,255,255,0.16) 84%,
+      rgba(255,255,255,0.02));
+  opacity: 0.9;
+}
+
+.horizon-stage {
+  position: relative;
+  padding: 20px 20px 18px 24px;
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,0.09);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.03)),
+    rgba(255,255,255,0.025);
+  box-shadow:
+    0 18px 40px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  opacity: 0;
+  transform: translate3d(0, 18px, 0) scale(0.985);
+  transition:
+    opacity 0.74s var(--ease-out),
+    transform 0.74s var(--ease-out),
+    border-color 0.24s var(--ease-out),
+    background 0.24s var(--ease-out),
+    box-shadow 0.24s var(--ease-out);
+}
+
+.slide.is-active .horizon-stage {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.slide.is-active .horizon-stage:nth-child(2) { transition-delay: 0.08s; }
+.slide.is-active .horizon-stage:nth-child(3) { transition-delay: 0.18s; }
+.slide.is-active .horizon-stage:nth-child(4) { transition-delay: 0.28s; }
+
+.horizon-stage::before {
+  content: '';
+  position: absolute;
+  left: -32px;
+  top: 28px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.28);
+  box-shadow:
+    0 0 0 10px rgba(255,255,255,0.035),
+    0 0 20px rgba(255,255,255,0.08);
+}
+
+.horizon-stage:hover {
+  border-color: rgba(255,255,255,0.16);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04)),
+    rgba(255,255,255,0.035);
+  box-shadow:
+    0 22px 48px rgba(0,0,0,0.22),
+    0 0 32px rgba(124,160,255,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+  transform: translate3d(4px, -1px, 0) scale(1.01);
+}
+
+.horizon-stage:focus-visible {
+  outline: none;
+  border-color: rgba(255,255,255,0.18);
+}
+
+.horizon-stage__kicker {
+  display: inline-flex;
+  margin-bottom: 6px;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.46);
+}
+
+.horizon-stage strong {
+  display: block;
+  max-width: 18ch;
+  font-size: clamp(1.05rem, 1.35vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: rgba(255,255,255,0.95);
+}
+
+.horizon-stage p {
+  max-width: 46ch;
+  margin-top: 8px;
+  font-size: clamp(0.86rem, 1.02vw, 0.98rem);
+  line-height: 1.62;
+  color: rgba(255,255,255,0.58);
+}
+
+.horizon-stage__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.horizon-stage__chips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.74);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.horizon-closing {
+  max-width: 30ch;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: clamp(1rem, 1.3vw, 1.22rem);
+  line-height: 1.58;
+  letter-spacing: -0.02em;
+  color: rgba(255,255,255,0.82);
+  text-align: left;
+}
+
 .slide[data-slide="modules"] {
   --module-x: 50%;
   --module-y: 50%;
@@ -4438,6 +4629,7 @@ body::after {
   .slide[data-slide="infrastructure"] .slide-content,
   .slide[data-slide="build"] .slide-content,
   .slide[data-slide="positioning"] .slide-content,
+  .slide[data-slide="horizon"] .slide-content,
   .brief-layout {
     max-width: min(100%, 580px);
     max-height: calc(var(--app-height) - (var(--slide-pad) * 2));
@@ -5544,6 +5736,7 @@ body::after {
   .slide[data-slide="infrastructure"] .slide-content,
   .slide[data-slide="build"] .slide-content,
   .slide[data-slide="positioning"] .slide-content,
+  .slide[data-slide="horizon"] .slide-content,
   .brief-layout {
     max-width: min(100%, 520px);
     gap: 14px;
@@ -5553,6 +5746,7 @@ body::after {
   .slide[data-slide="infrastructure"] .slide-content,
   .slide[data-slide="build"] .slide-content,
   .slide[data-slide="positioning"] .slide-content,
+  .slide[data-slide="horizon"] .slide-content,
   .brief-layout {
     grid-template-columns: 1fr;
   }
@@ -5587,6 +5781,7 @@ body::after {
   .slide[data-slide="infrastructure"] h2,
   .slide[data-slide="build"] .build-intro h2,
   .slide[data-slide="positioning"] h2,
+  .slide[data-slide="horizon"] h2,
   .brief-layout h2,
   .vestiges-copy h2 {
     font-size: clamp(1.55rem, 6.8vw, 2.2rem);
@@ -5596,6 +5791,7 @@ body::after {
   .modules-layout,
   .build-layout,
   .infra-layout,
+  .horizon-layout,
   .brief-layout {
     gap: 14px;
   }
@@ -5603,8 +5799,48 @@ body::after {
   .modules-intro,
   .build-intro,
   .infra-intro,
+  .horizon-copy,
   .brief-intro {
     gap: 8px;
+  }
+
+  .horizon-timeline {
+    gap: 10px;
+    padding-left: 20px;
+  }
+
+  .horizon-track {
+    left: 10px;
+  }
+
+  .horizon-stage {
+    padding: 16px 16px 15px 18px;
+    border-radius: 20px;
+  }
+
+  .horizon-stage::before {
+    left: -26px;
+    top: 24px;
+  }
+
+  .horizon-stage__chips {
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .horizon-stage__chips span {
+    min-height: 26px;
+    padding: 6px 9px;
+    font-size: 0.62rem;
+  }
+
+  .horizon-closing {
+    grid-column: 1;
+    justify-self: start;
+    max-width: 100%;
+    margin-top: 4px;
+    text-align: left;
+    font-size: clamp(0.95rem, 3.8vw, 1.08rem);
   }
 
   .slide[data-slide="businessmodel"] .brief-layout {
