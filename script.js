@@ -2,7 +2,7 @@
 const ANIM_DUR   = 850;   // ms — matches CSS --slide-dur
 const PARALLAX_S = 12;    // max parallax offset in px
 const PARALLAX_L = 0.055; // parallax lerp speed
-const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'currentstate', 'partnerships', 'businessmodel', 'next', 'open', 'closing', 'contact']);
+const LIGHT_THEME_SLIDES = new Set(['vestiges', 'phases', 'continuum', 'positioning', 'advantage', 'currentstate', 'partnerships', 'businessmodel', 'howtouse', 'composition', 'next', 'open', 'closing', 'contact']);
 
 // ===== STATE =====
 let currentIndex = 0;
@@ -136,6 +136,8 @@ const TOUCH_NAV_LOCK_SELECTOR = [
   '.slide[data-slide="infrastructure"] .slide-content',
   '.brief-layout',
   '.bridge-layout',
+  '.onboarding-layout',
+  '.composition-layout',
   '.graphos-window__chip',
   '.graphos-row',
   '#canvas-graphos',
@@ -162,6 +164,8 @@ const WHEEL_NAV_LOCK_SELECTOR = [
   '.slide[data-slide="horizon"] .slide-content',
   '.brief-layout',
   '.bridge-layout',
+  '.onboarding-layout',
+  '.composition-layout',
   '#canvas-graphos',
   'button',
   'input',
@@ -260,7 +264,7 @@ function getScrollableAncestor(target) {
     '.slide[data-slide="build"] .slide-content, ' +
     '.slide[data-slide="infrastructure"] .slide-content, ' +
     '.slide[data-slide="horizon"] .slide-content, ' +
-    '.brief-layout, .bridge-layout'
+    '.brief-layout, .bridge-layout, .onboarding-layout, .composition-layout'
   );
 }
 function canElementScroll(el, deltaY = 0) {
