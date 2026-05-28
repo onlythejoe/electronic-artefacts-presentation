@@ -83,7 +83,7 @@ const graphosWindowState = {
   pointerId: null,
 };
 const INTRO_TYPEWRITER_PHRASES = [
-  'Hello, thanks for taking a moment.',
+  'Most systems are isolated. VASTE is built to execute connected reality.',
 ];
 const ACTION_HOVER_SELECTOR = [
   '#nav-track',
@@ -214,29 +214,29 @@ hoverHudMetaEl = hoverHudEl ? hoverHudEl.querySelector('.hover-hud__meta') : nul
 
 const BRIDGE_ANSWER_MAP = {
   who: {
-    title: 'For individuals, companies, and researchers.',
-    body: 'It is built for people who need clarity at a personal scale, for companies that need a unified operating layer, and for researchers who need a system they can inspect, extend, and validate.',
-    meta: ['Individuals', 'Companies', 'Researchers'],
+    title: 'For teams that need a runtime, not another app.',
+    body: 'VASTE is built for organizations that already operate as connected systems and need one operational base instead of more disconnected tools.',
+    meta: ['Teams', 'Operators', 'Builders'],
   },
   what: {
-    title: 'A system for creating systems.',
-    body: 'VASTE is a metasystem of universal composable capacities. It can model everything from a back-office simulation to the most complex operational systems, because its primitives stay generic while the capacities stay composable.',
-    meta: ['System of systems', 'Composable capacities', 'Metasystem'],
+    title: 'An execution substrate.',
+    body: 'It is a graph-native runtime with canonical primitives, modular capacities, and orchestration logic designed to keep connected systems executable.',
+    meta: ['Substrate', 'Runtime', 'Primitives'],
   },
   where: {
-    title: 'It lives in the cloud, and it can be accessed from anywhere.',
-    body: 'The primary access point is the browser, with a mobile application planned for later. For companies, it can live on enterprise servers. A local machine version is possible in the long term, but it is not the current plan.',
-    meta: ['Browser', 'Mobile later', 'Enterprise servers'],
+    title: 'In the browser first, with deployment options behind it.',
+    body: 'The primary access point is the browser, with enterprise deployment surfaces and later mobile or local extensions depending on the use case.',
+    meta: ['Browser', 'Enterprise', 'Expandable'],
   },
   why: {
-    title: 'To put everything on the same level.',
-    body: 'The core problem is fragmentation. VASTE is designed to unify research and enterprise paradigms by mapping every element into a shared terrain, so work happens on a single consistent base instead of a stack of disconnected systems.',
-    meta: ['Unify paradigms', 'Shared terrain', 'Single base'],
+    title: 'Because current software is structurally fragmented.',
+    body: 'Static architectures, incompatible tools, brittle integrations, and growing orchestration overhead make continuous adaptation too expensive in the current stack.',
+    meta: ['Fragmentation', 'Adaptation', 'Orchestration'],
   },
   how: {
-    title: 'Through one universal substrate and five primitives.',
-    body: 'The kernel and the five primitives are the universal layer that models and maps existing real-world systems. They are displayed in the logic layer below, and together they make it possible to represent almost any system with the same underlying grammar.',
-    meta: ['Kernel', 'Five primitives', 'Logic layer below'],
+    title: 'Through a canonical graph and five primitives.',
+    body: 'Vertex, Tie, Surface, Environment, and Actions form the grammar that keeps execution consistent while higher layers remain modular.',
+    meta: ['Kernel', 'Five primitives', 'Grammar'],
   },
 };
 
@@ -431,11 +431,11 @@ function buildHoverPayload(el) {
   if (infraStep) {
     const layer = infraStep.dataset.layer || collapseText(infraStep.textContent).toLowerCase();
     const detailMap = {
-      surface: 'Public view and projected output.',
-      context: 'Environment, semantics, and policy.',
-      intents: 'Actions routed into the graph.',
-      modules: 'Capabilities enriching the middle layer.',
-      core: 'Canonical topology: vertices and ties only.',
+      surface: 'Public projections and deployment surfaces.',
+      context: 'Runtime state, policy, and governance.',
+      intents: 'Native actions and execution flow.',
+      modules: 'Included runtime and premium capacities.',
+      core: 'Canonical graph: vertices and ties only.',
     };
     return {
       key: `infra-step:${layer}`,
@@ -463,12 +463,12 @@ function buildHoverPayload(el) {
   if (buildStep) {
     const step = buildStep.dataset.layer || collapseText(buildStep.textContent).toLowerCase();
     const detailMap = {
-      surface: 'Public surface and visible projection.',
-      programs: 'Orchestrate flows, triggers, and routing.',
-      context: 'Environment, semantics, and policy.',
-      nodes: 'Topology and canonical relations.',
-      modules: 'Capabilities that enrich the system.',
-      assets: 'Any file type can land on a vertex.',
+      surface: 'Studio deployment surface and visible projection.',
+      programs: 'Deterministic runtime execution and event flow.',
+      context: 'Governance, policy, and permissions.',
+      nodes: 'Canonical graph and topology.',
+      modules: 'Deployment modes and premium capacities.',
+      assets: 'Domains, hosting, and published artifacts.',
     };
     return {
       key: `build-step:${step}`,
@@ -638,9 +638,9 @@ function buildHoverPayload(el) {
     const familyKey   = ucCase.dataset.familyKey   || 'general';
     const detailMap = {
       operations: `Use VASTE to map ${word} as graph vertices — tracking status, ownership, and exceptions in a single source of truth.`,
-      platform:   `Use VASTE to model ${word} as composable capacities so integrations stay consistent across the graph.`,
+      orchestration: `Use VASTE to model ${word} as composable capacities so integrations stay consistent across the graph.`,
       research:   `Use VASTE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
-      experience: `Use VASTE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
+      studio: `Use VASTE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
     };
     return {
       key: `uc:${word}`,
@@ -3036,15 +3036,11 @@ class ModulesScene {
     this.raf     = null;
     this.t       = 0;
     this.modules = [
-      { label: 'Actor',        angle: -Math.PI * 0.50, delay: 0.0, lane: 0, color: '#7ca0ff', status: 'included' },
-      { label: 'Assets',       angle: -Math.PI * 0.20, delay: 0.18, lane: 1, color: '#9fe4ff', status: 'included' },
-      { label: 'Flow',         angle:  Math.PI * 0.06, delay: 0.36, lane: 2, color: '#f4c26f', status: 'available' },
-      { label: 'Intelligence', angle:  Math.PI * 0.30, delay: 0.54, lane: 0, color: '#a8f0c7', status: 'available' },
-      { label: 'Knowledge',    angle:  Math.PI * 0.58, delay: 0.72, lane: 1, color: '#e0b4ff', status: 'available' },
-      { label: 'Perception',   angle:  Math.PI * 0.84, delay: 0.90, lane: 2, color: '#ffc59d', status: 'available' },
-      { label: 'Program',      angle:  Math.PI * 1.12, delay: 1.08, lane: 1, color: '#c9d0ff', status: 'available' },
-      { label: 'Studio',       angle:  Math.PI * 1.40, delay: 1.26, lane: 0, color: '#d8b8ff', status: 'available' },
-      { label: 'Workspace',    angle:  Math.PI * 1.68, delay: 1.44, lane: 2, color: '#8ee0d0', status: 'included' },
+      { label: 'Workspace', angle: -Math.PI * 0.50, delay: 0.0, lane: 0, color: '#8ee0d0', status: 'included' },
+      { label: 'Actor', angle: -Math.PI * 0.20, delay: 0.18, lane: 1, color: '#7ca0ff', status: 'included' },
+      { label: 'Assets', angle:  Math.PI * 0.06, delay: 0.36, lane: 2, color: '#e0b4ff', status: 'included' },
+      { label: 'Surface', angle:  Math.PI * 0.30, delay: 0.54, lane: 0, color: '#9fe4ff', status: 'included' },
+      { label: 'Realtime', angle:  Math.PI * 0.58, delay: 0.72, lane: 1, color: '#c9d0ff', status: 'included' },
     ];
     this.cardEls = this.slideEl ? [...this.slideEl.querySelectorAll('.module-card')] : [];
     this.featureEl = this.slideEl ? this.slideEl.querySelector('.modules-feature') : null;
@@ -4076,7 +4072,7 @@ class BuildScene {
       [3, 7], [4, 6], [6, 7],
     ];
 
-    const moduleLabels = ['Actor', 'Assets', 'Flow', 'Intelligence', 'Knowledge', 'Perception', 'Program', 'Studio', 'Workspace'];
+    const moduleLabels = ['Studio', 'Runtime', 'Cloud', 'Self-hosted', 'Governance', 'Flow', 'Program', 'Intelligence', 'Perception'];
     this.modules = moduleLabels.map((label, index) => ({
       label,
       angle: (index / moduleLabels.length) * Math.PI * 2 - Math.PI / 2,
@@ -4768,30 +4764,30 @@ class UseCasesController {
       {
         key: 'operations',
         title: 'Operations',
-        desc: 'Run business, logistics, and support flows.',
+        desc: 'Enterprise ops, logistics, support orchestration.',
         accent: [124, 160, 255],
-        cases: ['CRM', 'Logistics', 'Finance', 'Retail', 'Marketplace', 'Support', 'Planning', 'Scheduling', 'Workflow', 'Operations', 'Infrastructure'],
+        cases: ['CRM', 'Logistics', 'Finance', 'Retail', 'Marketplace', 'Support', 'Planning', 'Scheduling', 'Workflow', 'Governance', 'Infrastructure'],
       },
       {
-        key: 'platform',
-        title: 'Platform',
-        desc: 'Compose systems, data, and automation.',
+        key: 'orchestration',
+        title: 'Orchestration',
+        desc: 'AI orchestration, agent systems, graph-native workflows.',
         accent: [93, 229, 214],
-        cases: ['Web', 'Systems', 'Data', 'Automation', 'Analytics', 'Protocol', 'Telemetry', 'Sensors', 'Agents', 'Domotics', 'Robotics', 'Computation', 'Energy', 'Navigation'],
+        cases: ['Agents', 'Automation', 'State', 'Protocol', 'Telemetry', 'Signals', 'Data', 'Graph', 'Routing', 'Policy', 'Composition', 'Runtime', 'Coordination', 'Interfaces'],
       },
       {
         key: 'research',
         title: 'Research',
-        desc: 'Simulate, measure, and model knowledge.',
+        desc: 'Simulation, knowledge systems, lab environments.',
         accent: [180, 146, 255],
         cases: ['Simulation', 'Physics', 'Biology', 'Genome', 'Research', 'Education', 'Knowledge', 'Archive', 'Signals'],
       },
       {
-        key: 'experience',
-        title: 'Experience',
-        desc: 'Publish, design, and communicate.',
+        key: 'studio',
+        title: 'Studio',
+        desc: 'Websites, apps, domains, and hosted surfaces.',
         accent: [255, 194, 102],
-        cases: ['Media', 'Music', 'Culture', 'Design', 'Experience', 'Publishing', 'Audience', 'Content', 'Collaboration', 'Strategy', 'Interfaces'],
+        cases: ['Media', 'Music', 'Culture', 'Design', 'Publishing', 'Audience', 'Content', 'Collaboration', 'Strategy', 'Interfaces'],
       },
     ];
     this.drumItems = [];
@@ -4908,10 +4904,10 @@ class UseCasesController {
 
   _detail(word, key) {
     const map = {
-      operations: `Use VASTE to map ${word} as graph vertices — tracking status, ownership, and exceptions in a single source of truth.`,
-      platform:   `Use VASTE to model ${word} as composable capacities so integrations stay consistent across the graph.`,
-      research:   `Use VASTE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
-      experience: `Use VASTE to publish ${word} as a living surface — a graph projection that readers can explore and interact with.`,
+      operations: `Use VASTE to map ${word} as graph vertices - tracking status, ownership, and exceptions in a single operational base.`,
+      orchestration: `Use VASTE to model ${word} as composable capacities so systems stay coordinated across the graph.`,
+      research: `Use VASTE to connect ${word} data into a living structure where experiments, results, and signals stay linked.`,
+      studio: `Use VASTE to publish ${word} as a living surface - a graph projection that people can explore and interact with.`,
     };
     return map[key] || `Use VASTE to model ${word} as vertices, ties, and surfaces in a single system.`;
   }
