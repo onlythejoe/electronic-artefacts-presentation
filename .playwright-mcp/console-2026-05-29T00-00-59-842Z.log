@@ -1,0 +1,2 @@
+[      86ms] ReferenceError: beginGraphosWindowDrag is not defined
+    at http://localhost:8000/script.js?v=20260528a:1686:57

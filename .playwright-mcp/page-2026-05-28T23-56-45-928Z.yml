@@ -1,0 +1,691 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 12 / 32
+  - navigation "Slide navigation" [ref=e3]
+  - complementary:
+    - generic: Hover
+  - generic [ref=e6]:
+    - generic:
+      - generic:
+        - generic:
+          - note: Interactive briefing · desktop recommended
+          - paragraph: VASTE / Electronic Artefacts
+          - heading "Most system" [level=2]
+          - paragraph: A graph-native runtime for organizations, interfaces, agents, knowledge, and infrastructure.
+          - paragraph: You are exploring a demo of the VASTE logic layer and its strategic direction, not the full operating system.
+          - paragraph:
+            - generic: ⇅
+            - generic: To navigate, use the mouse wheel, keyboard arrows, or the rail on the right.
+    - generic:
+      - generic:
+        - heading "Electronic Artefacts" [level=2]
+        - paragraph: The studio behind VASTE, designed to turn experimental systems into a coherent runtime vision.
+        - paragraph: Joey-Néot Marquet, founder & CTO
+    - generic:
+      - generic:
+        - heading "Execution" [level=2]
+        - paragraph: Design · Architecture · Development
+        - paragraph: One builder stack, kept coherent across product, narrative, and implementation.
+    - generic:
+      - generic:
+        - heading "Why current systems fail" [level=2]
+        - paragraph: Fragmented tools. Static architectures. Incompatible systems.
+        - paragraph: Every new workflow adds another integration, another copy of state, another place to drift. AI agents make the gap more visible because they need dynamic, governed environments, not isolated apps.
+    - generic:
+      - generic:
+        - heading "Why now" [level=2]
+        - paragraph: Everything is becoming dynamic.
+        - paragraph: Agents, real-time data, adaptive interfaces, and connected environments need a runtime, not another app.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Core insight
+          - heading "Everything becomes executable." [level=2]
+          - paragraph: Organizations. Interfaces. Agents. Knowledge. Infrastructure. Research. Simulations. Same substrate. Same runtime. Same primitives.
+          - generic "Core questions":
+            - button "Who" [pressed]
+            - button "What"
+            - button "Where"
+            - button "Why"
+            - button "How"
+          - generic:
+            - paragraph: Answer
+            - heading "For teams that need a runtime, not another app." [level=3]
+            - paragraph: VASTE is built for organizations that already operate as connected systems and need one operational base instead of more disconnected tools.
+            - generic:
+              - generic: Teams
+              - generic: Operators
+              - generic: Builders
+        - generic "Graph logic":
+          - paragraph: The grammar
+          - generic:
+            - article:
+              - strong: Vertex
+              - generic: Canonical entity.
+            - article:
+              - strong: Tie
+              - generic: Relation and flow.
+            - article:
+              - strong: Surface
+              - generic: Visible projection.
+            - article:
+              - strong: Environment
+              - generic: Local semantics and policy.
+            - article:
+              - strong: Actions
+              - generic: Routed change.
+          - paragraph: These primitives can map organizations, interfaces, agents, knowledge, and infrastructure into a common substrate.
+    - generic:
+      - generic:
+        - heading "VASTE" [level=2]
+        - paragraph: Everything becomes executable.
+        - paragraph: A graph-native runtime for connected systems, adaptive surfaces, and orchestration logic.
+    - generic:
+      - button "About this demonstration":
+        - generic: Interactive demo
+        - strong: Runtime primitives
+      - generic "Core primitives window" [ref=e19]:
+        - button "Move primitive window" [ref=e20]:
+          - generic [ref=e21]: VASTE
+          - generic [ref=e22]: live primitive demo
+        - generic:
+          - button "Vertices" [pressed] [ref=e24]
+          - button "Ties" [pressed] [ref=e25]
+          - generic [ref=e26]:
+            - generic [ref=e27]: Type
+            - combobox "Filter node type" [ref=e28]:
+              - option "All" [selected]
+              - option "context"
+              - option "core"
+              - option "intent"
+              - option "public"
+              - option "surface"
+              - option "user"
+              - option "workspace"
+          - generic [ref=e29]: 7 vertices · 5 ties
+        - generic [ref=e30]:
+          - text: Core primitives
+          - list "Core primitives" [ref=e31]:
+            - listitem "Focus vertices" [ref=e32]:
+              - strong [ref=e33]: Vertex
+              - generic [ref=e34]: identity / owner / state
+              - generic [ref=e35]: canonical primitive
+            - listitem "Focus ties" [ref=e36]:
+              - strong [ref=e37]: Tie
+              - generic [ref=e38]: relation / flow / contract
+              - generic [ref=e39]: connective path
+            - listitem "Focus surface" [ref=e40]:
+              - strong [ref=e41]: Surface
+              - generic [ref=e42]: public view / projection / display
+              - generic [ref=e43]: visible layer
+            - listitem "Focus environment" [ref=e44]:
+              - strong [ref=e45]: Environment
+              - generic [ref=e46]: signals / memory / semantics
+              - generic [ref=e47]: semantic registry
+            - listitem "Focus actions" [ref=e48]:
+              - strong [ref=e49]: Actions
+              - generic [ref=e50]: triggers / routing / effects
+              - generic [ref=e51]: routed change
+          - paragraph: Tap rows to focus. On touch, tap empty space to create a vertex and tap a vertex to open its Environment.
+      - generic:
+        - heading "Runtime primitives" [level=2]
+        - paragraph: Tap rows to focus, drag vertices in place, and explore how Environment and surfaces shape the graph.
+        - paragraph: "Desktop: right-click to edit. Mobile: use Actions for color, type, and delete. This is the live logic layer, not the full system."
+    - generic:
+      - generic:
+        - heading "Same substrate." [level=2]
+        - paragraph: Many surfaces.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Architecture
+          - heading "Progressively layered, not cognitively overloaded." [level=2]
+          - paragraph: Start with the substrate, then the runtime, then the primitives, then orchestration, then the surfaces. The audience does not need the whole internal machine at once.
+          - paragraph:
+            - button "Substrate"
+            - generic: →
+            - button "Runtime"
+            - generic: →
+            - button "Primitives"
+            - generic: →
+            - button "Orchestration"
+            - generic: →
+            - button "Surfaces"
+          - paragraph: Inside the substrate, vertices and ties define topology. Above it, native systems and premium capacities stay modular.
+        - generic "Infrastructure layers":
+          - button "Surfaces Public projections Pages, interfaces, deployments, visible output.":
+            - generic: Surfaces
+            - strong: Public projections
+            - generic: Pages, interfaces, deployments, visible output.
+          - button "Runtime Execution layer Deterministic events, state, replay.":
+            - generic: Runtime
+            - strong: Execution layer
+            - generic: Deterministic events, state, replay.
+          - button "Primitives Native systems The minimum grammar for execution.":
+            - generic: Primitives
+            - strong: Native systems
+            - generic: The minimum grammar for execution.
+          - button "Orchestration Extension logic Routing, policy, agents, and coordination.":
+            - generic: Orchestration
+            - strong: Extension logic
+            - generic: Routing, policy, agents, and coordination.
+          - button "Substrate Canonical graph Vertices and ties only.":
+            - generic: Substrate
+            - strong: Canonical graph
+            - generic: Vertices and ties only.
+        - paragraph: Hover a layer or move across the canvas to bias the corresponding part of the architecture.
+    - generic:
+      - generic:
+        - generic: Workspace
+        - generic: Actor
+        - generic: Assets
+        - generic: Surface
+        - generic: Realtime
+      - generic:
+        - generic:
+          - paragraph: Runtime model
+          - heading "Included runtime / premium capacities" [level=2]
+          - paragraph: The kernel stays bundled. Premium capacities extend the runtime only when the deployment needs more orchestration, cognition, publishing, or physical integration.
+          - paragraph: Workspace, Actor, Asset, Knowledge, Surface, Security, Realtime, Analytics, Collaboration, runtime orchestration, event system, and graph runtime are native. Flow, Program, Studio, Intelligence, and Perception expand the system.
+        - generic:
+          - article:
+            - generic:
+              - generic: Included runtime
+              - generic: Kernel native
+            - strong: These systems are not upsells.
+            - paragraph: They are the base runtime that every deployment inherits.
+            - generic:
+              - generic: Workspace
+              - generic: Actor
+              - generic: Asset
+              - generic: Knowledge
+              - generic: Surface
+              - generic: Security
+              - generic: Realtime
+              - generic: Analytics
+              - generic: Collaboration
+              - generic: Graph runtime
+            - generic:
+              - generic: Native systems
+              - generic: Always included
+          - generic:
+            - article:
+              - generic:
+                - generic: "01"
+                - generic: Native
+              - strong: Workspace / Collaboration
+              - paragraph: Shared runtime space for teams, sessions, and coordinated work.
+              - generic:
+                - generic: Included runtime
+                - generic: Native
+            - article:
+              - generic:
+                - generic: "02"
+                - generic: Native
+              - strong: Actor / Orchestration
+              - paragraph: Execution identity, runtime relationships, and the primary scaling unit.
+              - generic:
+                - generic: Included runtime
+                - generic: Scale
+            - article:
+              - generic:
+                - generic: "03"
+                - generic: Native
+              - strong: Asset / Knowledge
+              - paragraph: Files, data, and semantic memory anchored directly in the graph.
+              - generic:
+                - generic: Included runtime
+                - generic: Memory
+            - article:
+              - generic:
+                - generic: "04"
+                - generic: Native
+              - strong: Surface / Security
+              - paragraph: Projection layer and governance at the edge of every visible system.
+              - generic:
+                - generic: Included runtime
+                - generic: Governed
+            - article:
+              - generic:
+                - generic: "05"
+                - generic: Native
+              - strong: Realtime / Analytics / Events
+              - paragraph: Live state, telemetry, and the response layer that keeps the runtime current.
+              - generic:
+                - generic: Included runtime
+                - generic: Live
+          - generic:
+            - generic:
+              - generic: Premium capacities
+              - generic: Extensions
+            - generic:
+              - article:
+                - strong: Flow
+                - paragraph: Automation, orchestration, and execution chains.
+              - article:
+                - strong: Program
+                - paragraph: Logic systems, scripting, and custom behavior.
+              - article:
+                - strong: Studio
+                - paragraph: Editing, deployment, publishing, hosting, domains.
+              - article:
+                - strong: Intelligence
+                - paragraph: Runtime cognition, agents, and reasoning systems.
+              - article:
+                - strong: Perception
+                - paragraph: Sensors, devices, and environmental integration.
+    - generic [ref=e198]:
+      - generic [ref=e199]:
+        - paragraph [ref=e200]: Deployment logic
+        - heading "Studio is the deployment layer." [level=2] [ref=e201]
+        - paragraph [ref=e202]: The runtime stays deterministic. Studio turns it into something you can edit, publish, host, and deploy on managed or sovereign infrastructure.
+        - paragraph [ref=e203]: That gives the deck an execution story the investor can understand without reducing the system to a generic app.
+        - paragraph [ref=e204]:
+          - button "Studio" [ref=e205]
+          - generic [ref=e206]: →
+          - button "Runtime" [ref=e207]
+          - generic [ref=e208]: →
+          - button "Governance" [ref=e209]
+          - generic [ref=e210]: →
+          - button "Graph" [ref=e211]
+          - generic [ref=e212]: →
+          - button "Deployment" [ref=e213]
+          - generic [ref=e214]: →
+          - button "Assets" [ref=e215]
+      - generic [ref=e216]:
+        - button "Studio Deployment surface Editing · deployment · hosting Design the visible layer Pages, apps, domains, published surfaces." [ref=e217]:
+          - generic [ref=e218]:
+            - generic [ref=e219]: Studio
+            - generic [ref=e220]: Deployment surface
+          - generic [ref=e221]:
+            - generic [ref=e227]: studio / deploy
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e230]: Editing · deployment · hosting
+                - strong [ref=e231]: Design the visible layer
+                - paragraph [ref=e232]: Pages, apps, domains, published surfaces.
+              - generic [ref=e233]:
+                - generic [ref=e234]: Studio
+                - generic [ref=e235]: Hosting
+                - generic [ref=e236]: Domains
+        - generic [ref=e237]:
+          - button "01 Deterministic Runtime Replayable execution, stable state transitions, and explicit event routing. events / state / replay Live" [ref=e238]:
+            - generic [ref=e239]:
+              - generic [ref=e240]: "01"
+              - generic [ref=e241]: Deterministic
+            - strong [ref=e242]: Runtime
+            - paragraph [ref=e243]: Replayable execution, stable state transitions, and explicit event routing.
+            - generic [ref=e244]:
+              - generic [ref=e245]: events / state / replay
+              - generic [ref=e246]: Live
+          - button "02 Wedge Studio Editing, deployment, publishing, hosting, and domain orchestration in one layer. main wedge / onboarding Deploy" [ref=e247]:
+            - generic [ref=e248]:
+              - generic [ref=e249]: "02"
+              - generic [ref=e250]: Wedge
+            - strong [ref=e251]: Studio
+            - paragraph [ref=e252]: Editing, deployment, publishing, hosting, and domain orchestration in one layer.
+            - generic [ref=e253]:
+              - generic [ref=e254]: main wedge / onboarding
+              - generic [ref=e255]: Deploy
+          - button "03 Topology Electronic Artefacts Cloud Managed infrastructure for teams that want the fastest path to deployment. hosted / managed Cloud" [ref=e256]:
+            - generic [ref=e257]:
+              - generic [ref=e258]: "03"
+              - generic [ref=e259]: Topology
+            - strong [ref=e260]: Electronic Artefacts Cloud
+            - paragraph [ref=e261]: Managed infrastructure for teams that want the fastest path to deployment.
+            - generic [ref=e262]:
+              - generic [ref=e263]: hosted / managed
+              - generic [ref=e264]: Cloud
+          - button "04 Sovereign Self-Hosted Runtime Client-owned infrastructure for enterprise control, sovereignty, and scale." [ref=e265]:
+            - generic [ref=e266]:
+              - generic [ref=e267]: "04"
+              - generic [ref=e268]: Sovereign
+            - strong [ref=e269]: Self-Hosted Runtime
+            - paragraph [ref=e270]: Client-owned infrastructure for enterprise control, sovereignty, and scale.
+            - generic [ref=e271]:
+              - generic [ref=e272]: Enterprise
+              - generic [ref=e273]: Owned
+              - generic [ref=e274]: Premium
+        - button "Deployment modes Cloud or sovereign runtime Electronic Artefacts Cloud for managed delivery. Self-Hosted Runtime for client-owned infrastructure." [ref=e275]:
+          - generic [ref=e276]:
+            - generic [ref=e277]: Deployment modes
+            - strong [ref=e278]: Cloud or sovereign runtime
+            - paragraph [ref=e279]: Electronic Artefacts Cloud for managed delivery. Self-Hosted Runtime for client-owned infrastructure.
+          - generic [ref=e280]:
+            - generic [ref=e281]: Managed
+            - generic [ref=e282]: Sovereign
+            - generic [ref=e283]: Enterprise
+            - generic [ref=e284]: Hosted
+            - generic [ref=e285]: Client-owned
+            - generic [ref=e286]: Premium
+    - generic:
+      - generic:
+        - heading "Actors are the scaling unit." [level=2]
+        - paragraph: More actors, more orchestration, more runtime relationships.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Immediate use cases
+          - paragraph: Systems that need a runtime, not another app.
+        - navigation "Domain families":
+          - button "Operations Enterprise ops, logistics, support orchestration. 11 domains" [pressed]:
+            - generic:
+              - strong: Operations
+              - generic: Enterprise ops, logistics, support orchestration.
+              - generic: 11 domains
+          - button "Orchestration AI orchestration, agent systems, graph-native workflows. 14 domains":
+            - generic:
+              - strong: Orchestration
+              - generic: AI orchestration, agent systems, graph-native workflows.
+              - generic: 14 domains
+          - button "Research Simulation, knowledge systems, lab environments. 9 domains":
+            - generic:
+              - strong: Research
+              - generic: Simulation, knowledge systems, lab environments.
+              - generic: 9 domains
+          - button "Studio Websites, apps, domains, and hosted surfaces. 11 domains":
+            - generic:
+              - strong: Studio
+              - generic: Websites, apps, domains, and hosted surfaces.
+              - generic: 11 domains
+        - generic "Domain use cases":
+          - generic:
+            - generic:
+              - paragraph: Operations
+              - paragraph: Enterprise ops, logistics, support orchestration.
+            - generic:
+              - generic: CRM
+              - generic: Logistics
+              - generic: Finance
+              - generic: Retail
+              - generic: Marketplace
+              - generic: Support
+              - generic: Planning
+              - generic: Scheduling
+              - generic: Workflow
+              - generic: Governance
+              - generic: Infrastructure
+        - generic: Scroll on the selector · hover a domain for detail
+    - generic:
+      - generic:
+        - heading "Perception" [level=2]
+        - paragraph: Environmental systems, made executable.
+        - paragraph: Sensors · devices · domotics · industrial feedback
+    - generic:
+      - generic:
+        - heading "One substrate." [level=2]
+        - heading "Many deployments." [level=2]
+        - heading "One operating grammar." [level=2]
+    - generic:
+      - generic:
+        - heading "The break is structural." [level=2]
+        - paragraph: Move from apps stitched together to a runtime that can absorb change.
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - img "Vestiges logo"
+            - paragraph: Material archive
+            - heading "Vestiges" [level=2]
+          - generic:
+            - paragraph: "A flagship material archive built with the same discipline: provenance, curation, and premium systems thinking."
+            - paragraph: A curated field of rare objects, fragments, and digital traces.
+            - link "@vestiges.world":
+              - /url: https://instagram.com/vestiges.world
+    - generic:
+      - generic:
+        - heading "Phases" [level=2]
+        - generic "System phases":
+          - generic:
+            - strong: Knowledge
+            - emphasis: Discovery
+          - generic:
+            - strong: Curation
+            - emphasis: Distillation
+          - generic:
+            - strong: Marketplace
+            - emphasis: Premium flow
+    - generic [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]: Knowledge
+        - generic [ref=e55]: Desire
+        - generic [ref=e56]: Acquisition
+      - paragraph [ref=e57]: The transition from one phase to the next remains fluid, continuous, and system-aware.
+    - generic:
+      - generic:
+        - heading "Positioning" [level=2]
+        - paragraph: Premium · Selective · Systems-grade
+        - paragraph: Traceability, rigor, and a high-trust operating layer
+    - generic:
+      - generic:
+        - heading "Advantage" [level=2]
+        - paragraph: Full-stack solo builder
+        - paragraph: Lower costs · Speed · Coherence · Direct execution
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Current state
+          - heading "Kernel stable, pure, and frozen." [level=2]
+          - paragraph: "The core primitives are locked: Vertex, Tie, Surface, Environment, and Actions."
+          - paragraph: The system has been tested on Raspberry and in a local environment. Benchmarks are running at full speed, more than 1,800 infrastructure tests pass, and everything is green.
+        - generic "Status overview":
+          - generic:
+            - generic: Validated
+            - strong: Raspberry environment
+          - generic:
+            - generic: Validated
+            - strong: Local environment
+          - generic:
+            - generic: Validated
+            - strong: Benchmarks running at full speed
+          - generic:
+            - generic: Validated
+            - strong: 1800+ tests green
+        - paragraph: Actor and Workspace are confirmed, validated, and frozen. The next step is to extend Flow, Program, Studio, Intelligence, and Perception on a pure kernel.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Partnerships
+          - heading "Build the runtime with design partners." [level=2]
+          - paragraph: Education, public institutions, research partners, and enterprise pilots can help define new modules and deployment surfaces.
+          - paragraph: Open to collaborations, co-development, and deployment partnerships.
+        - generic "Partnership areas":
+          - generic:
+            - generic: Education
+            - strong: Co-design new modules
+          - generic:
+            - generic: Enterprise
+            - strong: Pilot and validate workflows
+          - generic:
+            - generic: Deployment
+            - strong: Cloud or sovereign runtime
+          - generic:
+            - generic: Research
+            - strong: Shared exploration
+        - paragraph: The project grows faster when it is built with partners.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Runtime economics
+          - heading "Pricing scales with deployment, actors, and orchestration." [level=2]
+          - paragraph: "The base runtime stays bundled. Revenue follows scale: more actors, more hosted load, more orchestration, more sovereign deployment."
+          - paragraph: "Directional tiers only: Solo, Studio Team, Organization, Enterprise, and Sovereign Runtime."
+        - generic "Business model layers":
+          - generic:
+            - generic: Included runtime
+            - strong: Workspace, Actor, Asset, Knowledge, Surface, Security, Realtime, Analytics, Collaboration
+          - generic:
+            - generic: Scaling unit
+            - strong: Actors expand orchestration density
+          - generic:
+            - generic: Deployment
+            - strong: EA Cloud or Self-Hosted Runtime
+          - generic:
+            - generic: Premium capacities
+            - strong: Flow, Program, Studio, Intelligence, Perception
+        - paragraph: The long-term model is continuous access, actor-based expansion, and premium capacities aligned with runtime complexity.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: How to use VASTE
+          - heading "Start hosted, move sovereign when the deployment demands it." [level=2]
+          - paragraph: Assisted Boot reads the target system, prepares the base runtime, and configures the first deployment without forcing the user into the architecture.
+          - paragraph: The first experience stays simple. Studio handles the visible layer, and Intelligence can reason with the runtime when it is enabled.
+        - generic "Onboarding steps":
+          - generic:
+            - generic: "01"
+            - strong: Choose deployment
+            - paragraph: Electronic Artefacts Cloud or Self-Hosted Runtime.
+          - generic:
+            - generic: "02"
+            - strong: Boot the kernel
+            - paragraph: Workspace, Actor, Asset, Knowledge, Surface, Security, Realtime, Analytics, and Collaboration come included.
+          - generic:
+            - generic: "03"
+            - strong: Open Studio
+            - paragraph: Edit, deploy, publish, host, and manage domains from one layer.
+          - generic:
+            - generic: "04"
+            - strong: Extend selectively
+            - paragraph: Flow, Program, Intelligence, Studio, and Perception expand the runtime only when the use case requires them.
+        - generic "Pricing structure":
+          - article:
+            - generic: Runtime tiers
+            - strong: Solo, team, organization, enterprise, sovereign
+            - paragraph: Pricing scales with deployment mode and actor count.
+          - article:
+            - generic: Included by default
+            - strong: Kernel-native systems
+            - paragraph: Workspace, Actor, Asset, Knowledge, Surface, Security, Realtime, Analytics, and Collaboration stay bundled.
+          - article:
+            - generic: Paid extensions
+            - strong: Flow, Program, Studio, Intelligence, Perception
+            - paragraph: Capabilities are added only when orchestration, deployment, cognition, or environmental integration need them.
+          - article:
+            - generic: Self-hosted
+            - strong: Sovereign infrastructure, client-owned deployment.
+            - paragraph: More expensive by design. Enterprise-grade control is the point.
+        - paragraph: The system starts with a simple launch path, then expands through modular capacities and actor-based scaling.
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: What you can compose
+          - heading "Compose the exact runtime you need." [level=2]
+          - paragraph: Native systems stay included. Premium capacities extend the runtime when the use case needs orchestration, deployment, cognition, or environmental integration.
+          - paragraph: The same core can become a product platform, a knowledge base, a deployment surface, a smart environment, or a logistics engine.
+        - generic "Extensions and examples":
+          - article:
+            - generic: Workspace
+            - strong: Shared runtime space
+            - paragraph: Teams, sessions, and collaboration stay inside the same operating layer.
+          - article:
+            - generic: Actor
+            - strong: Execution identity and scale
+            - paragraph: The primary unit of orchestration, relationships, and runtime expansion.
+          - article:
+            - generic: Asset
+            - strong: Files and data on the graph
+            - paragraph: Media, documents, models, and datasets are attached to vertices, not kept outside the system.
+          - article:
+            - generic: Knowledge
+            - strong: Semantic memory
+            - paragraph: Structured information lives inside the runtime and can be queried as part of the graph.
+          - article:
+            - generic: Surface
+            - strong: Runtime projection primitive
+            - paragraph: The surface is native. Studio is not the same thing and sits above it.
+          - article:
+            - generic: Security / Realtime / Analytics
+            - strong: Governance and live state
+            - paragraph: Control, telemetry, and continuous response stay close to execution.
+          - article:
+            - generic: Flow / Program
+            - strong: Orchestration and logic
+            - paragraph: Automation, scripting, and custom behavior expand the runtime when needed.
+          - article:
+            - generic: Studio / Intelligence / Perception
+            - strong: Deployment, cognition, environment
+            - paragraph: Publishing, hosting, reasoning, and environmental integration live in the premium layer.
+        - generic "Composition examples":
+          - article:
+            - generic: Studio + Program + Intelligence + Knowledge
+            - strong: Deployable product systems
+            - paragraph: Build platforms and public surfaces that can be edited, published, hosted, and improved inside the runtime.
+          - article:
+            - generic: Perception + Knowledge + Intelligence + Actor
+            - strong: Environmental runtime
+            - paragraph: Manage devices, sensors, control logic, and adaptive behavior from a shared graph.
+          - article:
+            - generic: Flow + Perception + Intelligence + Knowledge + Actor + Assets
+            - strong: Automated operations
+            - paragraph: Route signals, ingest data, automate decisions, and operate a real-world system end to end.
+          - article:
+            - generic: Workspace + Assets + Knowledge + Actor
+            - strong: Private runtime suite
+            - paragraph: A controlled environment for teams that need their own structured workspace, files, and knowledge base.
+          - article:
+            - generic: Assets + Flow + Intelligence + Actor
+            - strong: Automated finance system
+            - paragraph: Combine data ingestion, automation, and cognition for financial operations and decision support.
+        - paragraph: In practice, each stack is assembled for the target use case. The base stays the same, the composition changes.
+    - generic:
+      - generic:
+        - heading "Next" [level=2]
+        - paragraph: The runtime expands
+        - paragraph: Flow · Program · Studio · Intelligence · Perception
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Horizon
+          - heading "From runtime to infrastructure." [level=2]
+          - paragraph: "VASTE is designed as an execution substrate: deterministic, graph-native, replayable, and modular enough to absorb more complex operating domains over time."
+          - paragraph: This is an architectural horizon, not a commercial promise.
+          - paragraph: VASTE is not being designed only to run software. It is being designed to orchestrate systems.
+        - generic "Evolution timeline":
+          - button "Today stage":
+            - generic: Today
+            - strong: Runtime surfaces
+            - paragraph: Studio, hosted systems, semantic knowledge layers, graph-native execution.
+            - generic:
+              - generic: Studio
+              - generic: Hosted
+              - generic: Semantic
+              - generic: Composable runtime
+          - button "Next stage":
+            - generic: Next
+            - strong: Orchestration systems
+            - paragraph: Intelligent automation, simulation environments, distributed runtime infrastructures, robotic coordination.
+            - generic:
+              - generic: Automation
+              - generic: Simulation
+              - generic: Distributed runtime
+              - generic: Robotic coordination
+          - button "Long term stage":
+            - generic: Long term
+            - strong: Autonomous infrastructure
+            - paragraph: Autonomous factories, aerospace runtime systems, medical orchestration infrastructures, intelligent transportation systems, robotic fleets, distributed machine ecologies, scientific infrastructures.
+            - generic:
+              - generic: Factories
+              - generic: Aerospace
+              - generic: Medical
+              - generic: Transportation
+              - generic: Robotic fleets
+              - generic: Scientific systems
+    - generic:
+      - generic:
+        - heading "Open" [level=2]
+        - paragraph: Deployment partners
+        - paragraph: Product · Strategy · Development
+    - generic:
+      - generic:
+        - generic "Electronic Artefacts":
+          - generic: electronic
+          - generic: Artefacts
+        - paragraph: Build systems that do not exist yet.
+        - paragraph: Ready to become infrastructure.
+    - generic:
+      - generic:
+        - heading "Let's connect" [level=2]
+        - paragraph: If that resonates, let's talk.
+        - link "electronic-artefacts@gmail.com":
+          - /url: mailto:electronic-artefacts@gmail.com
+        - paragraph: Or write directly by email for a quick introduction.

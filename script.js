@@ -63,6 +63,7 @@ let hoverProbeY = NaN;
 let lastHoverHudKey = null;
 let appAlive = true;
 let mistBg = null;
+const TEXT_MOTION_CACHE = new WeakMap();
 
 function updateViewportMetrics() {
   const vv = window.visualViewport;
@@ -77,8 +78,19 @@ updateViewportMetrics();
 const graphosWindowState = {
   x: null,
   y: null,
+  width: null,
+  height: null,
   offsetX: 0,
   offsetY: 0,
+  startX: 0,
+  startY: 0,
+  startCenterX: 0,
+  startCenterY: 0,
+  startWidth: 0,
+  startHeight: 0,
+  mode: null,
+  resizeEdge: null,
+  resizing: false,
   dragging: false,
   pointerId: null,
 };
@@ -113,7 +125,7 @@ const ACTION_HOVER_SELECTOR = [
   '.graphos-color-picker canvas',
   '.uc-case',
 ].join(', ');
-const TEXT_HOVER_SELECTOR = 'h2, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage';
+const TEXT_HOVER_SELECTOR = 'h2, h3, h4, h5, h6, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const GRAPHOS_TOUCH_HIT_SCALE = HAS_FINE_POINTER ? 1 : 1.6;
 const KEYBOARD_NAV_LOCK_SELECTOR = [
@@ -190,9 +202,16 @@ const navEl      = document.getElementById('slide-nav');
 const graphosWindowEl = document.querySelector('.graphos-window');
 const graphosWindowHandleEl = document.querySelector('.graphos-window__header');
 const graphosWindowBodyEl = document.querySelector('.graphos-window__body');
-const graphosFeedEl = document.querySelector('.graphos-window__feed');
+const graphosWindowViewportEl = document.getElementById('graphos-window-viewport');
+const graphosExplorerListEl = document.getElementById('graphos-explorer-list');
+const graphosExplorerSelectionEl = document.getElementById('graphos-explorer-selection');
+const graphosExplorerTabsEl = document.getElementById('graphos-explorer-tabs');
+const graphosExplorerDetailEl = document.getElementById('graphos-explorer-detail');
+const graphosExplorerPreviewCanvasEl = document.getElementById('graphos-explorer-preview');
+const graphosExplorerSearchEl = document.getElementById('graphos-explorer-search');
+const graphosFeedEl = graphosExplorerListEl;
+const graphosWindowResizeHandles = graphosWindowEl ? [...graphosWindowEl.querySelectorAll('.graphos-window__resize-handle')] : [];
 const graphosNoteEl = document.querySelector('.graphos-note');
-const graphosRowEls = graphosFeedEl ? [...graphosFeedEl.querySelectorAll('.graphos-row')] : [];
 const bridgeQuestionEls = [...document.querySelectorAll('.bridge-question')];
 const bridgeResponseEl = document.querySelector('.bridge-response');
 const bridgeResponseTitleEl = bridgeResponseEl ? bridgeResponseEl.querySelector('.bridge-response__title') : null;
@@ -371,9 +390,9 @@ function buildHoverPayload(el) {
     return {
       key: 'graphos-header',
       kind: 'drag',
-      kicker: 'VASTE',
-      title: 'Move the primitive window',
-      detail: 'Drag the header to reposition the live primitive demo.',
+      kicker: 'Explorer',
+      title: 'Move the explorer window',
+      detail: 'Drag the header to reposition the explorer panel.',
       meta: 'Glass panel',
     };
   }
@@ -949,26 +968,43 @@ function isLightTheme() {
   return document.body.dataset.theme === 'light';
 }
 
+function getTextMotionProfile(node) {
+  if (!node) {
+    return { scale: 0.7, duration: '0.78s', ease: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+  }
+
+  const cached = TEXT_MOTION_CACHE.get(node);
+  if (cached) return cached;
+
+  let profile = { scale: 0.7, duration: '0.78s', ease: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+
+  if (node.matches('h1, h2, .intro-title')) {
+    profile = { scale: 0.92, duration: '0.56s', ease: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+  } else if (node.matches('h3, h4, h5, h6, .bridge-response__title')) {
+    profile = { scale: 0.78, duration: '0.68s', ease: 'cubic-bezier(0.2, 0.98, 0.28, 1)' };
+  } else if (node.matches('p, a, .sub, .tagline')) {
+    profile = { scale: 0.54, duration: '0.92s', ease: 'cubic-bezier(0.16, 1, 0.3, 1)' };
+  } else if (node.matches('.phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage')) {
+    profile = { scale: 0.66, duration: '0.8s', ease: 'cubic-bezier(0.18, 1, 0.28, 1)' };
+  }
+
+  TEXT_MOTION_CACHE.set(node, profile);
+  return profile;
+}
+
 function applyTextMotion() {
   if (!HAS_FINE_POINTER || !activeContentEl || activeTextNodes.length === 0) return;
 
   const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
   const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
-  const slideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
-  const motionScale = slideKey === 'graphos'
-    ? 0.45
-    : slideKey === 'intro'
-      ? 0.38
-      : slideKey === 'horizon'
-        ? 0.72
-      : 1;
 
   activeTextNodes.forEach((node, index) => {
-    const depth = index + 1;
+    const motion = getTextMotionProfile(node);
+    const depth = 1 + Math.min(index, 3) * 0.06;
     const hoverBoost = hoveredTextNode && (node === hoveredTextNode || node.contains(hoveredTextNode)) ? 1.7 : 1;
-    const tx = clamp(nx * 12 * depth * 0.42 * hoverBoost * motionScale, -10, 10);
-    const ty = clamp(ny * 10 * depth * 0.36 * hoverBoost * motionScale, -8, 8);
-    const rot = clamp(nx * depth * 1.2 * hoverBoost * motionScale, -2.4, 2.4);
+    const tx = clamp(nx * 12 * motion.scale * depth * hoverBoost, -10, 10);
+    const ty = clamp(ny * 10 * motion.scale * depth * hoverBoost, -8, 8);
+    const rot = clamp(nx * motion.scale * depth * 1.1 * hoverBoost, -2.4, 2.4);
     node.style.setProperty('--text-shift-x', tx.toFixed(2) + 'px');
     node.style.setProperty('--text-shift-y', ty.toFixed(2) + 'px');
     node.style.setProperty('--text-rot', rot.toFixed(2) + 'deg');
@@ -980,8 +1016,13 @@ function refreshActiveSlideCache() {
   activeContentEl = activeSlideEl ? activeSlideEl.querySelector('.slide-content') : null;
   const activeSlideKey = activeSlideEl ? activeSlideEl.dataset.slide : '';
   activeTextNodes = activeContentEl && activeSlideKey !== 'founder'
-    ? [...activeContentEl.querySelectorAll('h2, p, a, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage')]
+    ? [...activeContentEl.querySelectorAll('h2, h3, h4, h5, h6, p, a, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage')]
     : [];
+  activeTextNodes.forEach(node => {
+    const motion = getTextMotionProfile(node);
+    node.style.setProperty('--text-dur', motion.duration);
+    node.style.setProperty('--text-ease', motion.ease);
+  });
   activeIntroTitleEl = activeSlideEl && activeSlideKey === 'intro'
     ? activeSlideEl.querySelector('[data-intro-type]')
     : null;
@@ -1220,10 +1261,6 @@ function syncGraphosFocusState() {
     } else {
       delete document.body.dataset.graphosSelected;
     }
-
-    graphosRowEls.forEach(row => {
-      row.setAttribute('aria-pressed', selectedGraphosLayer === row.dataset.layer ? 'true' : 'false');
-    });
   }
 }
 
@@ -1387,7 +1424,7 @@ function updateHoverTargets(force = false) {
     ? hoveredTextNode.dataset.layer || null
     : null;
   hoveredGraphosLayer = activeSlideEl && activeSlideEl.dataset.slide === 'graphos' && el && el.closest
-    ? (el.closest('.graphos-row')?.dataset.layer || (!selectedGraphosLayer && el.closest('.graphos-window') ? 'context' : null))
+    ? (el.closest('.graphos-row, .graphos-tree__row')?.dataset.layer || (!selectedGraphosLayer && el.closest('.graphos-window') ? 'context' : null))
     : null;
   hoveredBuildLayer = activeSlideEl && activeSlideEl.dataset.slide === 'build' && el && el.closest
     ? (el.closest('.build-step, .build-card, .build-surface, .build-assets')?.dataset.layer || null)
@@ -1423,75 +1460,210 @@ function clearActionHoverState() {
 function getGraphosWindowDefaults() {
   if (!activeGraphosWindowEl) return null;
   const narrow = window.innerWidth < 900;
+  const width = narrow ? Math.min(window.innerWidth * 0.9, 440) : Math.min(window.innerWidth * 0.48, 620);
+  const height = narrow ? Math.min(window.innerHeight * 0.52, 460) : Math.min(window.innerHeight * 0.76, 590);
   return {
-    x: narrow ? window.innerWidth * 0.5 : window.innerWidth * 0.72,
-    y: narrow ? window.innerHeight * 0.38 : window.innerHeight * 0.30,
+    x: (narrow ? window.innerWidth * 0.5 : window.innerWidth * 0.68) - width / 2,
+    y: (narrow ? window.innerHeight * 0.38 : window.innerHeight * 0.48) - height / 2,
+    width,
+    height,
   };
 }
 
-function clampGraphosWindowPosition(x, y, el = activeGraphosWindowEl) {
-  if (!el) return { x, y };
-  const rect = el.getBoundingClientRect();
-  const minX = rect.width / 2 + 18;
-  const maxX = Math.max(minX, window.innerWidth - rect.width / 2 - 18);
-  const minY = rect.height / 2 + 18;
-  const maxY = Math.max(minY, window.innerHeight - rect.height / 2 - 18);
+function clampGraphosWindowSize(width, height) {
+  const margin = 18;
+  const minWidth = 360;
+  const minHeight = 380;
+  const maxWidth = Math.max(minWidth, window.innerWidth - margin * 2);
+  const maxHeight = Math.max(minHeight, window.innerHeight - margin * 2);
+  return {
+    width: clamp(width, minWidth, maxWidth),
+    height: clamp(height, minHeight, maxHeight),
+  };
+}
+
+function clampGraphosWindowPosition(x, y, width, height) {
+  const margin = 18;
+  const minX = margin;
+  const maxX = Math.max(minX, window.innerWidth - width - margin);
+  const minY = margin;
+  const maxY = Math.max(minY, window.innerHeight - height - margin);
   return {
     x: clamp(x, minX, maxX),
     y: clamp(y, minY, maxY),
   };
 }
 
+function syncGraphosWindowViewportScale() {
+  if (!graphosWindowViewportEl || !activeGraphosWindowEl) return;
+  const rect = activeGraphosWindowEl.getBoundingClientRect();
+  const widthScale = rect.width / 640;
+  const heightScale = rect.height / 560;
+  const scale = clamp(Math.min(widthScale, heightScale), 0.88, 1);
+  graphosWindowViewportEl.style.setProperty('--graphos-window-scale', scale.toFixed(3));
+}
+
 function syncGraphosWindowPosition(forceDefault = false) {
   if (!activeSlideEl || activeSlideEl.dataset.slide !== 'graphos' || !activeGraphosWindowEl) return;
 
-  if (graphosWindowState.x == null || graphosWindowState.y == null || forceDefault) {
+  const compactMobile = scenes.graphos && scenes.graphos._isCompactMobile();
+  if (compactMobile) {
+    activeGraphosWindowEl.style.removeProperty('width');
+    activeGraphosWindowEl.style.removeProperty('height');
+    return;
+  }
+
+  if (graphosWindowState.x == null || graphosWindowState.y == null || graphosWindowState.width == null || graphosWindowState.height == null || forceDefault) {
     const defaults = getGraphosWindowDefaults();
     if (defaults) {
       graphosWindowState.x = defaults.x;
       graphosWindowState.y = defaults.y;
+      graphosWindowState.width = defaults.width;
+      graphosWindowState.height = defaults.height;
     }
   }
 
-  const pos = clampGraphosWindowPosition(graphosWindowState.x, graphosWindowState.y);
+  const size = clampGraphosWindowSize(
+    graphosWindowState.width ?? activeGraphosWindowEl.getBoundingClientRect().width,
+    graphosWindowState.height ?? activeGraphosWindowEl.getBoundingClientRect().height,
+  );
+  graphosWindowState.width = size.width;
+  graphosWindowState.height = size.height;
+
+  const pos = clampGraphosWindowPosition(
+    graphosWindowState.x ?? window.innerWidth / 2,
+    graphosWindowState.y ?? window.innerHeight / 2,
+    size.width,
+    size.height,
+  );
   graphosWindowState.x = pos.x;
   graphosWindowState.y = pos.y;
-  activeGraphosWindowEl.style.setProperty('--graphos-x', `${pos.x.toFixed(1)}px`);
-  activeGraphosWindowEl.style.setProperty('--graphos-y', `${pos.y.toFixed(1)}px`);
+  activeGraphosWindowEl.style.left = `${pos.x.toFixed(1)}px`;
+  activeGraphosWindowEl.style.top = `${pos.y.toFixed(1)}px`;
+  activeGraphosWindowEl.style.width = `${size.width.toFixed(1)}px`;
+  activeGraphosWindowEl.style.height = `${size.height.toFixed(1)}px`;
+  syncGraphosWindowViewportScale();
 }
 
-function beginGraphosWindowDrag(e) {
+function getGraphosWindowEdgeFromPoint(e) {
+  if (!activeGraphosWindowEl) return null;
+  const rect = activeGraphosWindowEl.getBoundingClientRect();
+  const edgeSize = 12;
+  const insideX = e.clientX > rect.left + edgeSize && e.clientX < rect.right - edgeSize;
+  const insideY = e.clientY > rect.top + edgeSize && e.clientY < rect.bottom - edgeSize;
+  if (insideX && Math.abs(e.clientY - rect.top) <= edgeSize) return 'top';
+  if (insideX && Math.abs(e.clientY - rect.bottom) <= edgeSize) return 'bottom';
+  if (insideY && Math.abs(e.clientX - rect.left) <= edgeSize) return 'left';
+  if (insideY && Math.abs(e.clientX - rect.right) <= edgeSize) return 'right';
+  return null;
+}
+
+function shouldBeginGraphosWindowMove(target) {
+  if (!target || !target.closest || !activeGraphosWindowEl) return false;
+  if (!target.closest('.graphos-window')) return false;
+  if (target.closest('.graphos-window__resize-handle')) return false;
+  if (target.closest('.graphos-row, .graphos-window__chip, select, option, button[aria-label="Open VASTE actions menu"]')) return false;
+  return !!target.closest('.graphos-window__header, .graphos-window__meta, .graphos-window__body');
+}
+
+function beginGraphosWindowInteraction(e) {
   if (!activeSlideEl || activeSlideEl.dataset.slide !== 'graphos' || !activeGraphosWindowEl) return;
   if (scenes.graphos && scenes.graphos._isCompactMobile()) return;
   if (e.button !== 0) return;
 
+  const edge = getGraphosWindowEdgeFromPoint(e);
+  const shouldMove = shouldBeginGraphosWindowMove(e.target);
+  if (!edge && !shouldMove) return;
+
   const rect = activeGraphosWindowEl.getBoundingClientRect();
-  graphosWindowState.dragging = true;
+  graphosWindowState.mode = edge ? 'resize' : 'move';
+  graphosWindowState.resizeEdge = edge;
+  graphosWindowState.dragging = !edge;
+  graphosWindowState.resizing = !!edge;
   graphosWindowState.pointerId = e.pointerId;
-  graphosWindowState.offsetX = e.clientX - (rect.left + rect.width / 2);
-  graphosWindowState.offsetY = e.clientY - (rect.top + rect.height / 2);
+  graphosWindowState.startX = e.clientX;
+  graphosWindowState.startY = e.clientY;
+  graphosWindowState.startCenterX = rect.left;
+  graphosWindowState.startCenterY = rect.top;
+  graphosWindowState.startWidth = rect.width;
+  graphosWindowState.startHeight = rect.height;
+  graphosWindowState.offsetX = e.clientX - rect.left;
+  graphosWindowState.offsetY = e.clientY - rect.top;
   draggedGraphosWindowEl = activeGraphosWindowEl;
-  draggedGraphosWindowEl.classList.add('is-dragging');
-  if (graphosWindowHandleEl && graphosWindowHandleEl.setPointerCapture) {
-    graphosWindowHandleEl.setPointerCapture(e.pointerId);
+  draggedGraphosWindowEl.classList.toggle('is-dragging', !edge);
+  draggedGraphosWindowEl.classList.toggle('is-resizing', !!edge);
+  if (activeGraphosWindowEl.setPointerCapture) {
+    activeGraphosWindowEl.setPointerCapture(e.pointerId);
   }
   e.preventDefault();
 }
 
 function updateGraphosWindowDrag(e) {
   const windowEl = draggedGraphosWindowEl || activeGraphosWindowEl;
-  if (!graphosWindowState.dragging || e.pointerId !== graphosWindowState.pointerId || !windowEl) return;
-  graphosWindowState.x = e.clientX - graphosWindowState.offsetX;
-  graphosWindowState.y = e.clientY - graphosWindowState.offsetY;
+  if ((!graphosWindowState.dragging && !graphosWindowState.resizing) || e.pointerId !== graphosWindowState.pointerId || !windowEl) return;
+
+  if (graphosWindowState.mode === 'resize') {
+    const dx = e.clientX - graphosWindowState.startX;
+    const dy = e.clientY - graphosWindowState.startY;
+    const margin = 18;
+    const minWidth = 300;
+    const minHeight = 380;
+    const startLeft = graphosWindowState.startCenterX;
+    const startTop = graphosWindowState.startCenterY;
+    const startRight = startLeft + graphosWindowState.startWidth;
+    const startBottom = startTop + graphosWindowState.startHeight;
+    let left = startLeft;
+    let top = startTop;
+    let right = startRight;
+    let bottom = startBottom;
+
+    if (graphosWindowState.resizeEdge === 'right') {
+      right = clamp(startRight + dx, startLeft + minWidth, window.innerWidth - margin);
+    } else if (graphosWindowState.resizeEdge === 'left') {
+      left = clamp(startLeft + dx, margin, startRight - minWidth);
+    } else if (graphosWindowState.resizeEdge === 'bottom') {
+      bottom = clamp(startBottom + dy, startTop + minHeight, window.innerHeight - margin);
+    } else if (graphosWindowState.resizeEdge === 'top') {
+      top = clamp(startTop + dy, margin, startBottom - minHeight);
+    }
+
+    const size = clampGraphosWindowSize(right - left, bottom - top);
+    if (graphosWindowState.resizeEdge === 'left') {
+      left = right - size.width;
+    } else if (graphosWindowState.resizeEdge === 'right') {
+      right = left + size.width;
+    }
+    if (graphosWindowState.resizeEdge === 'top') {
+      top = bottom - size.height;
+    } else if (graphosWindowState.resizeEdge === 'bottom') {
+      bottom = top + size.height;
+    }
+
+    graphosWindowState.width = size.width;
+    graphosWindowState.height = size.height;
+    graphosWindowState.x = left;
+    graphosWindowState.y = top;
+    syncGraphosWindowViewportScale();
+  } else {
+    graphosWindowState.x = e.clientX - graphosWindowState.offsetX;
+    graphosWindowState.y = e.clientY - graphosWindowState.offsetY;
+  }
   syncGraphosWindowPosition();
 }
 
 function endGraphosWindowDrag(e) {
-  if (!graphosWindowState.dragging) return;
+  if (!graphosWindowState.dragging && !graphosWindowState.resizing) return;
   if (e && 'pointerId' in e && e.pointerId !== graphosWindowState.pointerId) return;
   graphosWindowState.dragging = false;
+  graphosWindowState.resizing = false;
+  graphosWindowState.mode = null;
+  graphosWindowState.resizeEdge = null;
   graphosWindowState.pointerId = null;
   if (draggedGraphosWindowEl) draggedGraphosWindowEl.classList.remove('is-dragging');
+  if (draggedGraphosWindowEl) draggedGraphosWindowEl.classList.remove('is-resizing');
+  if (draggedGraphosWindowEl && draggedGraphosWindowEl.hasPointerCapture && e && 'pointerId' in e && draggedGraphosWindowEl.hasPointerCapture(e.pointerId)) {
+    draggedGraphosWindowEl.releasePointerCapture(e.pointerId);
+  }
   draggedGraphosWindowEl = null;
 }
 
@@ -1528,10 +1700,6 @@ document.addEventListener('mouseleave', () => {
   clearActionHoverState();
   if (mistBg) mistBg.onLeave();
 });
-
-if (graphosWindowHandleEl) {
-  graphosWindowHandleEl.addEventListener('pointerdown', beginGraphosWindowDrag);
-}
 
 if (graphosFeedEl) {
   graphosFeedEl.addEventListener('click', e => {
@@ -6052,6 +6220,44 @@ const GRAPHOS_LIVE_COLORS = [
   '#ff9bc8',
 ];
 
+const GRAPHOS_EXTENSION_DEFS = [
+  {
+    key: 'assets',
+    label: 'Assets',
+    kind: 'asset',
+    summary: 'File substrate for documents, media, models, archives, and any external object attached to the vertex.',
+    empty: 'Drop any file into this vertex once Assets is active.',
+  },
+  {
+    key: 'programs',
+    label: 'Programs',
+    kind: 'program',
+    summary: 'Executable units, shell routines, routers, and local automation bound to this vertex.',
+    empty: 'Attach a program or runtime command to make this vertex executable.',
+  },
+  {
+    key: 'flow',
+    label: 'Flow',
+    kind: 'flow',
+    summary: 'Routing, triggers, and ordered transitions between this vertex and the wider graph.',
+    empty: 'No flow has been composed for this vertex yet.',
+  },
+  {
+    key: 'perception',
+    label: 'Perception',
+    kind: 'perception',
+    summary: 'Signals, sensors, observed state, and context channels that feed the vertex.',
+    empty: 'No perception stream is attached yet.',
+  },
+  {
+    key: 'knowledge',
+    label: 'Knowledge',
+    kind: 'knowledge',
+    summary: 'Semantic memory, notes, embeddings, and governed knowledge linked to the vertex.',
+    empty: 'No knowledge layer is attached yet.',
+  },
+];
+
 class GraphOSLiveNode {
   constructor(x, y, opts = {}) {
     this.id = opts.id || (crypto?.randomUUID?.() || `graphos-${Math.random().toString(36).slice(2)}`);
@@ -6077,12 +6283,33 @@ class GraphOSLiveNode {
     this.name = opts.name ?? 'Vertex';
     this.color = opts.color ?? '#5a78ff';
     this.type = opts.type ?? null;
-    this.showCore = opts.showCore ?? true;
+    this.bodyVisible = opts.bodyVisible ?? opts.showCore ?? true;
+    this.showCore = opts.showCore ?? this.bodyVisible;
+    this.assets = Array.isArray(opts.assets) ? opts.assets.slice() : [];
+    this.programs = Array.isArray(opts.programs) ? opts.programs.slice() : [];
+    this.flow = Array.isArray(opts.flow) ? opts.flow.slice() : [];
+    this.perception = Array.isArray(opts.perception) ? opts.perception.slice() : [];
+    this.knowledge = Array.isArray(opts.knowledge) ? opts.knowledge.slice() : [];
+    this.extensions = Array.isArray(opts.extensions)
+      ? opts.extensions.slice()
+      : this._inferExtensions();
+    this.permissions = Array.isArray(opts.permissions) ? opts.permissions.slice() : [];
+    this.capabilities = Array.isArray(opts.capabilities) ? opts.capabilities.slice() : [];
     this.orbitAngle = opts.orbitAngle ?? Math.random() * Math.PI * 2;
     this.orbitSpeed = opts.orbitSpeed ?? (0.0015 + Math.random() * 0.003);
     this.orbitTilt = opts.orbitTilt ?? (0.6 + Math.random() * 0.4);
     this.depth = opts.depth ?? 0;
     this.displayRadius = this.r;
+  }
+
+  _inferExtensions() {
+    const enabled = [];
+    if (this.assets.length) enabled.push('assets');
+    if (this.programs.length) enabled.push('programs');
+    if (this.flow.length) enabled.push('flow');
+    if (this.perception.length) enabled.push('perception');
+    if (this.knowledge.length) enabled.push('knowledge');
+    return enabled;
   }
 
   addChild(node) {
@@ -6116,8 +6343,17 @@ class GraphOSLiveNode {
       parentId: this.parent ? this.parent.id : null,
       name: this.name,
       color: this.color,
+      bodyVisible: this.bodyVisible,
       showCore: this.showCore,
       type: this.type,
+      assets: this.assets,
+      programs: this.programs,
+      flow: this.flow,
+      perception: this.perception,
+      knowledge: this.knowledge,
+      extensions: this.extensions,
+      permissions: this.permissions,
+      capabilities: this.capabilities,
     };
   }
 
@@ -6178,7 +6414,7 @@ class GraphOSLiveNode {
     if (!this.children.length) return;
 
     const innerCoreRadius = this.r * GRAPHOS_LIVE.CORE_RATIO;
-    const minAllowedBase = this.showCore ? innerCoreRadius + GRAPHOS_LIVE.CORE_PADDING : GRAPHOS_LIVE.CORE_PADDING;
+    const minAllowedBase = this.bodyVisible ? innerCoreRadius + GRAPHOS_LIVE.CORE_PADDING : GRAPHOS_LIVE.CORE_PADDING;
     const maxAllowedBase = Math.max(minAllowedBase + 8, this.r - this.innerPadding);
     const childCount = this.children.length;
     const clusterColumns = Math.max(1, Math.ceil(Math.sqrt(childCount || 1)));
@@ -6199,7 +6435,7 @@ class GraphOSLiveNode {
       let targetX;
       let targetY;
 
-      if (this.showCore) {
+      if (this.bodyVisible) {
         child.depth = this.depth + 1;
         const targetRadius = Math.max(minAllowed, (minAllowed + maxAllowed) * 0.5);
         targetX = this.x + Math.cos(child.orbitAngle) * targetRadius;
@@ -6246,7 +6482,7 @@ class GraphOSLiveNode {
     });
   }
 
-  draw(ctx, focusLayer) {
+  draw(ctx, focusLayer, scene) {
     ctx.save();
 
     const focusBoost = focusLayer === 'node' ? 1.18 : 1;
@@ -6286,18 +6522,71 @@ class GraphOSLiveNode {
 
     ctx.shadowBlur = 0;
 
-    if (this.showCore && this.color) {
+    if (this.bodyVisible && this.color) {
       const coreRadius = displayRadius * GRAPHOS_LIVE.CORE_RATIO * (1 + this.hoverFactor * 0.15);
+      const coreRgb = scene ? scene._hexToRgb(this.color) : [124, 160, 255];
+      const corePulse = 0.5 + 0.5 * Math.sin((scene?.t || 0) * 1.8 + (this.createdAt % 997) * 0.01);
+      const coreGradient = ctx.createRadialGradient(
+        this.x - coreRadius * 0.36,
+        this.y - coreRadius * 0.42,
+        coreRadius * 0.08,
+        this.x,
+        this.y,
+        coreRadius * 1.28,
+      );
+      coreGradient.addColorStop(0, 'rgba(255,255,255,0.98)');
+      coreGradient.addColorStop(0.18, `rgba(${coreRgb[0]},${coreRgb[1]},${coreRgb[2]},0.98)`);
+      coreGradient.addColorStop(0.62, `rgba(${coreRgb[0]},${coreRgb[1]},${coreRgb[2]},0.54)`);
+      coreGradient.addColorStop(1, 'rgba(2,5,12,0.28)');
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.shadowColor = `rgba(${coreRgb[0]},${coreRgb[1]},${coreRgb[2]},0.44)`;
+      ctx.shadowBlur = 12 + corePulse * 8 + (this.selected ? 8 : 0);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, coreRadius * (1.75 + corePulse * 0.18), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${coreRgb[0]},${coreRgb[1]},${coreRgb[2]},${0.16 + corePulse * 0.1})`;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+      ctx.restore();
+
       ctx.beginPath();
       ctx.arc(this.x, this.y, coreRadius, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
+      ctx.fillStyle = coreGradient;
       ctx.fill();
 
       ctx.beginPath();
       ctx.arc(this.x, this.y, coreRadius * 1.2, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255,255,255,${0.08 + this.hoverFactor * 0.2 + (this.selected ? 0.08 : 0)})`;
-      ctx.lineWidth = 1 + this.hoverFactor * 0.8;
+      ctx.strokeStyle = `rgba(255,255,255,${0.16 + this.hoverFactor * 0.2 + (this.selected ? 0.12 : 0)})`;
+      ctx.lineWidth = 1.1 + this.hoverFactor * 0.8;
       ctx.stroke();
+
+      ctx.save();
+      ctx.globalAlpha = 0.28 + this.hoverFactor * 0.18 + (this.selected ? 0.12 : 0);
+      ctx.strokeStyle = 'rgba(255,255,255,0.74)';
+      ctx.lineWidth = 0.72;
+      ctx.beginPath();
+      ctx.moveTo(this.x - coreRadius * 0.58, this.y);
+      ctx.lineTo(this.x + coreRadius * 0.58, this.y);
+      ctx.moveTo(this.x, this.y - coreRadius * 0.58);
+      ctx.lineTo(this.x, this.y + coreRadius * 0.58);
+      ctx.stroke();
+      ctx.restore();
+    } else if (this.color) {
+      const coreRadius = Math.max(2.4, displayRadius * GRAPHOS_LIVE.CORE_RATIO * 0.62);
+      const coreRgb = scene ? scene._hexToRgb(this.color) : [124, 160, 255];
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, coreRadius * 1.9, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${coreRgb[0]},${coreRgb[1]},${coreRgb[2]},0.12)`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, coreRadius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${coreRgb[0]},${coreRgb[1]},${coreRgb[2]},0.34)`;
+      ctx.fill();
+      ctx.restore();
     }
 
     if (this.children.length > 0) {
@@ -6309,16 +6598,24 @@ class GraphOSLiveNode {
       ctx.globalAlpha = 1;
     }
 
-    ctx.fillStyle = 'rgba(207, 216, 255, 0.9)';
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,255,255,0.22)';
+    ctx.shadowBlur = 9;
+    ctx.fillStyle = 'rgba(246, 248, 252, 0.96)';
     ctx.font = '500 11px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.name, this.x, this.y + displayRadius + 14);
+    ctx.restore();
 
     if (this.type) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.16)';
+      ctx.shadowBlur = 7;
       ctx.font = '500 9px Inter, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.42)';
+      ctx.fillStyle = 'rgba(255,255,255,0.62)';
       ctx.fillText(this.type, this.x, this.y - displayRadius - 12);
+      ctx.restore();
     }
 
     ctx.restore();
@@ -6337,6 +6634,36 @@ class GraphOSLiveScene {
     this.nodes = [];
     this.links = [];
     this.view = { showNodes: true, showLinks: true, activeType: null };
+    this.explorer = {
+      search: '',
+      activeTab: 'contents',
+      activeExtension: 'assets',
+      openNodeIds: new Set(),
+    };
+    this.eventLog = [];
+    this.runtimePreview = {
+      rotationX: 0.24,
+      rotationY: -0.48,
+      targetRotationX: 0.24,
+      targetRotationY: -0.48,
+      targetZoom: 1,
+      zoom: 1,
+      dragging: false,
+      pointerId: null,
+      dragMoved: false,
+      startX: 0,
+      startY: 0,
+      startRotationX: 0,
+      startRotationY: 0,
+      hoverKey: null,
+      hoverLabel: '',
+      hoverKind: null,
+      hoverNode: null,
+      lastCanvasRect: null,
+      targetKey: null,
+      selectedNodeId: null,
+      transition: 1,
+    };
     this.selectedNodes = new Set();
     this.selectedLink = null;
     this.hoveredNode = null;
@@ -6381,6 +6708,23 @@ class GraphOSLiveScene {
         this.view.activeType = graphosTypeFilterEl && graphosTypeFilterEl.value ? graphosTypeFilterEl.value : null;
         this._refreshUi();
       },
+      explorerSearch: () => {
+        this.explorer.search = graphosExplorerSearchEl ? graphosExplorerSearchEl.value.trim().toLowerCase() : '';
+        this._refreshUi();
+      },
+      explorerTab: e => {
+        const tab = e?.target?.closest?.('[data-explorer-tab]')?.dataset.explorerTab || null;
+        if (!tab) return;
+        this.explorer.activeTab = tab;
+        this._refreshUi();
+      },
+      previewPointerDown: e => this._onExplorerPreviewPointerDown(e),
+      previewPointerMove: e => this._onExplorerPreviewPointerMove(e),
+      previewPointerUp: e => this._onExplorerPreviewPointerUp(e),
+      previewPointerLeave: () => this._onExplorerPreviewPointerLeave(),
+      previewWheel: e => this._onExplorerPreviewWheel(e),
+      previewClick: e => this._onExplorerPreviewClick(e),
+      previewDoubleClick: e => this._onExplorerPreviewDoubleClick(e),
     };
 
     this._bindUi();
@@ -6486,18 +6830,30 @@ class GraphOSLiveScene {
       graphosTypeFilterEl.addEventListener('change', this._bound.typeFilter);
     }
 
+    if (graphosExplorerSearchEl) {
+      graphosExplorerSearchEl.addEventListener('input', this._bound.explorerSearch);
+    }
+
+    if (graphosExplorerTabsEl) {
+      graphosExplorerTabsEl.addEventListener('click', this._bound.explorerTab);
+    }
+
     if (graphosColorWheelEl) {
       graphosColorWheelEl.addEventListener('pointermove', this._bound.colorWheelMove);
       graphosColorWheelEl.addEventListener('pointerdown', this._bound.colorWheelDown);
     }
 
-    if (graphosWindowHandleEl) {
-      graphosWindowHandleEl.addEventListener('click', e => {
-        if (!this._isCompactMobile()) return;
-        e.preventDefault();
-        this._setMobilePanelOpen(false);
-      });
-    }
+if (graphosWindowHandleEl) {
+  graphosWindowHandleEl.addEventListener('click', e => {
+    if (!this._isCompactMobile()) return;
+    e.preventDefault();
+    this._setMobilePanelOpen(false);
+  });
+}
+
+if (graphosWindowEl) {
+  graphosWindowEl.addEventListener('pointerdown', beginGraphosWindowInteraction);
+}
 
     document.addEventListener('contextmenu', this._bound.contextMenu, true);
     document.addEventListener('keydown', this._bound.keyDown);
@@ -6623,9 +6979,15 @@ class GraphOSLiveScene {
       color: '#7ca0ff',
       baseR: 28,
       r: 28,
-      showCore: true,
+      bodyVisible: true,
       maxRadius: 180,
       depth: 0,
+      permissions: ['read', 'contain', 'link', 'inspect'],
+      capabilities: ['Compose runtime', 'Host children', 'Emit relations'],
+      extensions: ['programs', 'flow', 'knowledge'],
+      programs: ['kernel-router', 'policy-shell'],
+      flow: ['ownership-route', 'policy-gate', 'projection-sync'],
+      knowledge: ['core-schema', 'admin-protocol'],
     });
     const publicNode = this.createNode(cx + 126, cy - 74, {
       name: 'Public',
@@ -6633,6 +6995,10 @@ class GraphOSLiveScene {
       color: '#f4f7ff',
       baseR: 14,
       r: 14,
+      bodyVisible: false,
+      permissions: ['read'],
+      extensions: ['flow'],
+      flow: ['public-projection'],
     });
     const userNode = this.createNode(cx - 66, cy - 54, {
       name: 'User',
@@ -6640,6 +7006,11 @@ class GraphOSLiveScene {
       color: '#9fe4ff',
       baseR: 13,
       r: 13,
+      bodyVisible: false,
+      permissions: ['read', 'navigate'],
+      extensions: ['perception', 'knowledge'],
+      perception: ['presence-signal', 'session-context'],
+      knowledge: ['identity-profile'],
     });
     const workspaceNode = this.createNode(cx + 12, cy - 22, {
       name: 'Workspace',
@@ -6647,6 +7018,12 @@ class GraphOSLiveScene {
       color: '#ffd18e',
       baseR: 12,
       r: 12,
+      bodyVisible: true,
+      assets: ['workspace-manifest', 'runtime-index'],
+      programs: ['shell', 'router'],
+      extensions: ['assets', 'programs', 'flow', 'knowledge'],
+      flow: ['workspace-open', 'asset-routing'],
+      knowledge: ['workspace-policy', 'project-memory'],
     });
     const surfaceNode = this.createNode(this.w * 0.82, this.h * 0.27, {
       name: 'Surface',
@@ -6654,7 +7031,10 @@ class GraphOSLiveScene {
       color: '#ffffff',
       baseR: 13,
       r: 13,
-      showCore: true,
+      bodyVisible: false,
+      extensions: ['flow', 'perception'],
+      flow: ['render-projection'],
+      perception: ['viewport-state'],
     });
     const contextNode = this.createNode(this.w * 0.18, this.h * 0.29, {
       name: 'Environment',
@@ -6662,6 +7042,11 @@ class GraphOSLiveScene {
       color: '#c3b2ff',
       baseR: 12,
       r: 12,
+      bodyVisible: false,
+      permissions: ['read', 'configure'],
+      extensions: ['perception', 'knowledge'],
+      perception: ['environment-scan', 'policy-context'],
+      knowledge: ['semantic-registry'],
     });
     const intentNode = this.createNode(this.w * 0.50, this.h * 0.84, {
       name: 'Action',
@@ -6669,6 +7054,10 @@ class GraphOSLiveScene {
       color: '#9ae6c7',
       baseR: 11,
       r: 11,
+      bodyVisible: true,
+      programs: ['intent-pipeline'],
+      extensions: ['programs', 'flow'],
+      flow: ['intent-route', 'effect-dispatch'],
     });
 
     core.addChild(publicNode);
@@ -6707,11 +7096,20 @@ class GraphOSLiveScene {
       maxRadius: source.maxRadius,
       innerPadding: source.innerPadding,
       emptyPaddingBoost: source.emptyPaddingBoost,
+      bodyVisible: source.bodyVisible,
       showCore: source.showCore,
       orbitAngle: source.orbitAngle + 0.5,
       orbitSpeed: source.orbitSpeed,
       orbitTilt: source.orbitTilt,
       createdAt: source.createdAt,
+      assets: Array.isArray(source.assets) ? source.assets.slice() : [],
+      programs: Array.isArray(source.programs) ? source.programs.slice() : [],
+      permissions: Array.isArray(source.permissions) ? source.permissions.slice() : [],
+      capabilities: Array.isArray(source.capabilities) ? source.capabilities.slice() : [],
+      extensions: Array.isArray(source.extensions) ? source.extensions.slice() : [],
+      flow: Array.isArray(source.flow) ? source.flow.slice() : [],
+      perception: Array.isArray(source.perception) ? source.perception.slice() : [],
+      knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice() : [],
     });
     return copy;
   }
@@ -6780,8 +7178,17 @@ class GraphOSLiveScene {
         createdAt: item.createdAt,
         name: item.name,
         color: item.color,
-        showCore: item.showCore ?? true,
+        bodyVisible: item.bodyVisible ?? item.showCore ?? true,
+        showCore: item.showCore ?? item.bodyVisible ?? true,
         type: item.type,
+        assets: Array.isArray(item.assets) ? item.assets : [],
+        programs: Array.isArray(item.programs) ? item.programs : [],
+        flow: Array.isArray(item.flow) ? item.flow : [],
+        perception: Array.isArray(item.perception) ? item.perception : [],
+        knowledge: Array.isArray(item.knowledge) ? item.knowledge : [],
+        extensions: Array.isArray(item.extensions) ? item.extensions : undefined,
+        permissions: Array.isArray(item.permissions) ? item.permissions : [],
+        capabilities: Array.isArray(item.capabilities) ? item.capabilities : [],
       });
       node.targetR = node.r;
       node.vx = 0;
@@ -6838,6 +7245,16 @@ class GraphOSLiveScene {
   }
 
   _refreshUi() {
+    const inspectorTarget = this._getInspectorTarget();
+    const inspectorNode = inspectorTarget && inspectorTarget.a && inspectorTarget.b ? null : inspectorTarget;
+    if (graphosWindowEl) {
+      const rgb = this._hexToRgb(inspectorNode?.color || '#7ca0ff');
+      graphosWindowEl.style.setProperty('--node-accent', inspectorNode?.color || '#7ca0ff');
+      graphosWindowEl.style.setProperty('--node-accent-rgb', rgb.join(', '));
+      graphosWindowEl.dataset.inspector = inspectorNode?.type || (inspectorTarget ? 'relation' : 'idle');
+      graphosWindowEl.classList.toggle('is-inspecting', !!inspectorTarget);
+    }
+
     if (graphosToggleNodesEl) {
       graphosToggleNodesEl.style.opacity = this.view.showNodes ? '1' : '0.38';
       graphosToggleNodesEl.setAttribute('aria-pressed', this.view.showNodes ? 'true' : 'false');
@@ -6850,7 +7267,7 @@ class GraphOSLiveScene {
       const selectedCount = this.selectedNodes.size;
       if (selectedCount === 1) {
         const node = [...this.selectedNodes][0];
-        graphosSelectionInfoEl.textContent = `${node.name || 'Vertex'} · 1 selected`;
+        graphosSelectionInfoEl.textContent = `${node.name || 'Vertex'} · ${node.type || 'untitled'}`;
       } else if (selectedCount > 1) {
         graphosSelectionInfoEl.textContent = `${selectedCount} selected`;
       } else if (this.selectedLink) {
@@ -6864,6 +7281,1779 @@ class GraphOSLiveScene {
     if (graphosTypeFilterEl) {
       graphosTypeFilterEl.value = this.view.activeType || '';
     }
+
+    this._renderExplorer();
+  }
+
+  _getVisibleNodes() {
+    const filtered = this.nodes.filter(node => !this.view.activeType || node.type === this.view.activeType);
+    return [...filtered].sort((a, b) => {
+      const selectedA = this.selectedNodes.has(a) ? 0 : 1;
+      const selectedB = this.selectedNodes.has(b) ? 0 : 1;
+      if (selectedA !== selectedB) return selectedA - selectedB;
+      const typeA = a.type || '';
+      const typeB = b.type || '';
+      if (typeA !== typeB) return typeA.localeCompare(typeB);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }
+
+  _getInspectorTarget() {
+    if (this.selectedNodes.size > 0) return [...this.selectedNodes][0];
+    if (this.selectedLink) return this.selectedLink;
+    return this.coreNode || this.nodes[0] || null;
+  }
+
+  _hexToRgb(hex) {
+    const fallback = [124, 160, 255];
+    if (!hex || typeof hex !== 'string') return fallback;
+    const normalized = hex.trim().replace(/^#/, '');
+    if (!/^[0-9a-fA-F]{3,8}$/.test(normalized)) return fallback;
+    const expanded = normalized.length === 3
+      ? normalized.split('').map(ch => ch + ch).join('')
+      : normalized.slice(0, 6);
+    const value = Number.parseInt(expanded, 16);
+    if (!Number.isFinite(value)) return fallback;
+    return [
+      (value >> 16) & 255,
+      (value >> 8) & 255,
+      value & 255,
+    ];
+  }
+
+  _createExplorerPill(text, className = 'graphos-explorer__chip') {
+    const chip = document.createElement('span');
+    chip.className = className;
+    chip.textContent = text;
+    return chip;
+  }
+
+  _createExplorerFact(label, value) {
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.textContent = value;
+    return [dt, dd];
+  }
+
+  _getNodeBodyVisible(node) {
+    return node?.bodyVisible ?? node?.showCore ?? true;
+  }
+
+  _getNodeScopeLabel(node, children, incoming, outgoing) {
+    if (!node.parent) return 'Root';
+    if ((node.type || '').toLowerCase() === 'core' || children.length > 2 || outgoing.length > 2) return 'Hub';
+    if (!children.length && !incoming.length && !outgoing.length) return 'Isolated';
+    if (!children.length) return 'Leaf';
+    return 'Branch';
+  }
+
+  _normalizeRuntimeList(value) {
+    if (!Array.isArray(value)) return [];
+    return value.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+  }
+
+  _inferRuntimeKind(entry, fallback = 'vertex') {
+    const label = typeof entry === 'string'
+      ? entry
+      : `${entry?.kind || ''} ${entry?.type || ''} ${entry?.name || ''} ${entry?.label || ''}`;
+    const lower = label.toLowerCase();
+    if (lower.includes('program') || lower.includes('shell') || lower.includes('router') || lower.includes('intent')) return 'program';
+    if (lower.includes('asset') || lower.includes('image') || lower.includes('video') || lower.includes('audio') || lower.includes('document') || lower.includes('model') || lower.includes('file')) return 'asset';
+    if (lower.includes('permission') || lower.includes('read') || lower.includes('write') || lower.includes('link') || lower.includes('navigate') || lower.includes('configure')) return 'permission';
+    return fallback;
+  }
+
+  _describeRuntimeEntry(entry, index = 0) {
+    if (typeof entry === 'string') {
+      return {
+        key: `${entry}-${index}`,
+        label: entry,
+        kind: this._inferRuntimeKind(entry),
+        value: entry,
+      };
+    }
+    const label = entry?.label || entry?.name || entry?.type || entry?.kind || `Item ${index + 1}`;
+    const kind = this._inferRuntimeKind(entry, entry?.kind || 'vertex');
+    return {
+      key: entry?.id || `${label}-${index}`,
+      label,
+      kind,
+      value: entry,
+    };
+  }
+
+  _getNodeRuntimeModel(node, children, incoming, outgoing) {
+    const childEntries = children.map((child, index) => this._describeRuntimeEntry({
+      id: child.id,
+      name: child.name || `Child ${index + 1}`,
+      type: child.type || 'vertex',
+      kind: 'vertex',
+      color: child.color,
+      node: child,
+    }, index));
+    const assetEntries = this._normalizeRuntimeList(node.assets).map((item, index) => this._describeRuntimeEntry(item, index));
+    const programEntries = this._normalizeRuntimeList(node.programs).map((item, index) => this._describeRuntimeEntry(item, index));
+    const flowEntries = this._normalizeRuntimeList(node.flow).map((item, index) => this._describeRuntimeEntry(item, index));
+    const perceptionEntries = this._normalizeRuntimeList(node.perception).map((item, index) => this._describeRuntimeEntry(item, index));
+    const knowledgeEntries = this._normalizeRuntimeList(node.knowledge).map((item, index) => this._describeRuntimeEntry(item, index));
+    const permissionEntries = this._normalizeRuntimeList(node.permissions).map((item, index) => this._describeRuntimeEntry(item, index));
+    const capabilityEntries = this._normalizeRuntimeList(node.capabilities).map((item, index) => this._describeRuntimeEntry(item, index));
+    const extensionKeys = this._getEnabledExtensionKeys(node);
+    const operationCount = childEntries.length + assetEntries.length + programEntries.length + flowEntries.length + perceptionEntries.length + knowledgeEntries.length + permissionEntries.length + capabilityEntries.length + incoming.length + outgoing.length;
+    const continuity = Math.round(clamp(
+      58
+        + (this._getNodeBodyVisible(node) ? 10 : -4)
+        + Math.min(16, children.length * 4)
+        + Math.min(10, (incoming.length + outgoing.length) * 2)
+        + Math.min(6, programEntries.length * 2),
+      22,
+      99,
+    ));
+    return {
+      bodyVisible: this._getNodeBodyVisible(node),
+      childEntries,
+      assetEntries,
+      programEntries,
+      flowEntries,
+      perceptionEntries,
+      knowledgeEntries,
+      permissionEntries,
+      capabilityEntries,
+      extensionKeys,
+      incoming,
+      outgoing,
+      operationCount,
+      continuity,
+    };
+  }
+
+  _getNodeRuntimeSummary(node, children, incoming, outgoing) {
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+    const hosted = model.childEntries.length + model.assetEntries.length + model.programEntries.length;
+    const mesh = incoming.length + outgoing.length;
+    return [
+      ['Runtime', model.bodyVisible ? 'Core exposed' : 'Membrane'],
+      ['Sync', `${model.continuity}%`],
+      ['Hosted', String(hosted)],
+      ['I/O', `${incoming.length}/${outgoing.length}`],
+      ['Ops', String(model.operationCount)],
+      ['Depth', String(node.depth || 0)],
+      ['Mode', node.selected ? 'Focus lock' : 'Live'],
+      ['Color', node.color || '#7ca0ff'],
+      ['Mesh', mesh ? 'Linked' : 'Local'],
+    ];
+  }
+
+  _getExtensionDef(key) {
+    return GRAPHOS_EXTENSION_DEFS.find(def => def.key === key) || GRAPHOS_EXTENSION_DEFS[0];
+  }
+
+  _getEnabledExtensionKeys(node) {
+    if (!node) return [];
+    const enabled = new Set(Array.isArray(node.extensions) ? node.extensions : []);
+    if (Array.isArray(node.assets) && node.assets.length) enabled.add('assets');
+    if (Array.isArray(node.programs) && node.programs.length) enabled.add('programs');
+    if (Array.isArray(node.flow) && node.flow.length) enabled.add('flow');
+    if (Array.isArray(node.perception) && node.perception.length) enabled.add('perception');
+    if (Array.isArray(node.knowledge) && node.knowledge.length) enabled.add('knowledge');
+    return GRAPHOS_EXTENSION_DEFS.map(def => def.key).filter(key => enabled.has(key));
+  }
+
+  _isExtensionEnabled(node, key) {
+    return this._getEnabledExtensionKeys(node).includes(key);
+  }
+
+  _setExtensionEnabled(node, key, enabled = true) {
+    if (!node || !key) return;
+    const set = new Set(Array.isArray(node.extensions) ? node.extensions : []);
+    if (enabled) set.add(key);
+    else set.delete(key);
+    node.extensions = GRAPHOS_EXTENSION_DEFS.map(def => def.key).filter(item => set.has(item));
+  }
+
+  _getExtensionEntries(node, key) {
+    if (!node) return [];
+    const list = key === 'assets'
+      ? node.assets
+      : key === 'programs'
+        ? node.programs
+        : key === 'flow'
+          ? node.flow
+          : key === 'perception'
+            ? node.perception
+            : key === 'knowledge'
+              ? node.knowledge
+              : [];
+    const def = this._getExtensionDef(key);
+    return this._normalizeRuntimeList(list).map((item, index) => {
+      if (typeof item === 'string') {
+        return this._describeRuntimeEntry({ id: `${key}-${item}-${index}`, label: item, kind: def.kind }, index);
+      }
+      return this._describeRuntimeEntry({ ...item, kind: item?.kind || def.kind }, index);
+    });
+  }
+
+  _toggleExplorerExtension(node, key) {
+    if (!node || !key) return;
+    const enabled = this._isExtensionEnabled(node, key);
+    this.explorer.activeExtension = key;
+    if (!enabled) {
+      this._setExtensionEnabled(node, key, true);
+      this._logExplorerEvent('extension-enabled', node, this._getExtensionDef(key).label);
+      this.saveGraph();
+    } else {
+      const entries = this._getExtensionEntries(node, key);
+      this._logExplorerEvent(entries.length ? 'extension-opened' : 'extension-ready', node, this._getExtensionDef(key).label);
+    }
+    this._refreshUi();
+  }
+
+  _getNodeExtensions(node, children, links) {
+    const { bodyVisible } = this._getNodeRuntimeModel(node, children, [], links);
+    const extensions = [
+      bodyVisible ? 'Body active' : 'Membrane only',
+      children.length ? 'Containment field' : 'Leaf membrane',
+      links.length ? 'Live relation mesh' : 'Detached runtime',
+      node.parent ? `Nested in ${node.parent.name || 'Vertex'}` : 'Root boundary',
+    ];
+    if (node.type) {
+      extensions.push(`${node.type} adapter`);
+    }
+    if (node.selected) {
+      extensions.push('Focus lock');
+    }
+    return extensions;
+  }
+
+  _getNodeAssets(node, children, links) {
+    const model = this._getNodeRuntimeModel(node, children, [], links);
+    const assets = [
+      `${Math.round(node.r)} px shell`,
+      `${Math.round(node.baseR)} px base`,
+      `${model.childEntries.length} child${model.childEntries.length === 1 ? '' : 'ren'}`,
+      `${model.assetEntries.length} asset${model.assetEntries.length === 1 ? '' : 's'}`,
+      `${model.programEntries.length} program${model.programEntries.length === 1 ? '' : 's'}`,
+    ];
+    if (model.assetEntries.length) {
+      assets.push(...model.assetEntries.slice(0, 4).map(item => item.label));
+    }
+    return assets;
+  }
+
+  _getNodeLinkBuckets(node, links) {
+    const incoming = [];
+    const outgoing = [];
+
+    links.forEach(link => {
+      if (link.a === node && link.b) {
+        outgoing.push(link.b);
+      } else if (link.b === node && link.a) {
+        incoming.push(link.a);
+      }
+    });
+
+    if (node.parent && !incoming.includes(node.parent)) {
+      incoming.unshift(node.parent);
+    }
+    node.children.forEach(child => {
+      if (!outgoing.includes(child)) outgoing.push(child);
+    });
+
+    const sortByName = (a, b) => (a?.name || '').localeCompare(b?.name || '');
+    incoming.sort(sortByName);
+    outgoing.sort(sortByName);
+    return { incoming, outgoing };
+  }
+
+  _logExplorerEvent(kind, node = null, detail = '') {
+    const entry = {
+      kind,
+      nodeId: node?.id || null,
+      nodeName: node?.name || 'Vertex',
+      detail,
+      at: Date.now(),
+    };
+    this.eventLog.unshift(entry);
+    this.eventLog = this.eventLog.slice(0, 40);
+  }
+
+  _getExplorerRoots() {
+    return this.nodes
+      .filter(node => !node.parent)
+      .sort((a, b) => {
+        const typeA = a.type || '';
+        const typeB = b.type || '';
+        if (typeA !== typeB) return typeA.localeCompare(typeB);
+        return (a.name || '').localeCompare(b.name || '');
+      });
+  }
+
+  _getExplorerSelectedNode() {
+    return this.selectedNodes.size ? [...this.selectedNodes][0] : null;
+  }
+
+  _getExplorerSearchValue() {
+    return (this.explorer.search || '').trim().toLowerCase();
+  }
+
+  _nodeMatchesExplorer(node, search, activeType) {
+    if (activeType && node.type !== activeType) return false;
+    if (!search) return true;
+    const haystack = `${node.name || ''} ${node.type || ''} ${node.id || ''}`.toLowerCase();
+    return haystack.includes(search);
+  }
+
+  _subtreeMatchesExplorer(node, search, activeType) {
+    if (this._nodeMatchesExplorer(node, search, activeType)) return true;
+    return node.children.some(child => this._subtreeMatchesExplorer(child, search, activeType));
+  }
+
+  _isAncestorNode(node, descendant) {
+    let current = descendant;
+    while (current) {
+      if (current === node) return true;
+      current = current.parent;
+    }
+    return false;
+  }
+
+  _openExplorerPath(node) {
+    if (!node) return;
+    if (node.children.length) this.explorer.openNodeIds.add(node.id);
+    let current = node.parent;
+    while (current) {
+      this.explorer.openNodeIds.add(current.id);
+      current = current.parent;
+    }
+  }
+
+  _toggleExplorerNodeOpen(node) {
+    if (!node || !node.children.length) return;
+    if (this.explorer.openNodeIds.has(node.id)) {
+      this.explorer.openNodeIds.delete(node.id);
+    } else {
+      this.explorer.openNodeIds.add(node.id);
+    }
+    this._refreshUi();
+  }
+
+  _getNodeCapabilities(node, children, incoming, outgoing) {
+    const capabilities = [];
+    capabilities.push('Inspect');
+    capabilities.push('Retype');
+    capabilities.push('Recolor');
+    capabilities.push(this._getNodeBodyVisible(node) ? 'Compress body' : 'Expand body');
+    capabilities.push(children.length ? 'Open descendants' : 'Create child');
+    if (incoming.length || outgoing.length) capabilities.push('Trace relations');
+    if (node.parent) capabilities.push('Reparent');
+    capabilities.push(this._getNodeBodyVisible(node) ? 'Hide body' : 'Show body');
+    capabilities.push('Duplicate');
+    capabilities.push('Delete');
+    return capabilities;
+  }
+
+  _getNodeProperties(node, children, incoming, outgoing) {
+    const parentName = node.parent ? (node.parent.name || 'Vertex') : 'Root';
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+    return [
+      ['Name', node.name || 'Vertex'],
+      ['Type', node.type || 'Untyped'],
+      ['Scope', node.parent ? `Nested in ${parentName}` : 'Root node'],
+      ['Status', model.bodyVisible ? 'Body visible' : 'Membrane only'],
+      ['Children', String(children.length)],
+      ['Incoming', String(incoming.length)],
+      ['Outgoing', String(outgoing.length)],
+      ['Assets', String(model.assetEntries.length)],
+      ['Programs', String(model.programEntries.length)],
+      ['Permissions', String(model.permissionEntries.length)],
+      ['Radius', `${Math.round(node.r)} px`],
+      ['Base', `${Math.round(node.baseR)} px`],
+      ['Display', `${Math.round(node.displayRadius || node.r)} px`],
+      ['Created', new Date(node.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })],
+      ['ID', node.id.slice(0, 12)],
+    ];
+  }
+
+  _getNodeHistory(node) {
+    if (!node) return [];
+    return this.eventLog.filter(entry => entry.nodeId === node.id).slice(0, 8);
+  }
+
+  _renderExplorerTreeNode(node, depth, search, activeType, selectedNode, fragment) {
+    if (!this._subtreeMatchesExplorer(node, search, activeType)) return;
+
+    const hasChildren = node.children.length > 0;
+    const isOpen = this.explorer.openNodeIds.has(node.id) || this._isAncestorNode(node, selectedNode) || (search && hasChildren);
+    const isSelected = selectedNode === node;
+
+    const branch = document.createElement('div');
+    branch.className = 'graphos-tree__branch';
+    branch.style.setProperty('--tree-depth', String(depth));
+
+    const row = document.createElement('div');
+    row.className = 'graphos-tree__row';
+    row.setAttribute('role', 'treeitem');
+    row.setAttribute('aria-level', String(depth + 1));
+    row.setAttribute('aria-expanded', hasChildren ? (isOpen ? 'true' : 'false') : 'false');
+    row.dataset.selected = isSelected ? 'true' : 'false';
+    row.dataset.open = isOpen ? 'true' : 'false';
+    row.dataset.layer = node.type || 'node';
+    row.style.setProperty('--node-accent', node.color || '#7ca0ff');
+    row.style.setProperty('--node-accent-rgb', this._hexToRgb(node.color || '#7ca0ff').join(', '));
+    const activateNode = () => {
+      this._selectSingle(node);
+      this.explorer.activeTab = 'contents';
+      const enabledExtensions = this._getEnabledExtensionKeys(node);
+      if (enabledExtensions.length && !enabledExtensions.includes(this.explorer.activeExtension)) {
+        this.explorer.activeExtension = enabledExtensions[0];
+      }
+      selectedGraphosLayer = node.type || null;
+      syncGraphosFocusState();
+    };
+    row.addEventListener('click', e => {
+      if (e.target?.closest?.('.graphos-tree__toggle')) return;
+      activateNode();
+    });
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'graphos-tree__toggle';
+    toggle.setAttribute('aria-label', hasChildren ? (isOpen ? 'Collapse node' : 'Expand node') : 'Leaf node');
+    toggle.textContent = hasChildren ? (isOpen ? '▾' : '▸') : '•';
+    toggle.disabled = !hasChildren;
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      this._toggleExplorerNodeOpen(node);
+    });
+
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'graphos-tree__label';
+    label.setAttribute('aria-label', `Select ${node.name || 'Vertex'}`);
+
+    const name = document.createElement('strong');
+    name.textContent = node.name || 'Vertex';
+
+    const type = document.createElement('span');
+    type.className = 'graphos-tree__type';
+    const runtimeParts = [
+      node.type || 'untitled',
+      this._getNodeBodyVisible(node) ? 'core' : 'membrane',
+      `${node.children.length} child${node.children.length === 1 ? '' : 'ren'}`,
+    ];
+    type.textContent = runtimeParts.join(' · ');
+
+    label.append(name, type);
+    label.addEventListener('click', e => {
+      e.stopPropagation();
+      activateNode();
+    });
+
+    const metrics = document.createElement('span');
+    metrics.className = 'graphos-tree__metrics';
+    metrics.textContent = `${node.programs?.length || 0}P/${node.assets?.length || 0}A`;
+    metrics.title = 'Hosted programs / assets';
+
+    row.append(toggle, label, metrics);
+    branch.appendChild(row);
+    fragment.appendChild(branch);
+
+    if (hasChildren && isOpen) {
+      const childrenWrap = document.createElement('div');
+      childrenWrap.className = 'graphos-tree__children';
+      node.children
+        .slice()
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        .forEach(child => this._renderExplorerTreeNode(child, depth + 1, search, activeType, selectedNode, childrenWrap));
+      if (childrenWrap.childNodes.length) {
+        branch.appendChild(childrenWrap);
+      }
+    }
+  }
+
+  _renderExplorerNodeList(nodes) {
+    if (!graphosExplorerListEl) return;
+
+    graphosExplorerListEl.innerHTML = '';
+    const search = this._getExplorerSearchValue();
+    const activeType = this.view.activeType;
+    const selectedNode = this._getExplorerSelectedNode() || this.coreNode || null;
+    if (selectedNode) this._openExplorerPath(selectedNode);
+    if (!this.explorer.openNodeIds.size) {
+      this._getExplorerRoots().forEach(root => this.explorer.openNodeIds.add(root.id));
+    }
+
+    const roots = this._getExplorerRoots();
+    const visibleRoots = roots.filter(root => this._subtreeMatchesExplorer(root, search, activeType));
+    if (!visibleRoots.length) {
+      const empty = document.createElement('div');
+      empty.className = 'graphos-explorer__empty';
+      empty.textContent = search
+        ? 'No vertices match the current search.'
+        : (this.view.activeType ? `No vertices match "${this.view.activeType}".` : 'No vertices available.');
+      graphosExplorerListEl.appendChild(empty);
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    visibleRoots.forEach(root => this._renderExplorerTreeNode(root, 0, search, activeType, selectedNode, fragment));
+    graphosExplorerListEl.appendChild(fragment);
+  }
+
+  _renderExplorerSelection(target) {
+    if (!graphosExplorerSelectionEl) return;
+    graphosExplorerSelectionEl.innerHTML = '';
+
+    const node = target && target.a && target.b ? null : target;
+    const links = node ? this.links.filter(link => link.a === node || link.b === node) : [];
+    const children = node ? node.children.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')) : [];
+    const parentName = node?.parent ? (node.parent.name || 'Vertex') : 'Root';
+    const rgb = this._hexToRgb(node?.color || '#7ca0ff');
+    graphosExplorerSelectionEl.style.setProperty('--node-accent', node?.color || '#7ca0ff');
+    graphosExplorerSelectionEl.style.setProperty('--node-accent-rgb', rgb.join(', '));
+
+    const card = document.createElement('div');
+    card.className = 'graphos-explorer__selection-card';
+
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'graphos-explorer__eyebrow';
+    eyebrow.textContent = node ? 'Selected Vertex' : 'Selected Relation';
+
+    const title = document.createElement('h3');
+    title.className = 'graphos-explorer__title';
+    title.textContent = node ? (node.name || 'Vertex') : `${target?.a?.name || 'Vertex'} ↔ ${target?.b?.name || 'Vertex'}`;
+
+    const body = document.createElement('p');
+    body.className = 'graphos-explorer__body';
+    body.textContent = node
+      ? `${node.type || 'Untyped'} · ${node.parent ? `Nested in ${parentName}` : 'Root node'} · ${children.length} child${children.length === 1 ? '' : 'ren'} · ${links.length} relation${links.length === 1 ? '' : 's'}`
+      : 'A direct relation between two vertices.';
+
+    const chips = document.createElement('div');
+    chips.className = 'graphos-explorer__chips graphos-explorer__chips--wrap';
+    const telemetry = document.createElement('dl');
+    telemetry.className = 'graphos-explorer__telemetry';
+    if (node) {
+      const { incoming, outgoing } = this._getNodeLinkBuckets(node, links);
+      const summary = this._getNodeRuntimeSummary(node, children, incoming, outgoing);
+      chips.append(
+        this._createExplorerPill(node.type || 'untitled', 'graphos-explorer__chip graphos-explorer__chip--accent'),
+        this._createExplorerPill(node.parent ? 'Nested' : 'Root', 'graphos-explorer__chip graphos-explorer__chip--muted'),
+        this._createExplorerPill(this._getNodeBodyVisible(node) ? 'Body visible' : 'Membrane only'),
+        this._createExplorerPill(`${children.length} child${children.length === 1 ? '' : 'ren'}`),
+      );
+      summary.slice(0, 4).forEach(([label, value]) => telemetry.append(...this._createExplorerFact(label, value)));
+    } else {
+      chips.append(
+        this._createExplorerPill('Tie'),
+        this._createExplorerPill('Relation'),
+      );
+      [
+        ['From', target?.a?.name || 'Vertex'],
+        ['To', target?.b?.name || 'Vertex'],
+        ['Mode', 'Directed context'],
+        ['State', 'Linked'],
+      ].forEach(([label, value]) => telemetry.append(...this._createExplorerFact(label, value)));
+    }
+    card.append(eyebrow, title, body, chips, telemetry);
+    graphosExplorerSelectionEl.appendChild(card);
+  }
+
+  _renderExplorerTabs(target) {
+    if (!graphosExplorerTabsEl) return;
+    graphosExplorerTabsEl.innerHTML = '';
+    graphosExplorerTabsEl.className = 'graphos-explorer__tabs graphos-explorer__extensions';
+    const node = target && target.a && target.b ? null : target;
+    const title = document.createElement('p');
+    title.className = 'graphos-explorer__section-label graphos-explorer__extensions-title';
+    title.textContent = 'Extensions';
+    graphosExplorerTabsEl.appendChild(title);
+
+    GRAPHOS_EXTENSION_DEFS.forEach(def => {
+      const enabled = node ? this._isExtensionEnabled(node, def.key) : false;
+      const entries = node ? this._getExtensionEntries(node, def.key) : [];
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'graphos-explorer__tab graphos-explorer__extension-toggle';
+      button.dataset.explorerExtension = def.key;
+      button.dataset.enabled = enabled ? 'true' : 'false';
+      button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+      button.setAttribute('aria-selected', this.explorer.activeExtension === def.key ? 'true' : 'false');
+      button.disabled = !node;
+      const label = document.createElement('strong');
+      label.textContent = def.label;
+      const meta = document.createElement('span');
+      meta.textContent = enabled ? (entries.length ? `${entries.length} item${entries.length === 1 ? '' : 's'}` : 'active') : 'off';
+      button.append(label, meta);
+      button.addEventListener('click', () => this._toggleExplorerExtension(node, def.key));
+      graphosExplorerTabsEl.appendChild(button);
+    });
+  }
+
+  _renderExplorerPanel(target) {
+    if (!graphosExplorerDetailEl) return;
+    graphosExplorerDetailEl.innerHTML = '';
+
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__panel';
+    panel.dataset.panelKey = target?.id || `${target?.a?.id || 'a'}-${target?.b?.id || 'b'}`;
+
+    if (!target) {
+      const empty = document.createElement('p');
+      empty.className = 'graphos-explorer__empty';
+      empty.textContent = 'Select a vertex to inspect its runtime state.';
+      panel.appendChild(empty);
+      graphosExplorerDetailEl.appendChild(panel);
+      return;
+    }
+
+    if (target.a && target.b) {
+      panel.append(this._renderExplorerRelationPanel(target));
+      graphosExplorerDetailEl.appendChild(panel);
+      return;
+    }
+
+    const node = target;
+    const links = this.links.filter(link => link.a === node || link.b === node);
+    const children = node.children.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const rgb = this._hexToRgb(node.color);
+    const { incoming, outgoing } = this._getNodeLinkBuckets(node, links);
+    const activeExtension = GRAPHOS_EXTENSION_DEFS.some(def => def.key === this.explorer.activeExtension)
+      ? this.explorer.activeExtension
+      : 'assets';
+    this.explorer.activeExtension = activeExtension;
+
+    graphosExplorerDetailEl.style.setProperty('--node-accent', node.color || '#7ca0ff');
+    graphosExplorerDetailEl.style.setProperty('--node-accent-rgb', rgb.join(', '));
+
+    const sectionLabel = document.createElement('p');
+    sectionLabel.className = 'graphos-explorer__section-label';
+    sectionLabel.textContent = 'Node runtime';
+    panel.appendChild(sectionLabel);
+    panel.append(this._renderExplorerContents(node, children, incoming, outgoing));
+    panel.append(this._renderExtensionPanel(node, activeExtension));
+
+    graphosExplorerDetailEl.appendChild(panel);
+  }
+
+  _renderExplorerRelationPanel(target) {
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__relation-card';
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'graphos-explorer__eyebrow';
+    eyebrow.textContent = 'Selected Relation';
+    const title = document.createElement('h3');
+    title.className = 'graphos-explorer__title';
+    title.textContent = `${target.a?.name || 'Vertex'} ↔ ${target.b?.name || 'Vertex'}`;
+    const body = document.createElement('p');
+    body.className = 'graphos-explorer__body';
+    body.textContent = 'This relation links two vertices in the runtime graph.';
+    const facts = document.createElement('dl');
+    facts.className = 'graphos-explorer__facts';
+    [
+      ['From', target.a?.name || 'Vertex'],
+      ['To', target.b?.name || 'Vertex'],
+      ['Type', 'Tie'],
+    ].forEach(([label, value]) => facts.append(...this._createExplorerFact(label, value)));
+    panel.append(eyebrow, title, body, facts);
+    return panel;
+  }
+
+  _renderExplorerContents(node, children, incoming, outgoing) {
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'graphos-explorer__stack graphos-explorer__contents';
+
+    const previewShell = document.createElement('section');
+    previewShell.className = 'graphos-explorer__preview-shell';
+
+    const previewHeader = document.createElement('div');
+    previewHeader.className = 'graphos-explorer__preview-header';
+    const previewKicker = document.createElement('p');
+    previewKicker.className = 'graphos-explorer__section-label';
+    previewKicker.textContent = 'Containment View';
+    const previewMeta = document.createElement('div');
+    previewMeta.className = 'graphos-explorer__chips';
+    previewMeta.append(
+      this._createExplorerPill(model.bodyVisible ? 'Body visible' : 'Membrane only', 'graphos-explorer__chip graphos-explorer__chip--accent'),
+      this._createExplorerPill(`${model.childEntries.length} child${model.childEntries.length === 1 ? '' : 'ren'}`, 'graphos-explorer__chip graphos-explorer__chip--muted'),
+      this._createExplorerPill(`${incoming.length} in · ${outgoing.length} out`, 'graphos-explorer__chip graphos-explorer__chip--muted'),
+    );
+    previewHeader.append(previewKicker, previewMeta);
+
+    const previewViewport = document.createElement('div');
+    previewViewport.className = 'graphos-explorer__preview-viewport';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'graphos-explorer-preview';
+    canvas.className = 'graphos-explorer__preview-canvas';
+    canvas.setAttribute('aria-label', 'Runtime containment preview');
+    canvas.setAttribute('role', 'img');
+    const tooltip = document.createElement('div');
+    tooltip.className = 'graphos-explorer__preview-tooltip';
+    tooltip.hidden = true;
+    previewViewport.append(canvas, tooltip);
+    previewShell.append(previewHeader, previewViewport);
+
+    this.runtimePreviewCanvasEl = canvas;
+    this.runtimePreviewTooltipEl = tooltip;
+    this._bindRuntimePreviewInteractions(canvas);
+
+    const telemetry = document.createElement('dl');
+    telemetry.className = 'graphos-explorer__runtime-hud';
+    this._getNodeRuntimeSummary(node, children, incoming, outgoing)
+      .slice(0, 6)
+      .forEach(([label, value]) => telemetry.append(...this._createExplorerFact(label, value)));
+    previewShell.appendChild(telemetry);
+
+    wrapper.append(previewShell);
+    return wrapper;
+  }
+
+  _renderExtensionPanel(node, extensionKey) {
+    const def = this._getExtensionDef(extensionKey);
+    const enabled = this._isExtensionEnabled(node, def.key);
+    const entries = this._getExtensionEntries(node, def.key);
+    const panel = document.createElement('section');
+    panel.className = 'graphos-explorer__extension-panel';
+    panel.dataset.extension = def.key;
+    panel.dataset.enabled = enabled ? 'true' : 'false';
+
+    const header = document.createElement('div');
+    header.className = 'graphos-explorer__extension-head';
+    const titleWrap = document.createElement('div');
+    const kicker = document.createElement('p');
+    kicker.className = 'graphos-explorer__section-label';
+    kicker.textContent = enabled ? 'Extension active' : 'Extension available';
+    const title = document.createElement('h4');
+    title.className = 'graphos-explorer__extension-title';
+    title.textContent = def.label;
+    titleWrap.append(kicker, title);
+    const status = this._createExplorerPill(enabled ? (entries.length ? `${entries.length} item${entries.length === 1 ? '' : 's'}` : 'Ready') : 'Click to activate', enabled ? 'graphos-explorer__chip graphos-explorer__chip--accent' : 'graphos-explorer__chip graphos-explorer__chip--muted');
+    header.append(titleWrap, status);
+
+    const body = document.createElement('p');
+    body.className = 'graphos-explorer__body';
+    body.textContent = def.summary;
+
+    panel.append(header, body);
+
+    if (!enabled) {
+      const inactive = document.createElement('button');
+      inactive.type = 'button';
+      inactive.className = 'graphos-explorer__extension-activate';
+      inactive.textContent = `Activate ${def.label}`;
+      inactive.addEventListener('click', () => this._toggleExplorerExtension(node, def.key));
+      panel.appendChild(inactive);
+      return panel;
+    }
+
+    if (def.key === 'assets') {
+      panel.appendChild(this._renderExtensionDropzone(entries.length ? 'Drop another file into this node' : def.empty, node));
+    }
+
+    if (!entries.length) {
+      const empty = document.createElement('p');
+      empty.className = 'graphos-explorer__empty';
+      empty.textContent = def.empty;
+      panel.appendChild(empty);
+      return panel;
+    }
+
+    panel.appendChild(this._renderRuntimeCollectionPanel(def.label, entries, def.empty, `graphos-explorer__contents-section--${def.key}`));
+    return panel;
+  }
+
+  _renderExtensionDropzone(label, node) {
+    const zone = document.createElement('div');
+    zone.className = 'graphos-explorer__dropzone';
+    zone.setAttribute('role', 'button');
+    zone.setAttribute('aria-label', 'Drop files into this node');
+    const dot = document.createElement('span');
+    dot.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('strong');
+    text.textContent = label;
+    const meta = document.createElement('span');
+    meta.textContent = 'Any file type · local node attachment';
+    zone.append(dot, text, meta);
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      zone.dataset.dragging = 'true';
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) delete zone.dataset.dragging;
+    });
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      delete zone.dataset.dragging;
+      const files = [...(e.dataTransfer?.files || [])];
+      if (!node || !files.length) return;
+      node.assets = Array.isArray(node.assets) ? node.assets : [];
+      const now = Date.now();
+      files.forEach((file, index) => {
+        node.assets.push({
+          id: `asset-${now}-${index}`,
+          label: file.name || `Asset ${node.assets.length + 1}`,
+          type: file.type || 'file',
+          kind: 'asset',
+        });
+      });
+      this._setExtensionEnabled(node, 'assets', true);
+      this.explorer.activeExtension = 'assets';
+      this._logExplorerEvent('asset-attached', node, `${files.length} file${files.length === 1 ? '' : 's'}`);
+      this.saveGraph();
+      this._refreshUi();
+    });
+    return zone;
+  }
+
+  _renderRuntimeCollectionPanel(label, entries, emptyText, className = '') {
+    const panel = document.createElement('section');
+    panel.className = `graphos-explorer__contents-section ${className}`.trim();
+
+    const heading = document.createElement('p');
+    heading.className = 'graphos-explorer__section-label';
+    heading.textContent = label;
+    panel.appendChild(heading);
+
+    if (!entries.length) {
+      const empty = document.createElement('p');
+      empty.className = 'graphos-explorer__empty';
+      empty.textContent = emptyText;
+      panel.appendChild(empty);
+      return panel;
+    }
+
+    const list = document.createElement('div');
+    list.className = 'graphos-explorer__runtime-list';
+    entries.slice(0, 12).forEach(entry => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `graphos-explorer__runtime-item graphos-explorer__runtime-item--${entry.kind || 'vertex'}`;
+      const itemLabel = document.createElement('strong');
+      itemLabel.textContent = entry.label;
+      const itemMeta = document.createElement('span');
+      itemMeta.textContent = entry.kind === 'vertex'
+        ? (entry.value?.type || 'vertex')
+        : (entry.kind || 'runtime');
+      item.append(itemLabel, itemMeta);
+      item.title = `${label}: ${entry.label}`;
+      if (entry.kind === 'vertex' && entry.value?.node) {
+        item.addEventListener('click', () => {
+          this._selectSingle(entry.value.node);
+          this._openExplorerPath(entry.value.node);
+        });
+      } else {
+        item.addEventListener('click', () => {
+          this._logExplorerEvent('inspect-item', this._getInspectorTarget(), `${label}: ${entry.label}`);
+          this._refreshUi();
+        });
+      }
+      list.appendChild(item);
+    });
+    panel.appendChild(list);
+    return panel;
+  }
+
+  _renderExplorerPermissions(node, children, incoming, outgoing) {
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__stack';
+    const facts = document.createElement('dl');
+    facts.className = 'graphos-explorer__facts graphos-explorer__facts--compact';
+    const permissions = model.permissionEntries.length
+      ? model.permissionEntries.map(entry => entry.label)
+      : [
+          this._getNodeBodyVisible(node) ? 'body: visible' : 'body: hidden',
+          node.parent ? 'can reparent' : 'can root',
+          children.length ? 'can contain' : 'can host',
+          incoming.length || outgoing.length ? 'can relate' : 'relation dormant',
+        ];
+    permissions.forEach((permission, index) => {
+      facts.append(...this._createExplorerFact(index === 0 ? 'Primary' : `Rule ${index + 1}`, permission));
+    });
+    panel.appendChild(facts);
+    return panel;
+  }
+
+  _renderExplorerPrograms(node, children, incoming, outgoing) {
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+    return this._renderRuntimeCollectionPanel('Programs', model.programEntries, 'No programs are hosted here.');
+  }
+
+  _renderExplorerAssets(node, children, incoming, outgoing) {
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+    return this._renderRuntimeCollectionPanel('Assets', model.assetEntries, 'No assets are attached here.');
+  }
+
+  _renderExplorerProperties(node, children, incoming, outgoing) {
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__stack';
+    const facts = document.createElement('dl');
+    facts.className = 'graphos-explorer__facts graphos-explorer__facts--compact';
+    this._getNodeProperties(node, children, incoming, outgoing).forEach(([label, value]) => facts.append(...this._createExplorerFact(label, value)));
+    panel.appendChild(facts);
+    return panel;
+  }
+
+  _renderExplorerRelations(node, children, incoming, outgoing) {
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__stack';
+    const map = document.createElement('div');
+    map.className = 'graphos-explorer__relation-map';
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'graphos-explorer__relation-svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('aria-hidden', 'true');
+
+    const linkPaths = [
+      'M50 50 L18 30',
+      'M50 50 L82 30',
+      'M50 50 L50 84',
+    ];
+    linkPaths.forEach(d => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'graphos-explorer__relation-link');
+      svg.appendChild(path);
+    });
+
+    const orbit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    orbit.setAttribute('cx', '50');
+    orbit.setAttribute('cy', '50');
+    orbit.setAttribute('r', '27');
+    orbit.setAttribute('class', 'graphos-explorer__relation-orbit');
+    svg.appendChild(orbit);
+
+    const hub = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    hub.setAttribute('cx', '50');
+    hub.setAttribute('cy', '50');
+    hub.setAttribute('r', '7');
+    hub.setAttribute('class', 'graphos-explorer__relation-hub');
+    svg.appendChild(hub);
+
+    map.appendChild(svg);
+
+    const center = document.createElement('div');
+    center.className = 'graphos-explorer__relation-node graphos-explorer__relation-node--center';
+    center.textContent = node.name || 'Vertex';
+    map.appendChild(center);
+
+    const addCluster = (items, label, side) => {
+      const group = document.createElement('div');
+      group.className = `graphos-explorer__relation-cluster graphos-explorer__relation-cluster--${side}`;
+      const clusterLabel = document.createElement('p');
+      clusterLabel.className = 'graphos-explorer__relation-label';
+      clusterLabel.textContent = label;
+      group.appendChild(clusterLabel);
+      if (items.length) {
+        const list = document.createElement('div');
+        list.className = 'graphos-explorer__relation-list';
+        items.slice(0, 6).forEach(item => {
+          const chip = document.createElement('span');
+          chip.className = 'graphos-explorer__relation-node';
+          chip.textContent = item.name || 'Vertex';
+          list.appendChild(chip);
+        });
+        group.appendChild(list);
+      } else {
+        const empty = document.createElement('p');
+        empty.className = 'graphos-explorer__empty';
+        empty.textContent = `No ${label.toLowerCase()} vertices.`;
+        group.appendChild(empty);
+      }
+      map.appendChild(group);
+    };
+
+    addCluster(incoming, 'Incoming', 'left');
+    addCluster(outgoing, 'Outgoing', 'right');
+    addCluster(children, 'Children', 'bottom');
+
+    panel.appendChild(map);
+    return panel;
+  }
+
+  _renderExplorerEvents(node) {
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__stack';
+    const events = this.eventLog.length ? this.eventLog : [{ kind: 'idle', nodeName: node?.name || 'Vertex', detail: 'No runtime events recorded yet.', at: Date.now() }];
+    const list = document.createElement('div');
+    list.className = 'graphos-explorer__event-list';
+    events.slice(0, 8).forEach(entry => {
+      const item = document.createElement('article');
+      item.className = 'graphos-explorer__event';
+      const title = document.createElement('p');
+      title.className = 'graphos-explorer__event-title';
+      title.textContent = `${entry.kind}`;
+      const body = document.createElement('p');
+      body.className = 'graphos-explorer__event-body';
+      body.textContent = `${entry.nodeName}${entry.detail ? ` · ${entry.detail}` : ''}`;
+      item.append(title, body);
+      list.appendChild(item);
+    });
+    panel.appendChild(list);
+    return panel;
+  }
+
+  _renderExplorerCapabilities(node, children, incoming, outgoing) {
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__stack';
+    const chips = document.createElement('div');
+    chips.className = 'graphos-explorer__chips graphos-explorer__chips--wrap';
+    this._getNodeCapabilities(node, children, incoming, outgoing).forEach(capability => {
+      chips.appendChild(this._createExplorerPill(capability, 'graphos-explorer__chip graphos-explorer__chip--accent'));
+    });
+    panel.appendChild(chips);
+    return panel;
+  }
+
+  _renderExplorerHistory(node) {
+    const panel = document.createElement('div');
+    panel.className = 'graphos-explorer__stack';
+    const history = this._getNodeHistory(node);
+    if (!history.length) {
+      const empty = document.createElement('p');
+      empty.className = 'graphos-explorer__empty';
+      empty.textContent = 'No history yet for this vertex.';
+      panel.appendChild(empty);
+      return panel;
+    }
+    const list = document.createElement('div');
+    list.className = 'graphos-explorer__event-list';
+    history.forEach(entry => {
+      const item = document.createElement('article');
+      item.className = 'graphos-explorer__event';
+      const title = document.createElement('p');
+      title.className = 'graphos-explorer__event-title';
+      title.textContent = entry.kind;
+      const body = document.createElement('p');
+      body.className = 'graphos-explorer__event-body';
+      body.textContent = entry.detail || new Date(entry.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      item.append(title, body);
+      list.appendChild(item);
+    });
+    panel.appendChild(list);
+    return panel;
+  }
+
+  _getRuntimePreviewHitTarget(x, y) {
+    const targets = this.runtimePreview.targets || [];
+    let best = null;
+    let bestDistance = Infinity;
+    targets.forEach(target => {
+      const distance = Math.hypot(x - target.x, y - target.y);
+      if (distance <= target.radius * 1.35 && distance < bestDistance) {
+        best = target;
+        bestDistance = distance;
+      }
+    });
+    return best;
+  }
+
+  _setRuntimePreviewHover(target) {
+    if (!target) {
+      this.runtimePreview.hoverKey = null;
+      this.runtimePreview.hoverLabel = '';
+      this.runtimePreview.hoverKind = null;
+      this.runtimePreview.hoverNode = null;
+      return;
+    }
+    this.runtimePreview.hoverKey = target.key;
+    this.runtimePreview.hoverLabel = target.label || '';
+    this.runtimePreview.hoverKind = target.kind || null;
+    this.runtimePreview.hoverNode = target.node || null;
+  }
+
+  _focusRuntimePreviewOnNode(node) {
+    if (!node) return;
+    const seed = this._hashRuntimeKey(node.id || node.name || 'vertex');
+    this.runtimePreview.selectedNodeId = node.id;
+    this.runtimePreview.targetRotationX = -0.14 + seed * 0.52;
+    this.runtimePreview.targetRotationY = -0.86 + seed * 1.72;
+    this.runtimePreview.targetZoom = this._getNodeBodyVisible(node) ? 1.12 : 0.96;
+    this.runtimePreview.transition = 0;
+  }
+
+  _onExplorerPreviewPointerDown(e) {
+    const canvas = e.currentTarget;
+    if (!canvas || e.button !== 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const target = this._getRuntimePreviewHitTarget(x, y);
+    this.runtimePreview.dragging = true;
+    this.runtimePreview.pointerId = e.pointerId;
+    this.runtimePreview.dragMoved = false;
+    this.runtimePreview.startX = x;
+    this.runtimePreview.startY = y;
+    this.runtimePreview.startRotationX = this.runtimePreview.rotationX;
+    this.runtimePreview.startRotationY = this.runtimePreview.rotationY;
+    this.runtimePreview.targetKey = target ? target.key : null;
+    this._setRuntimePreviewHover(target);
+    canvas.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  }
+
+  _onExplorerPreviewPointerMove(e) {
+    const canvas = e.currentTarget;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (this.runtimePreview.dragging && e.pointerId === this.runtimePreview.pointerId) {
+      const dx = x - this.runtimePreview.startX;
+      const dy = y - this.runtimePreview.startY;
+      if (Math.hypot(dx, dy) > 3) {
+        this.runtimePreview.dragMoved = true;
+      }
+      this.runtimePreview.rotationY = this.runtimePreview.startRotationY + dx * 0.008;
+      this.runtimePreview.rotationX = clamp(this.runtimePreview.startRotationX + dy * 0.008, -1.2, 1.2);
+      this._setRuntimePreviewHover(this._getRuntimePreviewHitTarget(x, y));
+      e.preventDefault();
+      return;
+    }
+
+    this._setRuntimePreviewHover(this._getRuntimePreviewHitTarget(x, y));
+  }
+
+  _onExplorerPreviewPointerUp(e) {
+    const canvas = e.currentTarget;
+    if (this.runtimePreview.dragging && e.pointerId === this.runtimePreview.pointerId) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const target = this._getRuntimePreviewHitTarget(x, y);
+      this.runtimePreview.dragging = false;
+      this.runtimePreview.pointerId = null;
+      if (!this.runtimePreview.dragMoved && target?.node) {
+        this._selectSingle(target.node);
+        this.explorer.activeTab = 'contents';
+        this._openExplorerPath(target.node);
+        this._refreshUi();
+      }
+      this._setRuntimePreviewHover(target);
+      e.preventDefault();
+    }
+  }
+
+  _onExplorerPreviewPointerLeave() {
+    if (this.runtimePreview.dragging) return;
+    this._setRuntimePreviewHover(null);
+  }
+
+  _onExplorerPreviewWheel(e) {
+    if (!this.runtimePreviewCanvasEl) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.94 : 1.06;
+    this.runtimePreview.zoom = clamp(this.runtimePreview.zoom * delta, 0.72, 1.78);
+  }
+
+  _onExplorerPreviewClick(e) {
+    if (this.runtimePreview.dragMoved) {
+      this.runtimePreview.dragMoved = false;
+      return;
+    }
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const target = this._getRuntimePreviewHitTarget(e.clientX - rect.left, e.clientY - rect.top);
+    if (target?.node) {
+      this._selectSingle(target.node);
+      this.explorer.activeTab = 'contents';
+      this._openExplorerPath(target.node);
+      this._refreshUi();
+    }
+  }
+
+  _onExplorerPreviewDoubleClick(e) {
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const target = this._getRuntimePreviewHitTarget(e.clientX - rect.left, e.clientY - rect.top);
+    if (target?.node) {
+      this._selectSingle(target.node);
+      this.explorer.activeTab = 'contents';
+      this.runtimePreview.zoom = 1.08;
+      this.runtimePreview.rotationX = 0.24;
+      this.runtimePreview.rotationY = -0.48;
+      this._openExplorerPath(target.node);
+      this._refreshUi();
+    }
+  }
+
+  _bindRuntimePreviewInteractions(canvas) {
+    if (!canvas || canvas.dataset.runtimePreviewBound === 'true') return;
+    canvas.dataset.runtimePreviewBound = 'true';
+    canvas.addEventListener('pointerdown', this._bound.previewPointerDown);
+    canvas.addEventListener('pointermove', this._bound.previewPointerMove);
+    canvas.addEventListener('pointerup', this._bound.previewPointerUp);
+    canvas.addEventListener('pointercancel', this._bound.previewPointerUp);
+    canvas.addEventListener('pointerleave', this._bound.previewPointerLeave);
+    canvas.addEventListener('wheel', this._bound.previewWheel, { passive: false });
+    canvas.addEventListener('click', this._bound.previewClick);
+    canvas.addEventListener('dblclick', this._bound.previewDoubleClick);
+  }
+
+  _hashRuntimeKey(key) {
+    const text = String(key || '');
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) / 4294967295;
+  }
+
+  _projectRuntimePreviewPoint(vec3, cx, cy, radius, rotX, rotY, zoom, wobble = 0) {
+    const [x0, y0, z0] = vec3;
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const x1 = x0 * cosY - z0 * sinY;
+    const z1 = x0 * sinY + z0 * cosY;
+
+    const cosX = Math.cos(rotX);
+    const sinX = Math.sin(rotX);
+    const y1 = y0 * cosX - z1 * sinX;
+    const z2 = y0 * sinX + z1 * cosX;
+    const perspective = Math.max(220, radius * 4.2);
+    const depth = z2 * radius;
+    const scale = perspective / Math.max(120, perspective - depth);
+    return {
+      x: cx + x1 * radius * zoom * scale,
+      y: cy + y1 * radius * zoom * scale * 0.88 + wobble,
+      z: z2,
+      scale,
+    };
+  }
+
+  _drawRuntimePreviewNode(ctx, entry, projected, radius, hovered = false) {
+    const base = this._hexToRgb(entry.color || '#7ca0ff');
+    const alpha = hovered ? 1 : 0.9;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.2, Math.min(1, alpha * (0.55 + projected.scale * 0.28)));
+
+    if (entry.kind === 'asset') {
+      const w = radius * (0.28 + projected.scale * 0.06);
+      const h = w * 0.82;
+      const folded = entry.label.toLowerCase().includes('document');
+      ctx.translate(projected.x, projected.y);
+      ctx.rotate(Math.sin(projected.z * 3.1) * 0.08);
+      const fill = ctx.createLinearGradient(-w * 0.5, -h * 0.5, w * 0.5, h * 0.5);
+      fill.addColorStop(0, `rgba(${base[0]},${base[1]},${base[2]},0.92)`);
+      fill.addColorStop(1, 'rgba(255,255,255,0.18)');
+      ctx.fillStyle = fill;
+      roundRect(ctx, -w * 0.5, -h * 0.5, w, h, Math.max(3, w * 0.18));
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (folded) {
+        ctx.beginPath();
+        ctx.moveTo(w * 0.12, -h * 0.5);
+        ctx.lineTo(w * 0.5, -h * 0.12);
+        ctx.lineTo(w * 0.5, -h * 0.5);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.34, h * 0.08);
+      ctx.lineTo(w * 0.34, h * 0.08);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = Math.max(1, h * 0.04);
+      ctx.stroke();
+    } else if (entry.kind === 'program') {
+      const r = radius * (0.085 + projected.scale * 0.025);
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.01 + this._hashRuntimeKey(entry.key) * Math.PI * 2);
+      ctx.translate(projected.x, projected.y);
+      ctx.rotate(Math.sin(projected.z * 2.4 + this.t * 0.01) * 0.2);
+      ctx.strokeStyle = `rgba(${base[0]},${base[1]},${base[2]},${0.55 + pulse * 0.25})`;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.25, 0);
+      ctx.lineTo(0, -r * 0.82);
+      ctx.lineTo(r * 1.25, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.25, 0);
+      ctx.lineTo(0, r * 0.72);
+      ctx.lineTo(r * 1.25, 0);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(${base[0]},${base[1]},${base[2]},0.84)`;
+      [-r * 1.25, 0, r * 1.25].forEach((x, index) => {
+        ctx.beginPath();
+        ctx.arc(x, index === 1 ? -r * 0.82 : 0, r * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    } else {
+      const r = radius * (0.08 + projected.scale * 0.02);
+      ctx.translate(projected.x, projected.y);
+      ctx.fillStyle = `rgba(${base[0]},${base[1]},${base[2]},0.85)`;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.26)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    if (hovered) {
+      ctx.shadowColor = `rgba(${base[0]},${base[1]},${base[2]},0.68)`;
+      ctx.shadowBlur = 16;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = `rgba(${base[0]},${base[1]},${base[2]},0.92)`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(8, radius * 0.09), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  _drawExplorerPreview() {
+    const canvas = this.runtimePreviewCanvasEl && this.runtimePreviewCanvasEl.isConnected ? this.runtimePreviewCanvasEl : null;
+    if (!canvas) {
+      if (this.runtimePreviewTooltipEl) this.runtimePreviewTooltipEl.hidden = true;
+      return;
+    }
+
+    const target = this._getInspectorTarget();
+    const node = target && target.a && target.b ? (target.a || target.b) : target;
+    if (!node) {
+      this.runtimePreview.targets = [];
+      if (this.runtimePreviewTooltipEl) this.runtimePreviewTooltipEl.hidden = true;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width && rect.height) {
+        const dpr = window.devicePixelRatio || 1;
+        if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+          canvas.width = Math.round(rect.width * dpr);
+          canvas.height = Math.round(rect.height * dpr);
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        const bg = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+        bg.addColorStop(0, 'rgba(7,9,13,0.92)');
+        bg.addColorStop(1, 'rgba(4,5,8,0.98)');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, rect.width, rect.height);
+      }
+      return;
+    }
+
+    const links = this.links.filter(link => link.a === node || link.b === node);
+    const children = node.children.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const { incoming, outgoing } = this._getNodeLinkBuckets(node, links);
+    const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
+
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    this.runtimePreview.lastCanvasRect = rect;
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(1, Math.round(rect.width * dpr));
+    const height = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    const accent = this._hexToRgb(node.color || '#7ca0ff');
+    const bg = ctx.createRadialGradient(rect.width * 0.5, rect.height * 0.46, 8, rect.width * 0.5, rect.height * 0.52, Math.max(rect.width, rect.height) * 0.72);
+    bg.addColorStop(0, 'rgba(14,18,24,0.98)');
+    bg.addColorStop(1, 'rgba(5,6,10,0.99)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    const vignette = ctx.createRadialGradient(rect.width * 0.52, rect.height * 0.48, Math.min(rect.width, rect.height) * 0.08, rect.width * 0.5, rect.height * 0.5, Math.max(rect.width, rect.height) * 0.65);
+    vignette.addColorStop(0, `rgba(${accent[0]},${accent[1]},${accent[2]},0.18)`);
+    vignette.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.restore();
+
+    const minDim = Math.min(rect.width, rect.height);
+    const centerX = rect.width * 0.5;
+    const centerY = rect.height * 0.5;
+    const baseRadius = minDim * 0.31;
+    const previewState = this.runtimePreview;
+    if (!previewState.dragging) {
+      previewState.rotationX += ((previewState.targetRotationX ?? previewState.rotationX) - previewState.rotationX) * 0.055;
+      previewState.rotationY += ((previewState.targetRotationY ?? previewState.rotationY) - previewState.rotationY) * 0.055;
+      previewState.zoom += ((previewState.targetZoom ?? previewState.zoom) - previewState.zoom) * 0.045;
+    }
+    previewState.transition = Math.min(1, (previewState.transition ?? 1) + 0.035);
+    const autoDriftX = Math.sin(this.t * 0.0007 + this._hashRuntimeKey(node.id) * Math.PI * 2) * 0.05;
+    const autoDriftY = Math.cos(this.t * 0.0005 + this._hashRuntimeKey(node.id) * 5.1) * 0.035;
+    const rotX = previewState.rotationX + autoDriftY;
+    const rotY = previewState.rotationY + autoDriftX;
+    const zoom = clamp(previewState.zoom, 0.78, 1.65);
+    const membraneRadius = baseRadius * zoom;
+    const entityRadius = membraneRadius * 0.92;
+    const shellRadius = membraneRadius * 0.98;
+    const sphereRadius = membraneRadius * 0.9;
+
+    const bodyVisible = model.bodyVisible;
+    const surfacePoint = (vec) => this._projectRuntimePreviewPoint(vec, centerX, centerY, sphereRadius, rotX, rotY, zoom, 0);
+
+    const starCount = Math.max(18, Math.round(minDim / 14));
+    ctx.save();
+    for (let i = 0; i < starCount; i++) {
+      const seed = this._hashRuntimeKey(`${node.id}-star-${i}`);
+      const x = rect.width * ((seed * 0.73 + i * 0.194) % 1);
+      const y = rect.height * ((seed * 0.51 + i * 0.263) % 1);
+      const size = 0.6 + (seed % 1) * 1.5;
+      const alpha = 0.1 + (seed % 1) * 0.45;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fillRect(x, y, size, size);
+    }
+    ctx.restore();
+
+    const atmosphere = ctx.createRadialGradient(centerX, centerY, sphereRadius * 0.72, centerX, centerY, sphereRadius * 1.34);
+    atmosphere.addColorStop(0, 'rgba(255,255,255,0)');
+    atmosphere.addColorStop(0.62, `rgba(${accent[0]},${accent[1]},${accent[2]},0.16)`);
+    atmosphere.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = atmosphere;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, sphereRadius * 1.34, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (bodyVisible) {
+      const bodyGlow = ctx.createRadialGradient(centerX - sphereRadius * 0.35, centerY - sphereRadius * 0.33, sphereRadius * 0.06, centerX, centerY, sphereRadius);
+      bodyGlow.addColorStop(0, `rgba(${accent[0]},${accent[1]},${accent[2]},0.78)`);
+      bodyGlow.addColorStop(0.2, 'rgba(176,206,255,0.36)');
+      bodyGlow.addColorStop(0.54, 'rgba(28,42,70,0.96)');
+      bodyGlow.addColorStop(1, 'rgba(4,6,10,0.995)');
+      ctx.fillStyle = bodyGlow;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, sphereRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, sphereRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      const wash = ctx.createRadialGradient(centerX - sphereRadius * 0.42, centerY - sphereRadius * 0.44, sphereRadius * 0.03, centerX - sphereRadius * 0.18, centerY - sphereRadius * 0.24, sphereRadius * 1.04);
+      wash.addColorStop(0, 'rgba(255,255,255,0.18)');
+      wash.addColorStop(0.22, `rgba(${accent[0]},${accent[1]},${accent[2]},0.14)`);
+      wash.addColorStop(0.56, 'rgba(255,255,255,0.02)');
+      wash.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = wash;
+      ctx.fillRect(centerX - sphereRadius, centerY - sphereRadius, sphereRadius * 2, sphereRadius * 2);
+
+      const drawGrid = (rings, segments, start, end, alphaBase, lineWidthBase) => {
+        for (let ring = 0; ring < rings; ring++) {
+          const t = rings === 1 ? 0.5 : ring / (rings - 1);
+          const latitude = start + (end - start) * t;
+          let prev = null;
+          for (let seg = 0; seg <= segments; seg++) {
+            const lon = (seg / segments) * Math.PI * 2;
+            const x = Math.cos(latitude) * Math.cos(lon);
+            const y = Math.sin(latitude);
+            const z = Math.cos(latitude) * Math.sin(lon);
+            const p = surfacePoint([x, y, z]);
+            if (prev) {
+              const depth = clamp((prev.z + p.z + 2) * 0.25, 0, 1);
+              ctx.strokeStyle = `rgba(180,205,255,${alphaBase + depth * 0.12})`;
+              ctx.lineWidth = lineWidthBase + depth * 0.55;
+              ctx.beginPath();
+              ctx.moveTo(prev.x, prev.y);
+              ctx.lineTo(p.x, p.y);
+              ctx.stroke();
+            }
+            prev = p;
+          }
+        }
+      };
+
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      drawGrid(5, 28, -1.0, 1.0, 0.022, 0.32);
+
+      for (let m = 0; m < 7; m++) {
+        const longitude = -Math.PI + (m / 6) * Math.PI * 2;
+        let prev = null;
+        for (let step = 0; step <= 26; step++) {
+          const latitude = -1.05 + (step / 26) * 2.1;
+          const x = Math.cos(latitude) * Math.cos(longitude);
+          const y = Math.sin(latitude);
+          const z = Math.cos(latitude) * Math.sin(longitude);
+          const p = surfacePoint([x, y, z]);
+          if (prev) {
+            const depth = clamp((prev.z + p.z + 2) * 0.25, 0, 1);
+            ctx.strokeStyle = `rgba(170,198,255,${0.02 + depth * 0.06})`;
+            ctx.lineWidth = 0.26 + depth * 0.24;
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+          }
+          prev = p;
+        }
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      const sparkles = 7;
+      for (let i = 0; i < sparkles; i++) {
+        const seed = this._hashRuntimeKey(`${node.id}-spark-${i}`);
+        const angle = seed * Math.PI * 2;
+        const dist = sphereRadius * (0.18 + ((seed * 7.3) % 1) * 0.52);
+        const x = centerX + Math.cos(angle) * dist * 0.42;
+        const y = centerY + Math.sin(angle * 1.08) * dist * 0.28;
+        const r = 0.8 + ((seed * 13.7) % 1) * 1.5;
+        ctx.globalAlpha = 0.08 + ((seed * 5.2) % 1) * 0.18;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      const specular = ctx.createRadialGradient(centerX - sphereRadius * 0.46, centerY - sphereRadius * 0.44, sphereRadius * 0.02, centerX - sphereRadius * 0.2, centerY - sphereRadius * 0.2, sphereRadius * 1.08);
+      specular.addColorStop(0, 'rgba(255,255,255,0.18)');
+      specular.addColorStop(0.18, `rgba(255,255,255,${bodyVisible ? 0.06 : 0.02})`);
+      specular.addColorStop(0.52, 'rgba(255,255,255,0.01)');
+      specular.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = specular;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, sphereRadius * 1.02, 0, Math.PI * 2);
+      ctx.fill();
+
+      const coreRadius = sphereRadius * 0.18;
+      const corePulse = 0.5 + 0.5 * Math.sin(this.t * 2.2 + this._hashRuntimeKey(node.id) * 8);
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const cutaway = ctx.createRadialGradient(centerX - coreRadius * 0.24, centerY - coreRadius * 0.3, coreRadius * 0.08, centerX, centerY, coreRadius * 1.6);
+      cutaway.addColorStop(0, 'rgba(255,255,255,0.92)');
+      cutaway.addColorStop(0.26, `rgba(${accent[0]},${accent[1]},${accent[2]},0.84)`);
+      cutaway.addColorStop(0.7, `rgba(${accent[0]},${accent[1]},${accent[2]},0.24)`);
+      cutaway.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = cutaway;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, coreRadius * (1.28 + corePulse * 0.08), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${0.34 + corePulse * 0.16})`;
+      ctx.lineWidth = 1.15;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, coreRadius * (1.56 + corePulse * 0.16), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(${accent[0]},${accent[1]},${accent[2]},0.32)`;
+      ctx.lineWidth = 0.9;
+      for (let ring = 0; ring < 3; ring++) {
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, coreRadius * (1.9 + ring * 0.45), coreRadius * (0.44 + ring * 0.1), this.t * 0.38 + ring * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(Math.sin(this.t * 0.0003 + this._hashRuntimeKey(node.id)) * 0.14);
+    const shellGlow = ctx.createRadialGradient(0, 0, shellRadius * 0.16, 0, 0, shellRadius);
+    shellGlow.addColorStop(0, `rgba(${accent[0]},${accent[1]},${accent[2]},${bodyVisible ? 0.16 : 0.08})`);
+    shellGlow.addColorStop(0.52, `rgba(255,255,255,${bodyVisible ? 0.03 : 0.015})`);
+    shellGlow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = shellGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, shellRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${bodyVisible ? 0.42 : 0.34})`;
+    ctx.lineWidth = 1.15;
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(${accent[0]},${accent[1]},${accent[2]},0.2)`;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.arc(0, 0, shellRadius * 0.975, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    const entries = [
+      ...model.childEntries.map(entry => ({ ...entry, kind: 'vertex', group: 'children', color: entry.value?.color || node.color })),
+      ...model.programEntries.map(entry => ({ ...entry, kind: 'program', group: 'programs', color: node.color })),
+      ...model.assetEntries.map(entry => ({ ...entry, kind: 'asset', group: 'assets', color: node.color })),
+    ];
+    const totalEntries = entries.length;
+    const mode = totalEntries <= 20 ? 'individual' : totalEntries <= 100 ? 'cluster' : 'aggregate';
+    const groupOrder = ['vertex', 'program', 'asset'];
+    const groupCenters = {
+      vertex: [-0.42, 0.12, 0.46],
+      program: [0.38, -0.18, 0.55],
+      asset: [0.08, 0.42, -0.48],
+    };
+    const groupSizes = {
+      vertex: 0.48,
+      program: 0.36,
+      asset: 0.4,
+    };
+    const targets = [];
+
+    const drawConnector = (items, direction = 1, kind = 'vertex') => {
+      const count = Math.min(items.length, 8);
+      if (!count) return;
+      const strandColor = kind === 'program' ? `rgba(154,230,199,0.52)` : kind === 'asset' ? `rgba(255,209,142,0.42)` : `rgba(191,215,255,0.36)`;
+      for (let i = 0; i < count; i++) {
+        const item = items[i];
+        const seed = this._hashRuntimeKey(item.key || item.label || `${kind}-${i}`);
+        const angle = seed * Math.PI * 2;
+        const shell = membraneRadius * (0.9 + seed * 0.08);
+        const sx = centerX + Math.cos(angle) * shell * direction * 0.82;
+        const sy = centerY + Math.sin(angle * 1.1) * shell * 0.72;
+        const ex = centerX + Math.cos(angle + 0.6) * shell * 0.42;
+        const ey = centerY + Math.sin(angle * 1.1 + 0.4) * shell * 0.36;
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.strokeStyle = strandColor;
+        ctx.lineWidth = 1.35;
+        ctx.shadowColor = kind === 'program' ? 'rgba(154,230,199,0.28)' : kind === 'asset' ? 'rgba(255,209,142,0.24)' : 'rgba(191,215,255,0.18)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo((sx + ex) * 0.5, (sy + ey) * 0.5 - shell * 0.12, ex, ey);
+        ctx.stroke();
+        ctx.fillStyle = strandColor;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1 + (seed % 1) * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ex, ey, 1.1 + (seed % 1) * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (items.length > 8) {
+        const moreText = `+${items.length - 8}`;
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.42)';
+        ctx.font = `500 ${Math.max(9, minDim * 0.026)}px Inter, sans-serif`;
+        ctx.fillText(moreText, centerX + membraneRadius * (direction > 0 ? 0.94 : -0.98), centerY + membraneRadius * 0.6);
+        ctx.restore();
+      }
+    };
+
+    drawConnector(model.incoming.map((item, index) => ({
+      key: item.id || item.name || `incoming-${index}`,
+      label: item.name || 'Incoming',
+      kind: 'vertex',
+    })), -1, 'vertex');
+    drawConnector(model.outgoing.map((item, index) => ({
+      key: item.id || item.name || `outgoing-${index}`,
+      label: item.name || 'Outgoing',
+      kind: 'vertex',
+    })), 1, 'vertex');
+
+    const buildItemVector = (entry, index, count, groupKind = entry.kind) => {
+      const seed = this._hashRuntimeKey(entry.key || entry.label || `${groupKind}-${index}`);
+      const baseTheta = seed * Math.PI * 2;
+      const basePhi = Math.acos(1 - 2 * ((index + 0.5) / Math.max(1, count)));
+      const shell = groupKind === 'program' ? 0.42 : groupKind === 'asset' ? 0.62 : 0.52;
+      const wobble = 0.12 * Math.sin(this.t * 0.0009 + seed * 17);
+      const x = Math.sin(basePhi) * Math.cos(baseTheta);
+      const y = Math.cos(basePhi);
+      const z = Math.sin(basePhi) * Math.sin(baseTheta);
+      return [x * shell, (y + wobble) * shell, z * shell];
+    };
+
+    if (mode === 'individual') {
+      entries.forEach((entry, index) => {
+        const vec = buildItemVector(entry, index, entries.length, entry.kind);
+        const projected = this._projectRuntimePreviewPoint(vec, centerX, centerY, entityRadius, rotX, rotY, zoom, 0);
+        const distanceToCenter = Math.hypot(projected.x - centerX, projected.y - centerY);
+        const size = entry.kind === 'program' ? 10 : entry.kind === 'asset' ? 13 : 11;
+        const key = entry.key || `${entry.kind}-${index}`;
+        const hovered = this.runtimePreview.hoverKey === key;
+        targets.push({ key, x: projected.x, y: projected.y, radius: size * projected.scale * 0.95, entry, kind: entry.kind, label: entry.label, node: entry.value?.node || null, group: entry.group });
+        if (distanceToCenter < membraneRadius * 0.97) {
+          this._drawRuntimePreviewNode(ctx, entry, projected, size * 2.4, hovered);
+        }
+      });
+    } else {
+      groupOrder.forEach((kind, groupIndex) => {
+        const groupEntries = entries.filter(entry => entry.kind === kind);
+        if (!groupEntries.length) return;
+        const aggregateCount = groupEntries.length;
+        const centerVec = groupCenters[kind] || [0, 0, 0.35];
+        const drift = 0.06 * Math.sin(this.t * 0.0007 + groupIndex);
+        const projected = this._projectRuntimePreviewPoint([
+          centerVec[0] + drift,
+          centerVec[1] + drift * 0.5,
+          centerVec[2],
+        ], centerX, centerY, entityRadius, rotX, rotY, zoom, 0);
+        const size = kind === 'program' ? 18 : kind === 'asset' ? 20 : 19;
+        const key = `${kind}-aggregate`;
+        const hovered = this.runtimePreview.hoverKey === key;
+        targets.push({ key, x: projected.x, y: projected.y, radius: size * projected.scale * 1.1, entry: groupEntries[0], kind, label: `${aggregateCount} ${kind}${aggregateCount === 1 ? '' : 's'}`, node: null, group: kind, count: aggregateCount });
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(projected.x, projected.y, size * projected.scale, 0, Math.PI * 2);
+        ctx.fillStyle = kind === 'program' ? 'rgba(154,230,199,0.16)' : kind === 'asset' ? 'rgba(255,209,142,0.14)' : 'rgba(124,160,255,0.12)';
+        ctx.fill();
+        ctx.strokeStyle = hovered ? `rgba(${accent[0]},${accent[1]},${accent[2]},0.9)` : 'rgba(255,255,255,0.28)';
+        ctx.lineWidth = hovered ? 1.6 : 1;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.88)';
+        ctx.font = `600 ${Math.max(10, minDim * 0.027)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(aggregateCount), projected.x, projected.y);
+        ctx.restore();
+      });
+
+      if (mode === 'cluster') {
+        entries.slice(0, 12).forEach((entry, index) => {
+          const groupIndex = groupOrder.indexOf(entry.kind);
+          const centerVec = groupCenters[entry.kind] || [0, 0, 0.35];
+          const offset = (index % 6) * 0.06;
+          const vec = [
+            centerVec[0] + Math.cos(index * 1.9) * offset,
+            centerVec[1] + Math.sin(index * 1.3) * offset * 0.8,
+            centerVec[2] + Math.sin(index * 0.7) * 0.06,
+          ];
+          const projected = this._projectRuntimePreviewPoint(vec, centerX, centerY, entityRadius, rotX, rotY, zoom, 0);
+          const key = entry.key || `${entry.kind}-${index}`;
+          const hovered = this.runtimePreview.hoverKey === key;
+          targets.push({ key, x: projected.x, y: projected.y, radius: 12 * projected.scale, entry, kind: entry.kind, label: entry.label, node: entry.value?.node || null, group: entry.group });
+          this._drawRuntimePreviewNode(ctx, entry, projected, 12, hovered);
+        });
+      }
+    }
+
+    this.runtimePreview.targets = targets;
+
+    if (this.runtimePreviewTooltipEl) {
+      const hovered = targets.find(target => target.key === this.runtimePreview.hoverKey);
+      if (hovered) {
+        this.runtimePreviewTooltipEl.hidden = false;
+        const kindLabel = hovered.kind === 'vertex' ? 'Child' : hovered.kind === 'program' ? 'Program' : 'Asset';
+        this.runtimePreviewTooltipEl.textContent = hovered.count ? `${kindLabel} cluster · ${hovered.label}` : `${kindLabel} · ${hovered.label}`;
+        this.runtimePreviewTooltipEl.style.transform = `translate(${Math.round(hovered.x + 12)}px, ${Math.round(hovered.y + 12)}px)`;
+      } else {
+        this.runtimePreviewTooltipEl.hidden = true;
+      }
+    }
+  }
+
+  _renderExplorer() {
+    const nodes = this._getVisibleNodes();
+    if (graphosExplorerSearchEl && graphosExplorerSearchEl.value !== this.explorer.search) {
+      graphosExplorerSearchEl.value = this.explorer.search || '';
+    }
+    if (graphosTypeFilterEl && graphosTypeFilterEl.value !== (this.view.activeType || '')) {
+      graphosTypeFilterEl.value = this.view.activeType || '';
+    }
+    this._renderExplorerNodeList(nodes);
+    const target = this._getInspectorTarget();
+    this._renderExplorerSelection(target);
+    this._renderExplorerTabs(target);
+    this._renderExplorerPanel(target);
   }
 
   _setSelection(nodes = [], link = null) {
@@ -6874,6 +9064,17 @@ class GraphOSLiveScene {
       node.selected = true;
     });
     this.selectedLink = link;
+    const primaryNode = nodes[0] || null;
+    if (primaryNode) {
+      this.explorer.activeTab = 'contents';
+      this._openExplorerPath(primaryNode);
+      this._focusRuntimePreviewOnNode(primaryNode);
+      this._logExplorerEvent('select', primaryNode, primaryNode.type || 'Vertex selected');
+    } else if (link) {
+      this.explorer.activeTab = 'relations';
+      this._logExplorerEvent('select-link', link.a || link.b || null, `${link.a?.name || 'Vertex'} ↔ ${link.b?.name || 'Vertex'}`);
+    }
+    selectedGraphosLayer = primaryNode?.type || null;
     this._refreshUi();
   }
 
@@ -6899,6 +9100,10 @@ class GraphOSLiveScene {
   }
 
   _setLinkSelection(link) {
+    if (link) {
+      this._logExplorerEvent('select-link', link.a || link.b || null, `${link.a?.name || 'Vertex'} ↔ ${link.b?.name || 'Vertex'}`);
+      this.explorer.activeTab = 'relations';
+    }
     this._setSelection([], link || null);
   }
 
@@ -6926,6 +9131,7 @@ class GraphOSLiveScene {
       node.children.slice().forEach(child => node.removeChild(child));
       node.selected = false;
       this.selectedNodes.delete(node);
+      this._logExplorerEvent('deleted', node, node.type || 'Vertex');
       const index = this.nodes.indexOf(node);
       if (index !== -1) {
         this.nodes.splice(index, 1);
@@ -6942,6 +9148,7 @@ class GraphOSLiveScene {
     if (!link) return;
     const index = this.links.indexOf(link);
     if (index === -1) return;
+    this._logExplorerEvent('link-deleted', link.a || link.b || null, `${link.a?.name || 'Vertex'} ↔ ${link.b?.name || 'Vertex'}`);
     this.links.splice(index, 1);
     if (this.selectedLink === link) {
       this.selectedLink = null;
@@ -7019,7 +9226,7 @@ class GraphOSLiveScene {
 
   _getNodeHitRadius(node) {
     if (!node) return 0;
-    if (node.showCore) {
+    if (node.bodyVisible ?? node.showCore) {
       return node.r * GRAPHOS_LIVE.CORE_RATIO * GRAPHOS_TOUCH_HIT_SCALE;
     }
     const display = node.displayRadius || node.r;
@@ -7087,7 +9294,7 @@ class GraphOSLiveScene {
 
   _getLinkEndpoint(node, other) {
     if (!node) return { x: 0, y: 0 };
-    if (!other || node.showCore) {
+    if (!other || (node.bodyVisible ?? node.showCore)) {
       return { x: node.x, y: node.y };
     }
     const dx = other.x - node.x;
@@ -7151,15 +9358,19 @@ class GraphOSLiveScene {
           action: () => {
             const newType = prompt('Set vertex type:', node.type || '');
             node.type = newType || null;
+            this._logExplorerEvent('type-changed', node, node.type || 'Untyped');
             this.saveGraph();
             this._refreshTypeFilter();
             this._refreshUi();
           },
         },
         {
-          label: node.showCore ? 'Hide core' : 'Show core',
+          label: (node.bodyVisible ?? node.showCore) ? 'Hide body' : 'Show body',
           action: () => {
-            node.showCore = !node.showCore;
+            const next = !(node.bodyVisible ?? node.showCore);
+            node.bodyVisible = next;
+            node.showCore = next;
+            this._logExplorerEvent('body-toggled', node, next ? 'Body visible' : 'Membrane only');
             this.saveGraph();
             this._refreshUi();
           },
@@ -7170,6 +9381,7 @@ class GraphOSLiveScene {
             const newName = prompt('Rename vertex:', node.name);
             if (newName) {
               node.name = newName;
+              this._logExplorerEvent('renamed', node, newName);
               this.saveGraph();
               this._refreshUi();
             }
@@ -7179,8 +9391,10 @@ class GraphOSLiveScene {
           label: deleteSelection ? 'Delete selected vertices' : 'Delete vertex',
           action: () => {
             if (deleteSelection) {
+              this._logExplorerEvent('delete', node, 'Selected vertices');
               this._deleteNodes(Array.from(this.selectedNodes));
             } else {
+              this._logExplorerEvent('delete', node, 'Vertex');
               this._deleteNodes([node]);
             }
           },
@@ -7219,6 +9433,7 @@ class GraphOSLiveScene {
           baseR: 12,
           r: 12,
         });
+        this._logExplorerEvent('created', created, 'Vertex');
         this._selectSingle(created);
         this._refreshTypeFilter();
         this.saveGraph();
@@ -7250,10 +9465,12 @@ class GraphOSLiveScene {
       const coreToggle = document.createElement('button');
       coreToggle.type = 'button';
       coreToggle.className = 'graphos-context-menu__toggle';
-      coreToggle.textContent = this.contextTarget.showCore ? 'Hide core' : 'Show core';
+      coreToggle.textContent = (this.contextTarget.bodyVisible ?? this.contextTarget.showCore) ? 'Hide body' : 'Show body';
       coreToggle.addEventListener('click', e => {
         e.stopPropagation();
-        this.contextTarget.showCore = !this.contextTarget.showCore;
+        const next = !(this.contextTarget.bodyVisible ?? this.contextTarget.showCore);
+        this.contextTarget.bodyVisible = next;
+        this.contextTarget.showCore = next;
         this.saveGraph();
         this._refreshUi();
         this._hideMenu();
@@ -7342,6 +9559,7 @@ class GraphOSLiveScene {
     const wheelCtx = graphosColorWheelEl.getContext('2d');
     const data = wheelCtx.getImageData(x, y, 1, 1).data;
     this.contextTarget.color = this._rgbToHex(data[0], data[1], data[2]);
+    this._logExplorerEvent('color-changed', this.contextTarget, this.contextTarget.color);
     if (graphosContextMenuEl) {
       const swatch = graphosContextMenuEl.querySelector('.graphos-context-menu__swatch');
       if (swatch) swatch.style.background = this.contextTarget.color;
@@ -7415,6 +9633,7 @@ class GraphOSLiveScene {
                 const exists = this.links.find(l => (l.a === a && l.b === b) || (l.a === b && l.b === a));
                 if (!exists) {
                   this.links.push({ a, b });
+                  this._logExplorerEvent('link-created', a, `${a.name || 'Vertex'} ↔ ${b.name || 'Vertex'}`);
                 }
               }
             }
@@ -7483,6 +9702,7 @@ class GraphOSLiveScene {
       const duplicate = this.cloneNodeForDuplicate(clickedNode);
       if (duplicate) {
         clicked = duplicate;
+        this._logExplorerEvent('duplicated', duplicate, duplicate.type || 'Vertex');
         this._refreshTypeFilter();
         this.saveGraph();
       }
@@ -7762,13 +9982,13 @@ class GraphOSLiveScene {
       this.h * 0.48,
       Math.max(this.w, this.h) * 0.92,
     );
-    bg.addColorStop(0, 'rgba(10,10,14,1)');
-    bg.addColorStop(0.72, 'rgba(6,6,8,1)');
-    bg.addColorStop(1, 'rgba(2,2,3,1)');
+    bg.addColorStop(0, 'rgba(14,16,22,1)');
+    bg.addColorStop(0.7, 'rgba(8,10,14,1)');
+    bg.addColorStop(1, 'rgba(3,4,6,1)');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    const gridAlpha = focusLayer === 'context' ? 0.045 : focusLayer === 'surface' ? 0.032 : 0.024;
+    const gridAlpha = focusLayer === 'context' ? 0.07 : focusLayer === 'surface' ? 0.052 : 0.042;
     ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
     ctx.lineWidth = 1;
 
@@ -7913,7 +10133,9 @@ class GraphOSLiveScene {
     for (let i = -1; i < entries.length + 2; i++) {
       const text = entries[(i + entries.length) % entries.length];
       const x = this.w * 0.14 + i * span - shift;
-      const alpha = 0.32 + (i % 2) * 0.08 + (focused ? 0.12 : 0);
+      ctx.shadowColor = 'rgba(255,255,255,0.18)';
+      ctx.shadowBlur = 8;
+      const alpha = 0.48 + (i % 2) * 0.08 + (focused ? 0.16 : 0);
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
       ctx.fillText(text, x, y);
     }
@@ -7960,9 +10182,9 @@ class GraphOSLiveScene {
     const threshold = Math.min(this.w, this.h) * 0.24;
     const edgeFocusBoost = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.12 : 1;
     const showFilter = this.view.activeType;
-    const glowWidth = focusLayer === 'edge' ? 2.2 : focusLayer === 'group' ? 1.8 : 1.5;
-    const strokeWidth = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.08 : 0.92;
-    const baseAlpha = focusLayer === 'edge' ? 0.34 : focusLayer === 'group' ? 0.26 : 0.22;
+    const glowWidth = focusLayer === 'edge' ? 2.35 : focusLayer === 'group' ? 1.95 : 1.64;
+    const strokeWidth = focusLayer === 'edge' ? 1.45 : focusLayer === 'group' ? 1.16 : 1.02;
+    const baseAlpha = focusLayer === 'edge' ? 0.43 : focusLayer === 'group' ? 0.33 : 0.29;
 
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
@@ -7980,8 +10202,8 @@ class GraphOSLiveScene {
           gradient.addColorStop(1, 'rgba(255,255,255,0)');
 
           ctx.save();
-          ctx.shadowColor = 'rgba(124,160,255,0.14)';
-          ctx.shadowBlur = focusLayer === 'edge' ? 10 : 6;
+          ctx.shadowColor = 'rgba(124,160,255,0.22)';
+          ctx.shadowBlur = focusLayer === 'edge' ? 14 : 9;
           ctx.strokeStyle = gradient;
           ctx.lineWidth = glowWidth;
           ctx.beginPath();
@@ -8007,18 +10229,23 @@ class GraphOSLiveScene {
     const filtered = this.nodes.filter(node => !this.view.activeType || node.type === this.view.activeType);
     const sortedNodes = [...filtered].sort((a, b) => (a.depth || 0) - (b.depth || 0));
     sortedNodes.forEach(node => {
-      node.draw(this.ctx, focusLayer);
+      node.draw(this.ctx, focusLayer, this);
       if (this.selectedNodes.has(node)) {
         this.ctx.save();
+        const rgb = this._hexToRgb(node.color || '#7ca0ff');
+        this.ctx.globalCompositeOperation = 'screen';
+        this.ctx.shadowColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.42)`;
+        this.ctx.shadowBlur = 16;
         this.ctx.beginPath();
-        this.ctx.arc(node.x, node.y, (node.displayRadius || node.r) + 2, 0, Math.PI * 2);
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        this.ctx.lineWidth = 1;
+        this.ctx.arc(node.x, node.y, (node.displayRadius || node.r) + 5, 0, Math.PI * 2);
+        this.ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.42)`;
+        this.ctx.lineWidth = 1.25;
         this.ctx.stroke();
 
+        this.ctx.shadowBlur = 0;
         this.ctx.beginPath();
         this.ctx.arc(node.x, node.y, (node.displayRadius || node.r) * 0.42, 0, Math.PI * 2);
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.22)';
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
         this.ctx.restore();
@@ -8031,12 +10258,12 @@ class GraphOSLiveScene {
     this.ctx.clearRect(0, 0, this.w, this.h);
     this._drawBackground(focusLayer);
     if (!this._isCompactMobile()) {
-      this._drawSurfacePreview(focusLayer);
       this._drawContextRibbon(focusLayer);
       this._drawIntentFlux(focusLayer);
     }
     this._drawLinks(focusLayer);
     this._drawNodes(focusLayer);
+    this._drawExplorerPreview();
   }
 
   _tick() {

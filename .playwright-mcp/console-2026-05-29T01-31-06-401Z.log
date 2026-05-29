@@ -1,0 +1,44 @@
+[  717619ms] TypeError: this._bindRuntimePreviewInteractions is not a function
+    at GraphOSLiveScene._renderExplorerContents (http://localhost:8000/script.js?v=20260529o:7715:10)
+    at GraphOSLiveScene._renderExplorerPanel (http://localhost:8000/script.js?v=20260529o:7633:25)
+    at GraphOSLiveScene._renderExplorer (http://localhost:8000/script.js?v=20260529o:7926:10)
+    at GraphOSLiveScene._refreshUi (http://localhost:8000/script.js?v=20260529o:7123:10)
+    at new GraphOSLiveScene (http://localhost:8000/script.js?v=20260529o:6615:10)
+    at http://localhost:8000/script.js?v=20260529o:9287:46
+    at Array.forEach (<anonymous>)
+    at initScenes (http://localhost:8000/script.js?v=20260529o:9284:29)
+    at init (http://localhost:8000/script.js?v=20260529o:9431:3)
+    at http://localhost:8000/script.js?v=20260529o:9440:1
+[  722716ms] TypeError: this._bindRuntimePreviewInteractions is not a function
+    at GraphOSLiveScene._renderExplorerContents (http://localhost:8000/script.js?v=20260529o:7715:10)
+    at GraphOSLiveScene._renderExplorerPanel (http://localhost:8000/script.js?v=20260529o:7633:25)
+    at GraphOSLiveScene._renderExplorer (http://localhost:8000/script.js?v=20260529o:7926:10)
+    at GraphOSLiveScene._refreshUi (http://localhost:8000/script.js?v=20260529o:7123:10)
+    at new GraphOSLiveScene (http://localhost:8000/script.js?v=20260529o:6615:10)
+    at http://localhost:8000/script.js?v=20260529o:9287:46
+    at Array.forEach (<anonymous>)
+    at initScenes (http://localhost:8000/script.js?v=20260529o:9284:29)
+    at init (http://localhost:8000/script.js?v=20260529o:9431:3)
+    at http://localhost:8000/script.js?v=20260529o:9440:1
+[  735806ms] TypeError: this._bindRuntimePreviewInteractions is not a function
+    at GraphOSLiveScene._renderExplorerContents (http://localhost:8000/script.js?v=20260529o:7715:10)
+    at GraphOSLiveScene._renderExplorerPanel (http://localhost:8000/script.js?v=20260529o:7633:25)
+    at GraphOSLiveScene._renderExplorer (http://localhost:8000/script.js?v=20260529o:7926:10)
+    at GraphOSLiveScene._refreshUi (http://localhost:8000/script.js?v=20260529o:7123:10)
+    at new GraphOSLiveScene (http://localhost:8000/script.js?v=20260529o:6615:10)
+    at http://localhost:8000/script.js?v=20260529o:9287:46
+    at Array.forEach (<anonymous>)
+    at initScenes (http://localhost:8000/script.js?v=20260529o:9284:29)
+    at init (http://localhost:8000/script.js?v=20260529o:9431:3)
+    at http://localhost:8000/script.js?v=20260529o:9440:1
+[  755582ms] TypeError: this._bindRuntimePreviewInteractions is not a function
+    at GraphOSLiveScene._renderExplorerContents (http://localhost:8000/script.js?v=20260529o:7715:10)
+    at GraphOSLiveScene._renderExplorerPanel (http://localhost:8000/script.js?v=20260529o:7633:25)
+    at GraphOSLiveScene._renderExplorer (http://localhost:8000/script.js?v=20260529o:7926:10)
+    at GraphOSLiveScene._refreshUi (http://localhost:8000/script.js?v=20260529o:7123:10)
+    at new GraphOSLiveScene (http://localhost:8000/script.js?v=20260529o:6615:10)
+    at http://localhost:8000/script.js?v=20260529o:9287:46
+    at Array.forEach (<anonymous>)
+    at initScenes (http://localhost:8000/script.js?v=20260529o:9284:29)
+    at init (http://localhost:8000/script.js?v=20260529o:9431:3)
+    at http://localhost:8000/script.js?v=20260529o:9440:1

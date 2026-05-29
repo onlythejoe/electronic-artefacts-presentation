@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260528a" />
+  <link rel="stylesheet" href="style.css?v=20260529t" />
   <noscript>
     <style>
       html, body {
@@ -53,6 +53,7 @@
 <canvas id="mist-bg" aria-hidden="true"></canvas>
 <div id="cursor" aria-hidden="true"></div>
 <div id="cursor-ring" aria-hidden="true"></div>
+<div id="cursor-direction-dot" aria-hidden="true"></div>
 
 <!-- UI chrome -->
 <div id="progress-bar" aria-hidden="true"></div>
@@ -197,60 +198,58 @@
   <section class="slide has-canvas graphos-slide" data-slide="graphos">
     <canvas class="slide-canvas" id="canvas-graphos"></canvas>
     <aside class="graphos-note" aria-label="About this demonstration">
-      <span class="graphos-note__kicker">Interactive demo</span>
-      <strong>Runtime primitives</strong>
-      <p>Create vertices, connect ties, and shape Environment. This demo exposes the grammar; the operating system sits below it.</p>
+      <span class="graphos-note__system">
+        <span class="graphos-note__signal" aria-hidden="true"></span>
+        <span class="graphos-note__copy">
+          <span class="graphos-note__kicker">Workspace extension</span>
+          <span class="graphos-note__stack-title">Desktop GraphOS</span>
+        </span>
+      </span>
+      <span class="graphos-note__auth">
+        <span>User core</span>
+        <strong>Super admin graph</strong>
+      </span>
+      <span class="graphos-note__pill graphos-note__pill--mode">Admin permissions</span>
     </aside>
-    <div class="graphos-window" aria-label="Core primitives window">
-      <button class="graphos-window__header" type="button" aria-label="Move primitive window">
-        <span class="graphos-window__eyebrow">VASTE</span>
-        <span class="graphos-window__status"><span class="graphos-window__dot" aria-hidden="true"></span>live primitive demo</span>
+    <div class="graphos-window" aria-label="Explorer window">
+      <button class="graphos-window__header" type="button" aria-label="Move explorer window">
+        <span class="graphos-window__eyebrow">Explorer</span>
       </button>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--top" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--right" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--bottom" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--left" aria-hidden="true"></span>
       <div class="graphos-window__meta">
         <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-nodes" type="button">Vertices</button>
         <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-links" type="button">Ties</button>
-        <label class="graphos-window__chip graphos-window__chip--select" for="graphos-type-filter">
-          <span>Type</span>
-          <select id="graphos-type-filter" aria-label="Filter node type"></select>
-        </label>
         <button class="graphos-window__chip graphos-window__chip--action graphos-window__chip--mobile-action" id="graphos-open-menu" type="button" aria-label="Open VASTE actions menu">Actions</button>
         <span class="graphos-window__chip graphos-window__chip--info" id="graphos-selection-info">0 selected</span>
       </div>
       <div class="graphos-window__body">
-        <div class="graphos-window__feed" role="list" aria-label="Core primitives">
-          <button class="graphos-row" type="button" data-layer="node" role="listitem" aria-label="Focus vertices" aria-pressed="false">
-            <strong>Vertex</strong>
-            <span>identity / owner / state</span>
-            <small>canonical primitive</small>
-          </button>
-          <button class="graphos-row" type="button" data-layer="edge" role="listitem" aria-label="Focus ties" aria-pressed="false">
-            <strong>Tie</strong>
-            <span>relation / flow / contract</span>
-            <small>connective path</small>
-          </button>
-          <button class="graphos-row" type="button" data-layer="surface" role="listitem" aria-label="Focus surface" aria-pressed="false">
-            <strong>Surface</strong>
-            <span>public view / projection / display</span>
-            <small>visible layer</small>
-          </button>
-          <button class="graphos-row" type="button" data-layer="context" role="listitem" aria-label="Focus environment" aria-pressed="false">
-            <strong>Environment</strong>
-            <span>signals / memory / semantics</span>
-            <small>semantic registry</small>
-          </button>
-          <button class="graphos-row" type="button" data-layer="intents" role="listitem" aria-label="Focus actions" aria-pressed="false">
-            <strong>Actions</strong>
-            <span>triggers / routing / effects</span>
-            <small>routed change</small>
-          </button>
+        <div class="graphos-window__viewport" id="graphos-window-viewport">
+          <div class="graphos-explorer">
+            <aside class="graphos-explorer__nav" aria-label="Navigation Layer">
+              <div class="graphos-explorer__navbar">
+                <label class="graphos-explorer__search" for="graphos-explorer-search">
+                  <span>Search</span>
+                  <input id="graphos-explorer-search" type="search" autocomplete="off" placeholder="Find vertices, types, tags" aria-label="Search vertices">
+                </label>
+                <label class="graphos-explorer__filter" for="graphos-type-filter">
+                  <span>Type</span>
+                  <select id="graphos-type-filter" aria-label="Filter node type"></select>
+                </label>
+              </div>
+              <div class="graphos-window__feed graphos-explorer__tree" id="graphos-explorer-list" role="tree" aria-label="Graph nodes"></div>
+            </aside>
+            <section class="graphos-explorer__inspector" aria-label="Inspection Layer">
+              <div class="graphos-explorer__selection" id="graphos-explorer-selection" aria-live="polite"></div>
+              <div class="graphos-explorer__tabs" id="graphos-explorer-tabs" role="tablist" aria-label="Inspector tabs"></div>
+              <aside class="graphos-explorer__detail" id="graphos-explorer-detail" aria-live="polite"></aside>
+            </section>
+          </div>
+          <p class="graphos-window__hint">Tap a node to inspect it. In Contents, drag the containment view to rotate, use the wheel to zoom, and tap a child to navigate into it.</p>
         </div>
-        <p class="graphos-window__hint">Tap rows to focus. On touch, tap empty space to create a vertex and tap a vertex to open its Environment.</p>
       </div>
-    </div>
-    <div class="slide-content">
-      <h2>Runtime primitives</h2>
-      <p>Tap rows to focus, drag vertices in place, and explore how Environment and surfaces shape the graph.</p>
-      <p class="sub">Desktop: right-click to edit. Mobile: use Actions for color, type, and delete. This is the live logic layer, not the full system.</p>
     </div>
     <div class="graphos-context-menu" id="graphos-context-menu" hidden></div>
     <div class="graphos-color-picker" id="graphos-color-picker" hidden>
@@ -1130,6 +1129,6 @@
 
 </div>
 
-<script src="script.js?v=20260528a"></script>
+<script src="script.js?v=20260529t"></script>
 </body>
 </html>
