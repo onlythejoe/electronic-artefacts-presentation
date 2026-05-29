@@ -27,6 +27,7 @@ let activeGraphosWindowEl = null;
 let activeBuildInteractiveEls = [];
 let activeIntroTitleEl = null;
 let draggedGraphosWindowEl = null;
+let draggedGraphosColumnHandleEl = null;
 let navTrackEl = null;
 let navIndicatorEl = null;
 let graphosToggleNodesEl = null;
@@ -98,6 +99,16 @@ const graphosWindowState = {
   dragging: false,
   pointerId: null,
 };
+const graphosColumnResizeState = {
+  active: false,
+  kind: null,
+  pointerId: null,
+  startX: 0,
+  startNavWidth: 0,
+  startTabsWidth: 0,
+  explorerWidth: 0,
+  inspectorWidth: 0,
+};
 const INTRO_TYPEWRITER_PHRASES = [
   'Most systems are isolated. VASTE is built to execute connected reality.',
 ];
@@ -122,6 +133,7 @@ const ACTION_HOVER_SELECTOR = [
   '.build-assets',
   '.graphos-window__header',
   '.graphos-window__chip',
+  '.graphos-explorer__splitter',
   '.graphos-row',
   '.graphos-context-menu__item',
   '.graphos-context-menu__toggle',
@@ -131,6 +143,7 @@ const ACTION_HOVER_SELECTOR = [
 ].join(', ');
 const TEXT_HOVER_SELECTOR = 'h2, h3, h4, h5, h6, p, a, .ea-wordmark, .phase-timeline, .continuum-flow, .infra-card, .infra-step, .horizon-stage';
 const HAS_FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const REDUCED_MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)');
 const GRAPHOS_TOUCH_HIT_SCALE = HAS_FINE_POINTER ? 1 : 1.6;
 const KEYBOARD_NAV_LOCK_SELECTOR = [
   'a',
@@ -203,10 +216,13 @@ const progressEl = document.getElementById('progress-bar');
 const numCurEl   = document.getElementById('num-current');
 const numTotEl   = document.getElementById('num-total');
 const navEl      = document.getElementById('slide-nav');
+const slideCounterEl = document.getElementById('slide-counter');
 const graphosWindowEl = document.querySelector('.graphos-window');
 const graphosWindowHandleEl = document.querySelector('.graphos-window__header');
+const graphosWindowModeEl = document.getElementById('graphos-window-mode');
 const graphosWindowBodyEl = document.querySelector('.graphos-window__body');
 const graphosWindowViewportEl = document.getElementById('graphos-window-viewport');
+const graphosExplorerEl = document.querySelector('.graphos-explorer');
 const graphosExplorerListEl = document.getElementById('graphos-explorer-list');
 const graphosExplorerSelectionEl = document.getElementById('graphos-explorer-selection');
 const graphosExplorerTabsEl = document.getElementById('graphos-explorer-tabs');
@@ -215,6 +231,7 @@ const graphosExplorerPreviewCanvasEl = document.getElementById('graphos-explorer
 const graphosExplorerSearchEl = document.getElementById('graphos-explorer-search');
 const graphosFeedEl = graphosExplorerListEl;
 const graphosWindowResizeHandles = graphosWindowEl ? [...graphosWindowEl.querySelectorAll('.graphos-window__resize-handle')] : [];
+const graphosColumnResizeHandles = graphosExplorerEl ? [...graphosExplorerEl.querySelectorAll('[data-graphos-column-resize]')] : [];
 const graphosNoteEl = document.querySelector('.graphos-note');
 const bridgeQuestionEls = [...document.querySelectorAll('.bridge-question')];
 const bridgeResponseEl = document.querySelector('.bridge-response');
@@ -346,6 +363,61 @@ function shouldLockTouchNav(target) {
 }
 function shouldLockWheelNav(target) {
   return targetMatchesSelector(target, WHEEL_NAV_LOCK_SELECTOR);
+}
+
+function getSlideAccessibleTitle(slide) {
+  if (!slide) return 'Slide';
+  const heading = slide.querySelector('h1, h2, h3');
+  const title = heading ? collapseText(heading.textContent || '') : '';
+  return title || slide.dataset.slide || 'Slide';
+}
+
+function setupDocumentAccessibility() {
+  slideEls.forEach((slide, index) => {
+    const label = `${index + 1} / ${total} - ${getSlideAccessibleTitle(slide)}`;
+    slide.setAttribute('role', 'group');
+    slide.setAttribute('aria-roledescription', 'slide');
+    slide.setAttribute('aria-label', label);
+    slide.setAttribute('tabindex', index === currentIndex ? '0' : '-1');
+  });
+
+  document.querySelectorAll('canvas.slide-canvas').forEach(canvas => {
+    if (!canvas.hasAttribute('aria-label')) {
+      canvas.setAttribute('aria-hidden', 'true');
+      canvas.setAttribute('role', 'presentation');
+    }
+  });
+
+  if (graphosWindowEl) {
+    graphosWindowEl.setAttribute('role', 'region');
+    graphosWindowEl.setAttribute('aria-label', 'GraphOS Explorer');
+  }
+
+  if (graphosWindowViewportEl) {
+    graphosWindowViewportEl.setAttribute('role', 'region');
+    graphosWindowViewportEl.setAttribute('aria-label', 'GraphOS Explorer viewport');
+  }
+
+  if (graphosExplorerListEl) {
+    graphosExplorerListEl.setAttribute('role', 'tree');
+    graphosExplorerListEl.setAttribute('aria-label', 'GraphOS nodes');
+  }
+
+  if (graphosExplorerSearchEl) {
+    graphosExplorerSearchEl.setAttribute('aria-label', 'Filter GraphOS nodes');
+  }
+
+  graphosColumnResizeHandles.forEach(handle => {
+    const kind = handle.dataset.graphosColumnResize || 'nav';
+    const limits = getGraphosColumnResizeLimits(kind);
+    handle.setAttribute('aria-valuemin', String(Math.round(limits.min)));
+    handle.setAttribute('aria-valuemax', String(Math.round(limits.max)));
+  });
+
+  if (graphosNoteEl && graphosWindowEl) {
+    if (!graphosWindowEl.id) graphosWindowEl.id = 'graphos-explorer-window';
+    graphosNoteEl.setAttribute('aria-controls', graphosWindowEl.id);
+  }
 }
 
 function renderBridgeAnswer(key) {
@@ -1188,10 +1260,18 @@ function goTo(index, opts = {}) {
 
 function applyClasses() {
   slideEls.forEach((el, i) => {
+    const active = i === currentIndex;
     el.classList.remove('is-active', 'is-before', 'is-after');
-    if      (i === currentIndex) el.classList.add('is-active');
+    if      (active) el.classList.add('is-active');
     else if (i  <  currentIndex) el.classList.add('is-before');
     else                         el.classList.add('is-after');
+    el.setAttribute('aria-hidden', active ? 'false' : 'true');
+    el.setAttribute('tabindex', active ? '0' : '-1');
+    if (active) {
+      el.setAttribute('aria-current', 'step');
+    } else {
+      el.removeAttribute('aria-current');
+    }
   });
   refreshActiveSlideCache();
   restartLogoAnimation(slideEls[currentIndex]);
@@ -1208,22 +1288,52 @@ function initUI() {
   numTotEl.textContent = String(total).padStart(2, '0');
   const track = document.createElement('div');
   track.id = 'nav-track';
+  track.setAttribute('role', 'slider');
+  track.setAttribute('aria-label', 'Slide navigation');
+  track.setAttribute('aria-orientation', 'vertical');
+  track.setAttribute('aria-valuemin', '1');
+  track.setAttribute('aria-valuemax', String(total));
+  track.tabIndex = 0;
   track.innerHTML = '<div id="nav-indicator"></div>';
   navEl.appendChild(track);
   navTrackEl = track;
   navIndicatorEl = track.firstElementChild;
   navEl.classList.remove('is-active');
   track.addEventListener('pointerdown', onNavPointerDown);
+  track.addEventListener('keydown', onNavTrackKeydown);
   updateUI();
 }
 
 function updateUI() {
   numCurEl.textContent = String(currentIndex + 1).padStart(2, '0');
+  const slideTitle = getSlideAccessibleTitle(slideEls[currentIndex]);
+  if (slideCounterEl) {
+    slideCounterEl.setAttribute('aria-label', `Slide ${currentIndex + 1} of ${total}: ${slideTitle}`);
+  }
   const progress = total > 1 ? currentIndex / (total - 1) : 1;
   progressEl.style.setProperty('--progress-scale', progress.toFixed(4));
   if (!navIndicatorEl || !navTrackEl) return;
+  navTrackEl.setAttribute('aria-valuenow', String(currentIndex + 1));
+  navTrackEl.setAttribute('aria-valuetext', slideTitle);
   const max = navTrackEl.offsetHeight - 14;
   navIndicatorEl.style.setProperty('--nav-y', (progress * max).toFixed(2) + 'px');
+}
+
+function onNavTrackKeydown(e) {
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') {
+    e.preventDefault();
+    goTo(currentIndex + 1);
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+    e.preventDefault();
+    goTo(currentIndex - 1);
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    goTo(0);
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    goTo(total - 1);
+  }
 }
 
 function getNavIndexFromClientY(clientY) {
@@ -1362,7 +1472,7 @@ class IntroTypewriter {
 
   restart(now = performance.now()) {
     if (!this.el || !this.phrases.length) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (REDUCED_MOTION_QUERY.matches) {
       this.el.textContent = this.phrases[0];
       this.active = false;
       this.phase = 'idle';
@@ -1586,12 +1696,29 @@ function getGraphosWindowEdgeFromPoint(e) {
   if (!activeGraphosWindowEl) return null;
   const rect = activeGraphosWindowEl.getBoundingClientRect();
   const edgeSize = 12;
+  const cornerSize = 30;
+  const nearLeft = Math.abs(e.clientX - rect.left) <= edgeSize;
+  const nearRight = Math.abs(e.clientX - rect.right) <= edgeSize;
+  const nearTop = Math.abs(e.clientY - rect.top) <= edgeSize;
+  const nearBottom = Math.abs(e.clientY - rect.bottom) <= edgeSize;
+  const inLeftCorner = e.clientX <= rect.left + cornerSize;
+  const inRightCorner = e.clientX >= rect.right - cornerSize;
+  const inTopCorner = e.clientY <= rect.top + cornerSize;
+  const inBottomCorner = e.clientY >= rect.bottom - cornerSize;
+  if (inLeftCorner && inTopCorner) return 'top-left';
+  if (inRightCorner && inTopCorner) return 'top-right';
+  if (inRightCorner && inBottomCorner) return 'bottom-right';
+  if (inLeftCorner && inBottomCorner) return 'bottom-left';
   const insideX = e.clientX > rect.left + edgeSize && e.clientX < rect.right - edgeSize;
   const insideY = e.clientY > rect.top + edgeSize && e.clientY < rect.bottom - edgeSize;
   if (insideX && Math.abs(e.clientY - rect.top) <= edgeSize) return 'top';
   if (insideX && Math.abs(e.clientY - rect.bottom) <= edgeSize) return 'bottom';
-  if (insideY && Math.abs(e.clientX - rect.left) <= edgeSize) return 'left';
-  if (insideY && Math.abs(e.clientX - rect.right) <= edgeSize) return 'right';
+  if (insideY && nearLeft) return 'left';
+  if (insideY && nearRight) return 'right';
+  if (nearTop) return 'top';
+  if (nearBottom) return 'bottom';
+  if (nearLeft) return 'left';
+  if (nearRight) return 'right';
   return null;
 }
 
@@ -1608,10 +1735,31 @@ function clearGraphosWindowHoverState() {
 
 function shouldBeginGraphosWindowMove(target) {
   if (!target || !target.closest || !activeGraphosWindowEl) return false;
-  if (!target.closest('.graphos-window')) return false;
-  if (target.closest('.graphos-window__resize-handle')) return false;
-  if (target.closest('.graphos-explorer, .graphos-window__viewport, .graphos-row, .graphos-window__chip, select, option, button[aria-label="Open VASTE actions menu"]')) return false;
-  return !!target.closest('.graphos-window__header, .graphos-window__meta');
+  const windowEl = target.closest('.graphos-window');
+  if (!windowEl || windowEl !== activeGraphosWindowEl) return false;
+  const reservedTarget = target.closest([
+    '.graphos-window__resize-handle',
+    '[data-graphos-column-resize]',
+    '.graphos-tree__row',
+    '.graphos-tree__toggle',
+    '.graphos-tree__label',
+    '.graphos-explorer__extension-toggle',
+    '.graphos-explorer__runtime-item',
+    '.graphos-explorer__extension-activate',
+    '.graphos-explorer__dropzone',
+    '.graphos-context-menu',
+    '.graphos-color-picker',
+    '#graphos-explorer-preview',
+    'button',
+    'input',
+    'textarea',
+    'select',
+    'option',
+    'a',
+    '[role="button"]',
+    '[contenteditable="true"]',
+  ].join(', '));
+  return !reservedTarget || !!target.closest('.graphos-window__header');
 }
 
 function beginGraphosWindowInteraction(e) {
@@ -1665,25 +1813,26 @@ function updateGraphosWindowDrag(e) {
     let right = startRight;
     let bottom = startBottom;
 
-    if (graphosWindowState.resizeEdge === 'right') {
+    if (graphosWindowState.resizeEdge.includes('right')) {
       right = clamp(startRight + dx, startLeft + minWidth, window.innerWidth - margin);
-    } else if (graphosWindowState.resizeEdge === 'left') {
+    } else if (graphosWindowState.resizeEdge.includes('left')) {
       left = clamp(startLeft + dx, margin, startRight - minWidth);
-    } else if (graphosWindowState.resizeEdge === 'bottom') {
+    }
+    if (graphosWindowState.resizeEdge.includes('bottom')) {
       bottom = clamp(startBottom + dy, startTop + minHeight, window.innerHeight - margin);
-    } else if (graphosWindowState.resizeEdge === 'top') {
+    } else if (graphosWindowState.resizeEdge.includes('top')) {
       top = clamp(startTop + dy, margin, startBottom - minHeight);
     }
 
     const size = clampGraphosWindowSize(right - left, bottom - top);
-    if (graphosWindowState.resizeEdge === 'left') {
+    if (graphosWindowState.resizeEdge.includes('left')) {
       left = right - size.width;
-    } else if (graphosWindowState.resizeEdge === 'right') {
+    } else if (graphosWindowState.resizeEdge.includes('right')) {
       right = left + size.width;
     }
-    if (graphosWindowState.resizeEdge === 'top') {
+    if (graphosWindowState.resizeEdge.includes('top')) {
       top = bottom - size.height;
-    } else if (graphosWindowState.resizeEdge === 'bottom') {
+    } else if (graphosWindowState.resizeEdge.includes('bottom')) {
       bottom = top + size.height;
     }
 
@@ -1697,6 +1846,9 @@ function updateGraphosWindowDrag(e) {
     graphosWindowState.y = e.clientY - graphosWindowState.offsetY;
   }
   syncGraphosWindowPosition();
+  if (graphosWindowState.resizing && scenes.graphos && scenes.graphos._scheduleRuntimePreviewResize) {
+    scenes.graphos._scheduleRuntimePreviewResize();
+  }
 }
 
 function endGraphosWindowDrag(e) {
@@ -1714,6 +1866,115 @@ function endGraphosWindowDrag(e) {
     draggedGraphosWindowEl.releasePointerCapture(e.pointerId);
   }
   draggedGraphosWindowEl = null;
+}
+
+function getGraphosColumnResizeLimits(kind) {
+  if (kind === 'nav') {
+    const width = graphosColumnResizeState.explorerWidth || graphosExplorerEl?.getBoundingClientRect().width || 640;
+    return {
+      min: Math.min(180, Math.max(132, width * 0.24)),
+      max: Math.max(210, width - 300),
+    };
+  }
+
+  const width = graphosColumnResizeState.inspectorWidth || graphosExplorerEl?.querySelector('.graphos-explorer__inspector')?.getBoundingClientRect().width || 360;
+  return {
+    min: Math.min(118, Math.max(82, width * 0.2)),
+    max: Math.max(132, Math.min(width * 0.46, 220)),
+  };
+}
+
+function setGraphosColumnWidth(kind, width) {
+  if (!graphosExplorerEl) return;
+  const limits = getGraphosColumnResizeLimits(kind);
+  const next = clamp(width, limits.min, limits.max);
+  if (kind === 'nav') {
+    graphosExplorerEl.style.setProperty('--graphos-nav-col', `${next.toFixed(1)}px`);
+    if (draggedGraphosColumnHandleEl) {
+      draggedGraphosColumnHandleEl.setAttribute('aria-valuenow', String(Math.round(next)));
+    }
+  } else {
+    graphosExplorerEl.style.setProperty('--graphos-extensions-col', `${next.toFixed(1)}px`);
+    if (draggedGraphosColumnHandleEl) {
+      draggedGraphosColumnHandleEl.setAttribute('aria-valuenow', String(Math.round(next)));
+    }
+  }
+  if (scenes.graphos?.runtimePreview) {
+    scenes.graphos.runtimePreview.dirty = true;
+  }
+}
+
+function beginGraphosColumnResize(e) {
+  const handle = e.target.closest?.('[data-graphos-column-resize]');
+  if (!handle || !graphosExplorerEl || !activeSlideEl || activeSlideEl.dataset.slide !== 'graphos') return;
+  if (scenes.graphos && scenes.graphos._isCompactMobile()) return;
+  if (e.button !== 0) return;
+
+  const inspectorEl = graphosExplorerEl.querySelector('.graphos-explorer__inspector');
+  const navEl = graphosExplorerEl.querySelector('.graphos-explorer__nav');
+  const kind = handle.dataset.graphosColumnResize;
+  graphosColumnResizeState.active = true;
+  graphosColumnResizeState.kind = kind;
+  graphosColumnResizeState.pointerId = e.pointerId;
+  graphosColumnResizeState.startX = e.clientX;
+  graphosColumnResizeState.startNavWidth = navEl ? navEl.getBoundingClientRect().width : 0;
+  graphosColumnResizeState.startTabsWidth = graphosExplorerTabsEl ? graphosExplorerTabsEl.getBoundingClientRect().width : 0;
+  graphosColumnResizeState.explorerWidth = graphosExplorerEl.getBoundingClientRect().width;
+  graphosColumnResizeState.inspectorWidth = inspectorEl ? inspectorEl.getBoundingClientRect().width : 0;
+  draggedGraphosColumnHandleEl = handle;
+  graphosExplorerEl.classList.add('is-column-resizing');
+  graphosExplorerEl.dataset.columnResize = kind;
+  handle.classList.add('is-resizing');
+  handle.setPointerCapture(e.pointerId);
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function updateGraphosColumnResize(e) {
+  if (!graphosColumnResizeState.active || e.pointerId !== graphosColumnResizeState.pointerId) return;
+  const dx = e.clientX - graphosColumnResizeState.startX;
+  if (graphosColumnResizeState.kind === 'nav') {
+    setGraphosColumnWidth('nav', graphosColumnResizeState.startNavWidth + dx);
+  } else {
+    setGraphosColumnWidth('extensions', graphosColumnResizeState.startTabsWidth - dx);
+  }
+}
+
+function endGraphosColumnResize(e) {
+  if (!graphosColumnResizeState.active) return;
+  if (e && 'pointerId' in e && e.pointerId !== graphosColumnResizeState.pointerId) return;
+  graphosColumnResizeState.active = false;
+  graphosColumnResizeState.kind = null;
+  graphosColumnResizeState.pointerId = null;
+  if (graphosExplorerEl) {
+    graphosExplorerEl.classList.remove('is-column-resizing');
+    delete graphosExplorerEl.dataset.columnResize;
+  }
+  if (draggedGraphosColumnHandleEl) {
+    draggedGraphosColumnHandleEl.classList.remove('is-resizing');
+    if (draggedGraphosColumnHandleEl.hasPointerCapture && e && 'pointerId' in e && draggedGraphosColumnHandleEl.hasPointerCapture(e.pointerId)) {
+      draggedGraphosColumnHandleEl.releasePointerCapture(e.pointerId);
+    }
+  }
+  draggedGraphosColumnHandleEl = null;
+}
+
+function onGraphosColumnKeydown(e) {
+  const handle = e.target.closest?.('[data-graphos-column-resize]');
+  if (!handle || !graphosExplorerEl) return;
+  const kind = handle.dataset.graphosColumnResize;
+  const computed = getComputedStyle(graphosExplorerEl);
+  const current = kind === 'nav'
+    ? parseFloat(computed.getPropertyValue('--graphos-nav-col')) || graphosExplorerEl.querySelector('.graphos-explorer__nav')?.getBoundingClientRect().width || 180
+    : parseFloat(computed.getPropertyValue('--graphos-extensions-col')) || graphosExplorerTabsEl?.getBoundingClientRect().width || 130;
+  const step = e.shiftKey ? 24 : 10;
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    setGraphosColumnWidth(kind, kind === 'nav' ? current - step : current + step);
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    setGraphosColumnWidth(kind, kind === 'nav' ? current + step : current - step);
+  }
 }
 
 function toggleBuildSelection(target) {
@@ -1741,14 +2002,22 @@ document.addEventListener('mousemove', e => {
 
 document.addEventListener('pointermove', onNavPointerMove, { passive: true });
 document.addEventListener('pointermove', updateGraphosWindowDrag, { passive: true });
+document.addEventListener('pointermove', updateGraphosColumnResize, { passive: true });
 document.addEventListener('pointerup', endNavDrag);
 document.addEventListener('pointerup', endGraphosWindowDrag);
+document.addEventListener('pointerup', endGraphosColumnResize);
 document.addEventListener('pointercancel', endNavDrag);
 document.addEventListener('pointercancel', endGraphosWindowDrag);
+document.addEventListener('pointercancel', endGraphosColumnResize);
 document.addEventListener('mouseleave', () => {
   clearActionHoverState();
   if (mistBg) mistBg.onLeave();
 });
+
+if (graphosExplorerEl) {
+  graphosExplorerEl.addEventListener('pointerdown', beginGraphosColumnResize);
+  graphosExplorerEl.addEventListener('keydown', onGraphosColumnKeydown);
+}
 
 if (graphosFeedEl) {
   graphosFeedEl.addEventListener('click', e => {
@@ -1798,6 +2067,10 @@ document.addEventListener('keydown', e => {
 
 function animLoop(time) {
   if (!appAlive) return;
+  if (document.hidden) {
+    mainRafId = null;
+    return;
+  }
 
   if (HAS_FINE_POINTER) {
     curX = lerp(curX, mouseX, 0.18);
@@ -6721,6 +6994,7 @@ class GraphOSLiveScene {
       transition: 1,
       dirty: true,
       lastDrawAt: 0,
+      resizeRaf: null,
     };
     this.selectedNodes = new Set();
     this.selectedLink = null;
@@ -7407,6 +7681,18 @@ if (graphosWindowEl) {
     return [dt, dd];
   }
 
+  _createRuntimeHudItem(label, value, options = {}) {
+    const item = document.createElement('div');
+    item.className = 'graphos-explorer__runtime-metric';
+    if (options.wide) item.classList.add('graphos-explorer__runtime-metric--wide');
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.textContent = value;
+    item.append(dt, dd);
+    return item;
+  }
+
   _getNodeBodyVisible(node) {
     return node?.bodyVisible ?? node?.showCore ?? true;
   }
@@ -7502,17 +7788,20 @@ if (graphosWindowEl) {
   _getNodeRuntimeSummary(node, children, incoming, outgoing) {
     const model = this._getNodeRuntimeModel(node, children, incoming, outgoing);
     const hosted = model.childEntries.length + model.assetEntries.length + model.programEntries.length;
-    const mesh = incoming.length + outgoing.length;
+    const activeExtensions = model.extensionKeys
+      .map(key => this._getExtensionDef(key).label)
+      .filter(Boolean);
+    const parentName = node.parent?.name || 'Root graph';
+    const weight = model.operationCount + hosted + incoming.length + outgoing.length + (model.bodyVisible ? 2 : 0);
     return [
-      ['Runtime', model.bodyVisible ? 'Core exposed' : 'Membrane'],
-      ['Sync', `${model.continuity}%`],
-      ['Hosted', String(hosted)],
-      ['I/O', `${incoming.length}/${outgoing.length}`],
-      ['Ops', String(model.operationCount)],
-      ['Depth', String(node.depth || 0)],
-      ['Mode', node.selected ? 'Focus lock' : 'Live'],
-      ['Color', node.color || '#7ca0ff'],
-      ['Mesh', mesh ? 'Linked' : 'Local'],
+      ['Name', node.name || 'Vertex'],
+      ['Type', node.type || 'Untyped'],
+      ['Parent', parentName],
+      ['Weight', `${weight} units`],
+      ['Runtime', model.bodyVisible ? 'Core exposed' : 'Membrane only'],
+      ['Links', `${incoming.length} in / ${outgoing.length} out`],
+      ['Hosted', `${children.length} child${children.length === 1 ? '' : 'ren'} / ${model.assetEntries.length} assets / ${model.programEntries.length} programs`],
+      ['Active extensions', activeExtensions.length ? activeExtensions.join(', ') : 'None'],
     ];
   }
 
@@ -7798,6 +8087,7 @@ if (graphosWindowEl) {
     row.setAttribute('role', 'treeitem');
     row.setAttribute('aria-level', String(depth + 1));
     row.setAttribute('aria-expanded', hasChildren ? (isOpen ? 'true' : 'false') : 'false');
+    row.setAttribute('aria-selected', isSelected ? 'true' : 'false');
     row.dataset.selected = isSelected ? 'true' : 'false';
     row.dataset.open = isOpen ? 'true' : 'false';
     row.dataset.layer = node.type || 'node';
@@ -7820,6 +8110,7 @@ if (graphosWindowEl) {
     label.type = 'button';
     label.className = 'graphos-tree__label';
     label.setAttribute('aria-label', `Select ${node.name || 'Vertex'}`);
+    label.setAttribute('aria-current', isSelected ? 'true' : 'false');
 
     const name = document.createElement('strong');
     name.textContent = node.name || 'Vertex';
@@ -7955,6 +8246,10 @@ if (graphosWindowEl) {
     graphosExplorerTabsEl.innerHTML = '';
     graphosExplorerTabsEl.className = 'graphos-explorer__tabs graphos-explorer__extensions';
     const node = target && target.a && target.b ? null : target;
+    if (graphosWindowModeEl) {
+      graphosWindowModeEl.textContent = node?.name || 'No vertex';
+      graphosWindowModeEl.dataset.enabled = node ? 'true' : 'false';
+    }
     const title = document.createElement('p');
     title.className = 'graphos-explorer__section-label graphos-explorer__extensions-title';
     title.textContent = 'Extensions';
@@ -8094,8 +8389,11 @@ if (graphosWindowEl) {
     const telemetry = document.createElement('dl');
     telemetry.className = 'graphos-explorer__runtime-hud';
     this._getNodeRuntimeSummary(node, children, incoming, outgoing)
-      .slice(0, 6)
-      .forEach(([label, value]) => telemetry.append(...this._createExplorerFact(label, value)));
+      .forEach(([label, value]) => telemetry.appendChild(this._createRuntimeHudItem(
+        label,
+        value,
+        { wide: label === 'Active extensions' || label === 'Hosted' },
+      )));
     previewShell.appendChild(telemetry);
 
     wrapper.append(previewShell);
@@ -8543,10 +8841,13 @@ if (graphosWindowEl) {
   _onExplorerPreviewWheel(e) {
     if (!this.runtimePreviewCanvasEl) return;
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.94 : 1.06;
-    this.runtimePreview.zoom = clamp(this.runtimePreview.zoom * delta, 0.72, 1.78);
-    this.runtimePreview.targetZoom = this.runtimePreview.zoom;
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 80 : 1;
+    const normalizedDelta = clamp(e.deltaY * unit, -80, 80);
+    const currentTarget = this.runtimePreview.targetZoom ?? this.runtimePreview.zoom;
+    const delta = Math.exp(-normalizedDelta * 0.0012);
+    this.runtimePreview.targetZoom = clamp(currentTarget * delta, 0.82, 1.42);
     this.runtimePreview.dirty = true;
+    this.runtimePreview.lastDrawAt = 0;
   }
 
   _onExplorerPreviewClick(e) {
@@ -8591,6 +8892,43 @@ if (graphosWindowEl) {
     canvas.addEventListener('wheel', this._bound.previewWheel, { passive: false });
     canvas.addEventListener('click', this._bound.previewClick);
     canvas.addEventListener('dblclick', this._bound.previewDoubleClick);
+    if (this.runtimePreviewResizeObserver) {
+      this.runtimePreviewResizeObserver.disconnect();
+    }
+    if ('ResizeObserver' in window) {
+      this.runtimePreviewResizeObserver = new ResizeObserver(() => this._scheduleRuntimePreviewResize());
+      this.runtimePreviewResizeObserver.observe(canvas);
+      if (canvas.parentElement) this.runtimePreviewResizeObserver.observe(canvas.parentElement);
+    }
+    this._syncRuntimePreviewCanvasSize(canvas);
+  }
+
+  _syncRuntimePreviewCanvasSize(canvas = this.runtimePreviewCanvasEl) {
+    if (!canvas || !canvas.isConnected) return false;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return false;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const width = Math.max(1, Math.round(rect.width * dpr));
+    const height = Math.max(1, Math.round(rect.height * dpr));
+    const changed = canvas.width !== width || canvas.height !== height;
+    if (changed) {
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+    }
+    return changed;
+  }
+
+  _scheduleRuntimePreviewResize() {
+    if (this.runtimePreview.resizeRaf != null) return;
+    this.runtimePreview.resizeRaf = requestAnimationFrame(() => {
+      this.runtimePreview.resizeRaf = null;
+      this._syncRuntimePreviewCanvasSize();
+      this.runtimePreview.dirty = true;
+      this.runtimePreview.lastDrawAt = 0;
+    });
   }
 
   _hashRuntimeKey(key) {
@@ -8719,6 +9057,10 @@ if (graphosWindowEl) {
 
     const now = performance.now();
     const previewState = this.runtimePreview;
+    if (this._syncRuntimePreviewCanvasSize(canvas)) {
+      previewState.dirty = true;
+      previewState.lastDrawAt = 0;
+    }
     const needsMotion = !!(
       previewState.dirty ||
       previewState.dragging ||
@@ -8747,11 +9089,6 @@ if (graphosWindowEl) {
         const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, rect.width, rect.height);
-        const bg = ctx.createLinearGradient(0, 0, rect.width, rect.height);
-        bg.addColorStop(0, 'rgba(7,9,13,0.92)');
-        bg.addColorStop(1, 'rgba(4,5,8,0.98)');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, rect.width, rect.height);
       }
       previewState.dirty = false;
       previewState.lastDrawAt = now;
@@ -8779,14 +9116,8 @@ if (graphosWindowEl) {
     ctx.clearRect(0, 0, rect.width, rect.height);
 
     const accent = this._hexToRgb(node.color || '#7ca0ff');
-    const bg = ctx.createRadialGradient(rect.width * 0.5, rect.height * 0.46, 8, rect.width * 0.5, rect.height * 0.52, Math.max(rect.width, rect.height) * 0.72);
-    bg.addColorStop(0, 'rgba(14,18,24,0.98)');
-    bg.addColorStop(1, 'rgba(5,6,10,0.99)');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, rect.width, rect.height);
-
     ctx.save();
-    ctx.globalAlpha = 0.55;
+    ctx.globalAlpha = 0.34;
     const vignette = ctx.createRadialGradient(rect.width * 0.52, rect.height * 0.48, Math.min(rect.width, rect.height) * 0.08, rect.width * 0.5, rect.height * 0.5, Math.max(rect.width, rect.height) * 0.65);
     vignette.addColorStop(0, `rgba(${accent[0]},${accent[1]},${accent[2]},0.18)`);
     vignette.addColorStop(1, 'rgba(0,0,0,0)');
@@ -10556,7 +10887,10 @@ function initScenes() {
   if (ucSlide) ucController = new UseCasesController(ucSlide);
 }
 
-function startScene(key) { if (scenes[key]) scenes[key].start(); }
+function startScene(key) {
+  if (document.hidden) return;
+  if (scenes[key]) scenes[key].start();
+}
 function stopScene(key)  { if (scenes[key]) scenes[key].stop();  }
 
 
@@ -10657,6 +10991,24 @@ if (window.visualViewport) {
 
 window.addEventListener('orientationchange', updateViewportMetrics, { passive: true });
 
+document.addEventListener('visibilitychange', () => {
+  const activeSlide = slideEls[currentIndex];
+  if (!activeSlide) return;
+  const key = activeSlide.dataset.slide;
+  if (document.hidden) {
+    stopScene(key);
+    if (mainRafId != null) {
+      cancelAnimationFrame(mainRafId);
+      mainRafId = null;
+    }
+  } else {
+    startScene(key);
+    if (mainRafId == null) {
+      mainRafId = requestAnimationFrame(animLoop);
+    }
+  }
+});
+
 function cleanup() {
   appAlive = false;
   if (mainRafId != null) {
@@ -10673,6 +11025,13 @@ function cleanup() {
   graphosWindowState.dragging = false;
   graphosWindowState.pointerId = null;
   if (scenes.graphos) {
+    if (scenes.graphos.runtimePreviewResizeObserver) {
+      scenes.graphos.runtimePreviewResizeObserver.disconnect();
+    }
+    if (scenes.graphos.runtimePreview?.resizeRaf != null) {
+      cancelAnimationFrame(scenes.graphos.runtimePreview.resizeRaf);
+      scenes.graphos.runtimePreview.resizeRaf = null;
+    }
     scenes.graphos.draggedSurfacePreview = false;
     scenes.graphos.surfaceDragPointerId = null;
     scenes.graphos.surfaceDragOffsetX = 0;
@@ -10691,6 +11050,7 @@ window.addEventListener('beforeunload', cleanup);
 // =============================================
 
 function init() {
+  setupDocumentAccessibility();
   initUI();
   initScenes();
   initBridgeQuestions();

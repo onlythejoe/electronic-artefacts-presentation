@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260529ac" />
+  <link rel="stylesheet" href="style.css?v=20260529av" />
   <noscript>
     <style>
       html, body {
@@ -57,7 +57,7 @@
 
 <!-- UI chrome -->
 <div id="progress-bar" aria-hidden="true"></div>
-<div id="slide-counter">
+<div id="slide-counter" role="status" aria-live="polite" aria-atomic="true">
   <span id="num-current">01</span>
   <span class="sep">/</span>
   <span id="num-total">32</span>
@@ -71,7 +71,7 @@
 </aside>
 
 <!-- Slides -->
-<div class="slides" id="slides">
+<main class="slides" id="slides" aria-label="Presentation slides">
 
   <!-- 00 -->
   <section class="slide center has-canvas" data-slide="intro">
@@ -225,11 +225,16 @@
     <div class="graphos-window" aria-label="Explorer window">
       <button class="graphos-window__header" type="button" aria-label="Move explorer window">
         <span class="graphos-window__eyebrow">Explorer</span>
+        <span class="graphos-window__mode" id="graphos-window-mode">Assets</span>
       </button>
       <span class="graphos-window__resize-handle graphos-window__resize-handle--top" aria-hidden="true"></span>
       <span class="graphos-window__resize-handle graphos-window__resize-handle--right" aria-hidden="true"></span>
       <span class="graphos-window__resize-handle graphos-window__resize-handle--bottom" aria-hidden="true"></span>
       <span class="graphos-window__resize-handle graphos-window__resize-handle--left" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--top-left" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--top-right" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--bottom-right" aria-hidden="true"></span>
+      <span class="graphos-window__resize-handle graphos-window__resize-handle--bottom-left" aria-hidden="true"></span>
       <div class="graphos-window__meta">
         <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-nodes" type="button">Vertices</button>
         <button class="graphos-window__chip graphos-window__chip--action" id="graphos-toggle-links" type="button">Ties</button>
@@ -252,8 +257,10 @@
               </div>
               <div class="graphos-window__feed graphos-explorer__tree" id="graphos-explorer-list" role="tree" aria-label="Graph nodes"></div>
             </aside>
+            <span class="graphos-explorer__splitter graphos-explorer__splitter--nav" data-graphos-column-resize="nav" role="separator" aria-orientation="vertical" aria-label="Resize explorer navigation column" tabindex="0"></span>
             <section class="graphos-explorer__inspector" aria-label="Inspection Layer">
               <div class="graphos-explorer__selection" id="graphos-explorer-selection" aria-live="polite"></div>
+              <span class="graphos-explorer__splitter graphos-explorer__splitter--extensions" data-graphos-column-resize="extensions" role="separator" aria-orientation="vertical" aria-label="Resize explorer extensions column" tabindex="0"></span>
               <div class="graphos-explorer__tabs" id="graphos-explorer-tabs" role="tablist" aria-label="Inspector tabs"></div>
               <aside class="graphos-explorer__detail" id="graphos-explorer-detail" aria-live="polite"></aside>
             </section>
@@ -374,7 +381,7 @@
           </div>
         </article>
         <div class="modules-grid">
-          <article class="module-card" tabindex="0" data-module="workspace" data-status="included" style="--module-accent: #7ca0ff;">
+          <article class="module-card" role="button" tabindex="0" data-module="workspace" data-status="included" style="--module-accent: #7ca0ff;">
             <div class="module-card__top">
               <span class="module-card__index">01</span>
               <span class="module-card__badge">Native</span>
@@ -386,7 +393,7 @@
               <span class="module-card__cta">Native</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="actor" data-status="included" style="--module-accent: #9fe4ff;">
+          <article class="module-card" role="button" tabindex="0" data-module="actor" data-status="included" style="--module-accent: #9fe4ff;">
             <div class="module-card__top">
               <span class="module-card__index">02</span>
               <span class="module-card__badge">Native</span>
@@ -398,7 +405,7 @@
               <span class="module-card__cta">Scale</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="asset" data-status="included" style="--module-accent: #e0b4ff;">
+          <article class="module-card" role="button" tabindex="0" data-module="asset" data-status="included" style="--module-accent: #e0b4ff;">
             <div class="module-card__top">
               <span class="module-card__index">03</span>
               <span class="module-card__badge">Native</span>
@@ -410,7 +417,7 @@
               <span class="module-card__cta">Memory</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="surface" data-status="included" style="--module-accent: #8ee0d0;">
+          <article class="module-card" role="button" tabindex="0" data-module="surface" data-status="included" style="--module-accent: #8ee0d0;">
             <div class="module-card__top">
               <span class="module-card__index">04</span>
               <span class="module-card__badge">Native</span>
@@ -422,7 +429,7 @@
               <span class="module-card__cta">Governed</span>
             </div>
           </article>
-          <article class="module-card" tabindex="0" data-module="realtime" data-status="included" style="--module-accent: #c9d0ff;">
+          <article class="module-card" role="button" tabindex="0" data-module="realtime" data-status="included" style="--module-accent: #c9d0ff;">
             <div class="module-card__top">
               <span class="module-card__index">05</span>
               <span class="module-card__badge">Native</span>
@@ -1138,8 +1145,8 @@
     </div>
   </section>
 
-</div>
+</main>
 
-<script src="script.js?v=20260529ac"></script>
+<script src="script.js?v=20260529av"></script>
 </body>
 </html>
