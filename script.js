@@ -61,6 +61,10 @@ let introTypewriter = null;
 let hoverProbeX = NaN;
 let hoverProbeY = NaN;
 let lastHoverHudKey = null;
+let lastHoverProbeAt = 0;
+let lastTextMotionX = NaN;
+let lastTextMotionY = NaN;
+let lastTextMotionHover = null;
 let appAlive = true;
 let mistBg = null;
 const TEXT_MOTION_CACHE = new WeakMap();
@@ -273,11 +277,19 @@ function targetMatchesSelector(target, selector) {
   return isElementTarget(target) ? !!target.closest(selector) : false;
 }
 function getGraphosScrollBody(target) {
-  return isElementTarget(target) ? target.closest('.graphos-window__body') : null;
+  return isElementTarget(target) ? target.closest('.graphos-window__body, .graphos-explorer') : null;
+}
+function getGraphosScrollableRegion(target) {
+  if (!isElementTarget(target)) return null;
+  return target.closest(
+    '.graphos-explorer__tree, .graphos-explorer__detail, .graphos-explorer__extensions, ' +
+    '.graphos-context-menu, .graphos-color-picker'
+  );
 }
 function getScrollableAncestor(target) {
   if (!isElementTarget(target)) return null;
   return target.closest(
+    '.graphos-explorer__tree, .graphos-explorer__detail, .graphos-explorer__extensions, ' +
     '.graphos-window__body, .graphos-context-menu, .graphos-color-picker, ' +
     '.slide[data-slide="modules"] .slide-content, ' +
     '.slide[data-slide="build"] .slide-content, ' +
@@ -294,6 +306,22 @@ function canElementScroll(el, deltaY = 0) {
   if (deltaY > 0) return el.scrollTop + el.clientHeight < el.scrollHeight - 1;
   if (deltaY < 0) return el.scrollTop > 0;
   return true;
+}
+function isInsideGraphosExplorer(target) {
+  return isElementTarget(target) && !!target.closest('.graphos-window, .graphos-explorer');
+}
+function stopGraphosWheel(e) {
+  if (!isInsideGraphosExplorer(e.target)) return;
+  const region = getGraphosScrollableRegion(e.target);
+  if (region) {
+    const canScroll = canElementScroll(region, e.deltaY);
+    if (canScroll) {
+      e.stopPropagation();
+      return;
+    }
+  }
+  e.preventDefault();
+  e.stopPropagation();
 }
 function shouldLockKeyboardNav(target) {
   return targetMatchesSelector(target, KEYBOARD_NAV_LOCK_SELECTOR);
@@ -994,6 +1022,12 @@ function getTextMotionProfile(node) {
 
 function applyTextMotion() {
   if (!HAS_FINE_POINTER || !activeContentEl || activeTextNodes.length === 0) return;
+  const roundedX = Math.round(mouseX);
+  const roundedY = Math.round(mouseY);
+  if (roundedX === lastTextMotionX && roundedY === lastTextMotionY && hoveredTextNode === lastTextMotionHover) return;
+  lastTextMotionX = roundedX;
+  lastTextMotionY = roundedY;
+  lastTextMotionHover = hoveredTextNode;
 
   const nx = window.innerWidth ? (mouseX / window.innerWidth) - 0.5 : 0;
   const ny = window.innerHeight ? (mouseY / window.innerHeight) - 0.5 : 0;
@@ -1410,10 +1444,13 @@ class IntroTypewriter {
 }
 
 function updateHoverTargets(force = false) {
+  const now = performance.now();
+  if (!force && now - lastHoverProbeAt < 32) return;
   const x = Math.round(mouseX);
   const y = Math.round(mouseY);
   if (!force && x === hoverProbeX && y === hoverProbeY) return;
 
+  lastHoverProbeAt = now;
   hoverProbeX = x;
   hoverProbeY = y;
 
@@ -1562,8 +1599,8 @@ function shouldBeginGraphosWindowMove(target) {
   if (!target || !target.closest || !activeGraphosWindowEl) return false;
   if (!target.closest('.graphos-window')) return false;
   if (target.closest('.graphos-window__resize-handle')) return false;
-  if (target.closest('.graphos-row, .graphos-window__chip, select, option, button[aria-label="Open VASTE actions menu"]')) return false;
-  return !!target.closest('.graphos-window__header, .graphos-window__meta, .graphos-window__body');
+  if (target.closest('.graphos-explorer, .graphos-window__viewport, .graphos-row, .graphos-window__chip, select, option, button[aria-label="Open VASTE actions menu"]')) return false;
+  return !!target.closest('.graphos-window__header, .graphos-window__meta');
 }
 
 function beginGraphosWindowInteraction(e) {
@@ -6598,20 +6635,27 @@ class GraphOSLiveNode {
       ctx.globalAlpha = 1;
     }
 
-    ctx.save();
-    ctx.shadowColor = 'rgba(255,255,255,0.22)';
-    ctx.shadowBlur = 9;
-    ctx.fillStyle = 'rgba(246, 248, 252, 0.96)';
-    ctx.font = '500 11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.name, this.x, this.y + displayRadius + 14);
-    ctx.restore();
-
-    if (this.type) {
+    const shouldDrawLabel = this.selected || this.hover || this.depth <= 1 || (scene?.nodes?.length || 0) <= 14;
+    if (shouldDrawLabel) {
       ctx.save();
-      ctx.shadowColor = 'rgba(255,255,255,0.16)';
-      ctx.shadowBlur = 7;
+      if (this.selected || this.hover) {
+        ctx.shadowColor = 'rgba(255,255,255,0.18)';
+        ctx.shadowBlur = 7;
+      }
+      ctx.fillStyle = this.selected || this.hover ? 'rgba(246,248,252,0.96)' : 'rgba(232,236,244,0.82)';
+      ctx.font = '500 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.name, this.x, this.y + displayRadius + 14);
+      ctx.restore();
+    }
+
+    if (this.type && (this.selected || this.hover || this.depth === 0)) {
+      ctx.save();
+      if (this.selected || this.hover) {
+        ctx.shadowColor = 'rgba(255,255,255,0.14)';
+        ctx.shadowBlur = 5;
+      }
       ctx.font = '500 9px Inter, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.62)';
       ctx.fillText(this.type, this.x, this.y - displayRadius - 12);
@@ -6663,6 +6707,8 @@ class GraphOSLiveScene {
       targetKey: null,
       selectedNodeId: null,
       transition: 1,
+      dirty: true,
+      lastDrawAt: 0,
     };
     this.selectedNodes = new Set();
     this.selectedLink = null;
@@ -6680,6 +6726,10 @@ class GraphOSLiveScene {
     this.surfaceDragOffsetY = 0;
     this.contextRibbon = null;
     this.intentLanes = [];
+    this.backgroundCanvas = document.createElement('canvas');
+    this.backgroundCtx = this.backgroundCanvas.getContext('2d');
+    this.backgroundCacheKey = '';
+    this.linkFrameSkip = 0;
     this.coreNode = null;
     this.mobileExpanded = false;
     this._bound = {
@@ -6718,6 +6768,7 @@ class GraphOSLiveScene {
         this.explorer.activeTab = tab;
         this._refreshUi();
       },
+      explorerNodeClick: e => this._onExplorerNodeClick(e),
       previewPointerDown: e => this._onExplorerPreviewPointerDown(e),
       previewPointerMove: e => this._onExplorerPreviewPointerMove(e),
       previewPointerUp: e => this._onExplorerPreviewPointerUp(e),
@@ -6725,6 +6776,7 @@ class GraphOSLiveScene {
       previewWheel: e => this._onExplorerPreviewWheel(e),
       previewClick: e => this._onExplorerPreviewClick(e),
       previewDoubleClick: e => this._onExplorerPreviewDoubleClick(e),
+      graphosWheel: e => stopGraphosWheel(e),
     };
 
     this._bindUi();
@@ -6838,6 +6890,10 @@ class GraphOSLiveScene {
       graphosExplorerTabsEl.addEventListener('click', this._bound.explorerTab);
     }
 
+    if (graphosExplorerListEl) {
+      graphosExplorerListEl.addEventListener('click', this._bound.explorerNodeClick);
+    }
+
     if (graphosColorWheelEl) {
       graphosColorWheelEl.addEventListener('pointermove', this._bound.colorWheelMove);
       graphosColorWheelEl.addEventListener('pointerdown', this._bound.colorWheelDown);
@@ -6853,6 +6909,7 @@ if (graphosWindowHandleEl) {
 
 if (graphosWindowEl) {
   graphosWindowEl.addEventListener('pointerdown', beginGraphosWindowInteraction);
+  graphosWindowEl.addEventListener('wheel', this._bound.graphosWheel, { passive: false });
 }
 
     document.addEventListener('contextmenu', this._bound.contextMenu, true);
@@ -7680,6 +7737,37 @@ if (graphosWindowEl) {
     return this.eventLog.filter(entry => entry.nodeId === node.id).slice(0, 8);
   }
 
+  _getGraphosFocusForNode(node) {
+    const type = node?.type || '';
+    if (type === 'surface' || type === 'public') return 'surface';
+    if (type === 'environment' || type === 'user') return 'context';
+    if (type === 'workspace') return 'group';
+    if (type === 'action') return 'edge';
+    return 'node';
+  }
+
+  _activateExplorerNode(node) {
+    if (!node) return;
+    this._selectSingle(node);
+    this.explorer.activeTab = 'contents';
+    const enabledExtensions = this._getEnabledExtensionKeys(node);
+    if (enabledExtensions.length && !enabledExtensions.includes(this.explorer.activeExtension)) {
+      this.explorer.activeExtension = enabledExtensions[0];
+    }
+    selectedGraphosLayer = this._getGraphosFocusForNode(node);
+    syncGraphosFocusState();
+  }
+
+  _onExplorerNodeClick(e) {
+    const row = e?.target?.closest?.('.graphos-tree__row');
+    if (!row || !graphosExplorerListEl || !graphosExplorerListEl.contains(row)) return;
+    if (e.target?.closest?.('.graphos-tree__toggle')) return;
+    const node = this.nodes.find(item => item.id === row.dataset.nodeId);
+    if (!node) return;
+    e.preventDefault();
+    this._activateExplorerNode(node);
+  }
+
   _renderExplorerTreeNode(node, depth, search, activeType, selectedNode, fragment) {
     if (!this._subtreeMatchesExplorer(node, search, activeType)) return;
 
@@ -7699,22 +7787,9 @@ if (graphosWindowEl) {
     row.dataset.selected = isSelected ? 'true' : 'false';
     row.dataset.open = isOpen ? 'true' : 'false';
     row.dataset.layer = node.type || 'node';
+    row.dataset.nodeId = node.id;
     row.style.setProperty('--node-accent', node.color || '#7ca0ff');
     row.style.setProperty('--node-accent-rgb', this._hexToRgb(node.color || '#7ca0ff').join(', '));
-    const activateNode = () => {
-      this._selectSingle(node);
-      this.explorer.activeTab = 'contents';
-      const enabledExtensions = this._getEnabledExtensionKeys(node);
-      if (enabledExtensions.length && !enabledExtensions.includes(this.explorer.activeExtension)) {
-        this.explorer.activeExtension = enabledExtensions[0];
-      }
-      selectedGraphosLayer = node.type || null;
-      syncGraphosFocusState();
-    };
-    row.addEventListener('click', e => {
-      if (e.target?.closest?.('.graphos-tree__toggle')) return;
-      activateNode();
-    });
 
     const toggle = document.createElement('button');
     toggle.type = 'button';
@@ -7746,8 +7821,9 @@ if (graphosWindowEl) {
 
     label.append(name, type);
     label.addEventListener('click', e => {
+      e.preventDefault();
       e.stopPropagation();
-      activateNode();
+      this._activateExplorerNode(node);
     });
 
     const metrics = document.createElement('span');
@@ -7997,6 +8073,8 @@ if (graphosWindowEl) {
 
     this.runtimePreviewCanvasEl = canvas;
     this.runtimePreviewTooltipEl = tooltip;
+    this.runtimePreview.dirty = true;
+    this.runtimePreview.lastDrawAt = 0;
     this._bindRuntimePreviewInteractions(canvas);
 
     const telemetry = document.createElement('dl');
@@ -8352,17 +8430,20 @@ if (graphosWindowEl) {
   }
 
   _setRuntimePreviewHover(target) {
+    const previousKey = this.runtimePreview.hoverKey;
     if (!target) {
       this.runtimePreview.hoverKey = null;
       this.runtimePreview.hoverLabel = '';
       this.runtimePreview.hoverKind = null;
       this.runtimePreview.hoverNode = null;
+      if (previousKey !== null) this.runtimePreview.dirty = true;
       return;
     }
     this.runtimePreview.hoverKey = target.key;
     this.runtimePreview.hoverLabel = target.label || '';
     this.runtimePreview.hoverKind = target.kind || null;
     this.runtimePreview.hoverNode = target.node || null;
+    if (previousKey !== target.key) this.runtimePreview.dirty = true;
   }
 
   _focusRuntimePreviewOnNode(node) {
@@ -8373,6 +8454,7 @@ if (graphosWindowEl) {
     this.runtimePreview.targetRotationY = -0.86 + seed * 1.72;
     this.runtimePreview.targetZoom = this._getNodeBodyVisible(node) ? 1.12 : 0.96;
     this.runtimePreview.transition = 0;
+    this.runtimePreview.dirty = true;
   }
 
   _onExplorerPreviewPointerDown(e) {
@@ -8410,6 +8492,7 @@ if (graphosWindowEl) {
       }
       this.runtimePreview.rotationY = this.runtimePreview.startRotationY + dx * 0.008;
       this.runtimePreview.rotationX = clamp(this.runtimePreview.startRotationX + dy * 0.008, -1.2, 1.2);
+      this.runtimePreview.dirty = true;
       this._setRuntimePreviewHover(this._getRuntimePreviewHitTarget(x, y));
       e.preventDefault();
       return;
@@ -8448,6 +8531,8 @@ if (graphosWindowEl) {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.94 : 1.06;
     this.runtimePreview.zoom = clamp(this.runtimePreview.zoom * delta, 0.72, 1.78);
+    this.runtimePreview.targetZoom = this.runtimePreview.zoom;
+    this.runtimePreview.dirty = true;
   }
 
   _onExplorerPreviewClick(e) {
@@ -8618,6 +8703,21 @@ if (graphosWindowEl) {
       return;
     }
 
+    const now = performance.now();
+    const previewState = this.runtimePreview;
+    const needsMotion = !!(
+      previewState.dirty ||
+      previewState.dragging ||
+      previewState.hoverKey ||
+      (previewState.transition ?? 1) < 1 ||
+      Math.abs((previewState.targetRotationX ?? previewState.rotationX) - previewState.rotationX) > 0.003 ||
+      Math.abs((previewState.targetRotationY ?? previewState.rotationY) - previewState.rotationY) > 0.003 ||
+      Math.abs((previewState.targetZoom ?? previewState.zoom) - previewState.zoom) > 0.003
+    );
+    const minFrameMs = needsMotion ? 32 : 180;
+    if (!needsMotion && now - (previewState.lastDrawAt || 0) < minFrameMs) return;
+    if (needsMotion && now - (previewState.lastDrawAt || 0) < minFrameMs) return;
+
     const target = this._getInspectorTarget();
     const node = target && target.a && target.b ? (target.a || target.b) : target;
     if (!node) {
@@ -8625,7 +8725,7 @@ if (graphosWindowEl) {
       if (this.runtimePreviewTooltipEl) this.runtimePreviewTooltipEl.hidden = true;
       const rect = canvas.getBoundingClientRect();
       if (rect.width && rect.height) {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
           canvas.width = Math.round(rect.width * dpr);
           canvas.height = Math.round(rect.height * dpr);
@@ -8639,6 +8739,8 @@ if (graphosWindowEl) {
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, rect.width, rect.height);
       }
+      previewState.dirty = false;
+      previewState.lastDrawAt = now;
       return;
     }
 
@@ -8650,7 +8752,7 @@ if (graphosWindowEl) {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     this.runtimePreview.lastCanvasRect = rect;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const width = Math.max(1, Math.round(rect.width * dpr));
     const height = Math.max(1, Math.round(rect.height * dpr));
     if (canvas.width !== width) canvas.width = width;
@@ -8659,7 +8761,7 @@ if (graphosWindowEl) {
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = 'medium';
     ctx.clearRect(0, 0, rect.width, rect.height);
 
     const accent = this._hexToRgb(node.color || '#7ca0ff');
@@ -8682,7 +8784,6 @@ if (graphosWindowEl) {
     const centerX = rect.width * 0.5;
     const centerY = rect.height * 0.5;
     const baseRadius = minDim * 0.31;
-    const previewState = this.runtimePreview;
     if (!previewState.dragging) {
       previewState.rotationX += ((previewState.targetRotationX ?? previewState.rotationX) - previewState.rotationX) * 0.055;
       previewState.rotationY += ((previewState.targetRotationY ?? previewState.rotationY) - previewState.rotationY) * 0.055;
@@ -9039,6 +9140,8 @@ if (graphosWindowEl) {
         this.runtimePreviewTooltipEl.hidden = true;
       }
     }
+    previewState.dirty = false;
+    previewState.lastDrawAt = now;
   }
 
   _renderExplorer() {
@@ -9074,7 +9177,7 @@ if (graphosWindowEl) {
       this.explorer.activeTab = 'relations';
       this._logExplorerEvent('select-link', link.a || link.b || null, `${link.a?.name || 'Vertex'} ↔ ${link.b?.name || 'Vertex'}`);
     }
-    selectedGraphosLayer = primaryNode?.type || null;
+    selectedGraphosLayer = primaryNode ? this._getGraphosFocusForNode(primaryNode) : null;
     this._refreshUi();
   }
 
@@ -9973,7 +10076,18 @@ if (graphosWindowEl) {
   }
 
   _drawBackground(focusLayer) {
-    const { ctx } = this;
+    const ctx = this.backgroundCtx || this.ctx;
+    const cacheKey = `${this.w}x${this.h}:${focusLayer || 'none'}`;
+    if (this.backgroundCtx && this.backgroundCacheKey === cacheKey) {
+      this.ctx.drawImage(this.backgroundCanvas, 0, 0);
+      return;
+    }
+
+    if (this.backgroundCanvas) {
+      this.backgroundCanvas.width = Math.max(1, Math.round(this.w));
+      this.backgroundCanvas.height = Math.max(1, Math.round(this.h));
+    }
+
     const bg = ctx.createRadialGradient(
       this.w * 0.52,
       this.h * 0.44,
@@ -10006,6 +10120,11 @@ if (graphosWindowEl) {
       ctx.moveTo(x, this.h * 0.12);
       ctx.lineTo(x + this.w * 0.03, this.h * 0.84);
       ctx.stroke();
+    }
+
+    if (this.backgroundCtx) {
+      this.backgroundCacheKey = cacheKey;
+      this.ctx.drawImage(this.backgroundCanvas, 0, 0);
     }
   }
 
@@ -10180,12 +10299,14 @@ if (graphosWindowEl) {
     if (!this.view.showLinks) return;
     const { ctx } = this;
     const threshold = Math.min(this.w, this.h) * 0.24;
+    const thresholdSq = threshold * threshold;
     const edgeFocusBoost = focusLayer === 'edge' ? 1.35 : focusLayer === 'group' ? 1.12 : 1;
     const showFilter = this.view.activeType;
-    const glowWidth = focusLayer === 'edge' ? 2.35 : focusLayer === 'group' ? 1.95 : 1.64;
-    const strokeWidth = focusLayer === 'edge' ? 1.45 : focusLayer === 'group' ? 1.16 : 1.02;
-    const baseAlpha = focusLayer === 'edge' ? 0.43 : focusLayer === 'group' ? 0.33 : 0.29;
+    const strokeWidth = focusLayer === 'edge' ? 1.25 : focusLayer === 'group' ? 1.05 : 0.86;
+    const baseAlpha = focusLayer === 'edge' ? 0.34 : focusLayer === 'group' ? 0.26 : 0.2;
 
+    ctx.save();
+    ctx.lineCap = 'round';
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
         const a = this.nodes[i];
@@ -10193,35 +10314,20 @@ if (graphosWindowEl) {
         if (showFilter && a.type !== showFilter && b.type !== showFilter) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < threshold) {
-          const alpha = (1 - dist / threshold) * baseAlpha * edgeFocusBoost;
-          const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-          gradient.addColorStop(0, 'rgba(255,255,255,0)');
-          gradient.addColorStop(0.5, `rgba(255,255,255,${alpha})`);
-          gradient.addColorStop(1, 'rgba(255,255,255,0)');
-
-          ctx.save();
-          ctx.shadowColor = 'rgba(124,160,255,0.22)';
-          ctx.shadowBlur = focusLayer === 'edge' ? 14 : 9;
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = glowWidth;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
-
-          ctx.shadowBlur = 0;
-          ctx.strokeStyle = gradient;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < thresholdSq) {
+          const proximity = 1 - distSq / thresholdSq;
+          const alpha = proximity * baseAlpha * edgeFocusBoost;
+          ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
           ctx.lineWidth = strokeWidth;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
           ctx.stroke();
-          ctx.restore();
         }
       }
     }
+    ctx.restore();
   }
 
   _drawNodes(focusLayer) {
@@ -10302,11 +10408,13 @@ if (graphosWindowEl) {
     this.surfacePreviewHover = false;
     this._hideMenu();
     this._endColorPick();
+    this.backgroundCacheKey = '';
     this.ctx.clearRect(0, 0, this.w, this.h);
   }
 
   resize() {
     this._resize();
+    this.backgroundCacheKey = '';
     this.nodes.forEach(node => {
       node.x = clamp(node.x, node.r, this.w - node.r);
       node.y = clamp(node.y, node.r, this.h - node.r);
@@ -10460,13 +10568,13 @@ document.addEventListener('wheel', e => {
     clearTimeout(wheelTimer);
     return;
   }
-  const graphosBody = getGraphosScrollBody(e.target);
-  if (graphosBody && canElementScroll(graphosBody, e.deltaY)) {
+  if (isInsideGraphosExplorer(e.target)) {
     wheelAcc = 0;
     clearTimeout(wheelTimer);
+    if (!e.defaultPrevented) e.preventDefault();
     return;
   }
-  if (shouldLockWheelNav(e.target) && !graphosBody) {
+  if (shouldLockWheelNav(e.target)) {
     wheelAcc = 0;
     clearTimeout(wheelTimer);
     return;

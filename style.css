@@ -9268,8 +9268,8 @@ body::after {
 }
 
 .graphos-slide > .slide-canvas {
-  opacity: 0.42;
-  filter: contrast(1.13) saturate(1.12) brightness(1.16);
+  opacity: 0.46;
+  filter: none;
 }
 
 .graphos-explorer__extensions {
@@ -9623,8 +9623,8 @@ body::after {
     0 22px 58px rgba(0,0,0,0.3),
     inset 0 1px 0 rgba(255,255,255,0.08),
     inset 0 0 0 1px rgba(255,255,255,0.035);
-  backdrop-filter: blur(22px) saturate(128%);
-  -webkit-backdrop-filter: blur(22px) saturate(128%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .graphos-slide .graphos-window__resize-handle {
@@ -9657,4 +9657,287 @@ body[data-graphos-focus="action"] .graphos-tree__row[data-layer="action"] {
     linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
     rgba(var(--node-accent-rgb, 124, 160, 255), 0.06);
   border-color: rgba(255,255,255,0.14);
+}
+
+/* Final GraphOS Explorer fit pass: every region owns its overflow. */
+.graphos-slide .graphos-window,
+.graphos-slide .graphos-window__body,
+.graphos-slide .graphos-window__viewport,
+.graphos-slide .graphos-explorer,
+.graphos-slide .graphos-explorer__nav,
+.graphos-slide .graphos-explorer__inspector,
+.graphos-slide .graphos-explorer__detail,
+.graphos-slide .graphos-explorer__panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.graphos-slide .graphos-window {
+  contain: layout paint;
+}
+
+.graphos-slide .graphos-window__viewport {
+  display: block;
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.36fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  max-height: 100%;
+  gap: calc(var(--u) * 0.65);
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer__nav {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: calc(var(--u) * 0.65);
+  padding: calc(var(--u) * 0.78);
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer__navbar {
+  grid-template-columns: minmax(0, 1fr) minmax(calc(var(--u) * 6), auto);
+  gap: calc(var(--u) * 0.45);
+  min-width: 0;
+}
+
+.graphos-slide .graphos-explorer__search input,
+.graphos-slide .graphos-explorer__filter select {
+  height: calc(var(--u) * 1.9);
+  padding-inline: calc(var(--u) * 0.62);
+  font-size: calc(var(--u) * 0.62);
+}
+
+.graphos-slide .graphos-explorer__tree {
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: calc(var(--u) * 0.15);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+
+.graphos-slide .graphos-explorer__tree::-webkit-scrollbar,
+.graphos-slide .graphos-explorer__detail::-webkit-scrollbar,
+.graphos-slide .graphos-explorer__extensions::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.graphos-slide .graphos-explorer__tree::-webkit-scrollbar-thumb,
+.graphos-slide .graphos-explorer__detail::-webkit-scrollbar-thumb,
+.graphos-slide .graphos-explorer__extensions::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+
+.graphos-slide .graphos-tree__branch {
+  min-width: 0;
+  padding-left: min(calc(var(--tree-depth, 0) * var(--u) * 0.75), calc(var(--u) * 2.2));
+}
+
+.graphos-slide .graphos-tree__row {
+  grid-template-columns: calc(var(--u) * 1.35) minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: calc(var(--u) * 2.15);
+  gap: calc(var(--u) * 0.45);
+  padding: calc(var(--u) * 0.42) calc(var(--u) * 0.55);
+}
+
+.graphos-slide .graphos-tree__toggle {
+  width: calc(var(--u) * 1.3);
+  height: calc(var(--u) * 1.3);
+}
+
+.graphos-slide .graphos-tree__label strong {
+  font-size: calc(var(--u) * 0.68);
+}
+
+.graphos-slide .graphos-tree__type {
+  font-size: calc(var(--u) * 0.4);
+  letter-spacing: 0.09em;
+}
+
+.graphos-slide .graphos-tree__metrics {
+  min-width: auto;
+  max-width: calc(var(--u) * 3.2);
+  min-height: calc(var(--u) * 1.25);
+  padding-inline: calc(var(--u) * 0.36);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: calc(var(--u) * 0.36);
+}
+
+.graphos-slide .graphos-explorer__inspector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(calc(var(--u) * 5.8), 23%, calc(var(--u) * 8));
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "selection tabs"
+    "detail tabs";
+  gap: calc(var(--u) * 0.55);
+  padding: calc(var(--u) * 0.78);
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer__selection {
+  grid-area: selection;
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer__selection-card {
+  max-height: calc(var(--u) * 7.2);
+  gap: calc(var(--u) * 0.38);
+  padding: calc(var(--u) * 0.72);
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer__selection-card .graphos-explorer__title {
+  font-size: calc(var(--u) * 1.05);
+  line-height: 1.04;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graphos-slide .graphos-explorer__selection-card .graphos-explorer__body {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: calc(var(--u) * 0.64);
+  line-height: 1.28;
+}
+
+.graphos-slide .graphos-explorer__telemetry {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(var(--u) * 0.32);
+}
+
+.graphos-slide .graphos-explorer__telemetry dt,
+.graphos-slide .graphos-explorer__runtime-hud dt {
+  font-size: calc(var(--u) * 0.34);
+}
+
+.graphos-slide .graphos-explorer__telemetry dd,
+.graphos-slide .graphos-explorer__runtime-hud dd {
+  font-size: calc(var(--u) * 0.5);
+}
+
+.graphos-slide .graphos-explorer__extensions {
+  grid-area: tabs;
+  display: grid;
+  grid-auto-rows: min-content;
+  align-content: start;
+  gap: calc(var(--u) * 0.28);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: calc(var(--u) * 0.38);
+  margin: 0;
+}
+
+.graphos-slide .graphos-explorer__extension-toggle {
+  min-height: calc(var(--u) * 2.45);
+  padding: calc(var(--u) * 0.42) calc(var(--u) * 0.5);
+  gap: calc(var(--u) * 0.12);
+}
+
+.graphos-slide .graphos-explorer__extension-toggle strong {
+  font-size: calc(var(--u) * 0.5);
+}
+
+.graphos-slide .graphos-explorer__extension-toggle span {
+  font-size: calc(var(--u) * 0.34);
+}
+
+.graphos-slide .graphos-explorer__detail {
+  grid-area: detail;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-right: calc(var(--u) * 0.12);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+
+.graphos-slide .graphos-explorer__panel,
+.graphos-slide .graphos-explorer__stack,
+.graphos-slide .graphos-explorer__contents,
+.graphos-slide .graphos-explorer__preview-shell,
+.graphos-slide .graphos-explorer__extension-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.graphos-slide .graphos-explorer__panel {
+  gap: calc(var(--u) * 0.55);
+  padding: calc(var(--u) * 0.68);
+}
+
+.graphos-slide .graphos-explorer__preview-shell {
+  gap: calc(var(--u) * 0.45);
+  padding: calc(var(--u) * 0.68);
+}
+
+.graphos-slide .graphos-explorer__preview-header,
+.graphos-slide .graphos-explorer__extension-head {
+  min-width: 0;
+}
+
+.graphos-slide .graphos-explorer__preview-viewport {
+  min-height: 0;
+  height: clamp(calc(var(--u) * 12), 28cqh, calc(var(--u) * 18));
+  max-height: calc(var(--u) * 19);
+}
+
+.graphos-slide .graphos-explorer__runtime-hud {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--u) * 0.32);
+}
+
+.graphos-slide .graphos-explorer__extension-panel {
+  gap: calc(var(--u) * 0.5);
+  padding: calc(var(--u) * 0.68);
+}
+
+.graphos-slide .graphos-explorer__extension-title {
+  font-size: calc(var(--u) * 0.84);
+}
+
+.graphos-slide .graphos-explorer__body,
+.graphos-slide .graphos-explorer__empty {
+  font-size: calc(var(--u) * 0.62);
+  line-height: 1.34;
+}
+
+.graphos-slide .graphos-explorer__runtime-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(calc(var(--u) * 7.2), 100%), 1fr));
+  gap: calc(var(--u) * 0.32);
+}
+
+.graphos-slide .graphos-explorer__runtime-item {
+  min-width: 0;
+  width: 100%;
+  padding: calc(var(--u) * 0.42) calc(var(--u) * 0.52);
+}
+
+.graphos-slide .graphos-explorer__chips {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.graphos-slide .graphos-explorer__chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
