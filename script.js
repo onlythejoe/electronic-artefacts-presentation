@@ -1595,6 +1595,17 @@ function getGraphosWindowEdgeFromPoint(e) {
   return null;
 }
 
+function syncGraphosWindowHoverState(e) {
+  if (!activeSlideEl || activeSlideEl.dataset.slide !== 'graphos' || !activeGraphosWindowEl) return;
+  if (scenes.graphos && scenes.graphos._isCompactMobile()) return;
+  const edge = getGraphosWindowEdgeFromPoint(e);
+  activeGraphosWindowEl.dataset.windowHover = edge || 'inside';
+}
+
+function clearGraphosWindowHoverState() {
+  if (activeGraphosWindowEl) delete activeGraphosWindowEl.dataset.windowHover;
+}
+
 function shouldBeginGraphosWindowMove(target) {
   if (!target || !target.closest || !activeGraphosWindowEl) return false;
   if (!target.closest('.graphos-window')) return false;
@@ -1698,6 +1709,7 @@ function endGraphosWindowDrag(e) {
   graphosWindowState.pointerId = null;
   if (draggedGraphosWindowEl) draggedGraphosWindowEl.classList.remove('is-dragging');
   if (draggedGraphosWindowEl) draggedGraphosWindowEl.classList.remove('is-resizing');
+  if (draggedGraphosWindowEl) delete draggedGraphosWindowEl.dataset.windowHover;
   if (draggedGraphosWindowEl && draggedGraphosWindowEl.hasPointerCapture && e && 'pointerId' in e && draggedGraphosWindowEl.hasPointerCapture(e.pointerId)) {
     draggedGraphosWindowEl.releasePointerCapture(e.pointerId);
   }
@@ -6909,6 +6921,8 @@ if (graphosWindowHandleEl) {
 
 if (graphosWindowEl) {
   graphosWindowEl.addEventListener('pointerdown', beginGraphosWindowInteraction);
+  graphosWindowEl.addEventListener('pointermove', syncGraphosWindowHoverState, { passive: true });
+  graphosWindowEl.addEventListener('pointerleave', clearGraphosWindowHoverState);
   graphosWindowEl.addEventListener('wheel', this._bound.graphosWheel, { passive: false });
 }
 
