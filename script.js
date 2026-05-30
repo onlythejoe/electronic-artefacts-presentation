@@ -6599,6 +6599,8 @@ class GraphOSLiveNode {
     this.parent = null;
     this.hover = false;
     this.hoverFactor = 0;
+    this.overlapCandidate = false;
+    this.overlapFactor = 0;
     this.selected = false;
     this.isContainedPreview = false;
     this.createdAt = opts.createdAt ?? Date.now();
@@ -6684,7 +6686,9 @@ class GraphOSLiveNode {
     this.r += (this.targetR - this.r) * lerpFactor;
 
     const targetHover = this.hover ? 1 : 0;
-    this.hoverFactor += (targetHover - this.hoverFactor) * 0.06;
+    this.hoverFactor += (targetHover - this.hoverFactor) * 0.12;
+    const targetOverlap = this.overlapCandidate ? 1 : 0;
+    this.overlapFactor += (targetOverlap - this.overlapFactor) * 0.1;
 
     if (this.children.length === 0) {
       this.targetR = this.baseR + this.emptyPaddingBoost;
@@ -6824,6 +6828,18 @@ class GraphOSLiveNode {
     const glow = 0.5 + this.hoverFactor * 1.15 + (this.selected ? 0.45 : 0);
     ctx.shadowColor = 'rgba(255,255,255,0.18)';
     ctx.shadowBlur = glow;
+
+    if (this.overlapFactor > 0.01 && !this.hover && !this.selected) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = this.overlapFactor * 0.42;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, displayRadius + 5 + this.overlapFactor * 4, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, displayRadius, 0, Math.PI * 2);
@@ -7000,6 +7016,7 @@ class GraphOSLiveScene {
     this.selectedLink = null;
     this.hoveredNode = null;
     this.hoveredLink = null;
+    this.hoveredNodeStack = [];
     this.draggedNode = null;
     this.dragPointerId = null;
     this.contextTarget = null;
@@ -9682,29 +9699,50 @@ if (graphosWindowEl) {
   }
 
   _getNodeCoreAt(x, y, exclude = null) {
-    const ordered = [...this.nodes].reverse();
-    return ordered.find(node => {
-      if (node === exclude) return false;
-      const hitRadius = this._getNodeHitRadius(node);
-      return this.dist(node.x, node.y, x, y) < hitRadius;
-    }) || null;
+    return this._getNodeCoreCandidatesAt(x, y, exclude)[0]?.node || null;
   }
 
   _getNodeAt(x, y, exclude = null) {
     return this._getNodeCoreAt(x, y, exclude) || this._getContainingNodeAt(x, y, exclude);
   }
 
+  _getNodeCoreCandidatesAt(x, y, exclude = null) {
+    return this.nodes
+      .map((node, index) => {
+        if (node === exclude) return null;
+        const hitRadius = this._getNodeHitRadius(node);
+        const distance = this.dist(node.x, node.y, x, y);
+        if (distance > hitRadius) return null;
+        return {
+          node,
+          distance,
+          score: (distance / Math.max(1, hitRadius)) + (node.depth || 0) * -0.08 + index * -0.0001,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.score - b.score);
+  }
+
   _getContainingNodeAt(x, y, exclude = null) {
-    const ordered = [...this.nodes].sort((a, b) => a.r - b.r);
-    return ordered.find(node => {
+    return this._getContainingNodeCandidatesAt(x, y, exclude)[0]?.node || null;
+  }
+
+  _getContainingNodeCandidatesAt(x, y, exclude = null) {
+    return this.nodes.map((node, index) => {
       if (node === exclude) return false;
       let current = node;
       while (current) {
-        if (current === exclude) return false;
+        if (current === exclude) return null;
         current = current.parent;
       }
-      return this.dist(node.x, node.y, x, y) < node.r;
-    }) || null;
+      const distance = this.dist(node.x, node.y, x, y);
+      if (distance > node.r) return null;
+      return {
+        node,
+        distance,
+        score: node.r + distance * 0.18 + (node.depth || 0) * -0.5 + index * -0.0001,
+      };
+    }).filter(Boolean).sort((a, b) => a.score - b.score);
   }
 
   _pointToSegmentDistance(px, py, x1, y1, x2, y2) {
@@ -9759,14 +9797,23 @@ if (graphosWindowEl) {
   _clearHoverState() {
     this.hoveredNode = null;
     this.hoveredLink = null;
-    this.nodes.forEach(node => { node.hover = false; node.isContainedPreview = false; });
+    this.hoveredNodeStack = [];
+    this.nodes.forEach(node => {
+      node.hover = false;
+      node.overlapCandidate = false;
+      node.isContainedPreview = false;
+    });
   }
 
   _updateHover(x, y) {
     this._clearHoverState();
-    this.hoveredNode = this._getNodeCoreAt(x, y) || this._getContainingNodeAt(x, y);
+    const coreCandidates = this._getNodeCoreCandidatesAt(x, y);
+    const containingCandidates = coreCandidates.length ? [] : this._getContainingNodeCandidatesAt(x, y);
+    this.hoveredNodeStack = [...coreCandidates, ...containingCandidates].slice(0, 4).map(item => item.node);
+    this.hoveredNode = this.hoveredNodeStack[0] || null;
     if (this.hoveredNode) {
       this.hoveredNode.hover = true;
+      this.hoveredNodeStack.slice(1).forEach(node => { node.overlapCandidate = true; });
     } else {
       this.hoveredLink = this._getLinkAt(x, y);
     }
@@ -10133,6 +10180,10 @@ if (graphosWindowEl) {
     const compactMobile = this._isCompactMobile();
 
     if (compactMobile) {
+      const tapCandidates = [
+        ...this._getNodeCoreCandidatesAt(x, y).map(item => item.node),
+        ...this._getContainingNodeCandidatesAt(x, y).map(item => item.node),
+      ].filter((node, index, arr) => node && arr.indexOf(node) === index);
       this._hideMenu();
       this._endColorPick();
       graphosMobileGesture = {
@@ -10141,6 +10192,7 @@ if (graphosWindowEl) {
         startY: y,
         kind: clickedNode ? 'node' : this._getLinkAt(x, y) ? 'link' : 'blank',
         node: clickedNode || null,
+        candidates: tapCandidates,
         link: null,
         moved: false,
       };
@@ -10255,9 +10307,12 @@ if (graphosWindowEl) {
       const { x, y } = this._getCanvasPoint(e);
       const target = this._getContainingNodeAt(x, y, this.draggedNode);
       if (gesture.kind === 'node' && !gesture.moved) {
-        this._selectSingle(gesture.node || this.draggedNode);
+        const candidates = Array.isArray(gesture.candidates) && gesture.candidates.length ? gesture.candidates : [gesture.node || this.draggedNode];
+        const selected = candidates.findIndex(node => this.selectedNodes.has(node));
+        const nextNode = selected >= 0 && candidates.length > 1 ? candidates[(selected + 1) % candidates.length] : candidates[0];
+        this._selectSingle(nextNode);
         this._setMobilePanelOpen(true);
-        this._beginContextMenu(gesture.node || this.draggedNode, null, e.clientX, e.clientY, e);
+        this._beginContextMenu(nextNode, null, e.clientX, e.clientY, e);
         this.saveGraph();
         this.draggedNode.vx *= 0.2;
         this.draggedNode.vy *= 0.2;
