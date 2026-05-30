@@ -307,7 +307,7 @@ function getScrollableAncestor(target) {
   if (!isElementTarget(target)) return null;
   return target.closest(
     '.graphos-explorer__tree, .graphos-explorer__detail, .graphos-explorer__extensions, ' +
-    '.graphos-window__body, .graphos-context-menu, .graphos-color-picker, ' +
+    '.graphos-context-menu, .graphos-color-picker, ' +
     '.slide[data-slide="modules"] .slide-content, ' +
     '.slide[data-slide="build"] .slide-content, ' +
     '.slide[data-slide="infrastructure"] .slide-content, ' +
@@ -344,13 +344,8 @@ function shouldLockKeyboardNav(target) {
   return targetMatchesSelector(target, KEYBOARD_NAV_LOCK_SELECTOR);
 }
 function shouldLockTouchNav(target) {
-  const scrollable = getScrollableAncestor(target);
-  if (scrollable) {
-    return scrollable.scrollHeight > scrollable.clientHeight + 1;
-  }
+  if (targetMatchesSelector(target, '#slide-nav, #nav-track, #nav-indicator')) return false;
   return targetMatchesSelector(target, [
-    '.graphos-note',
-    '.graphos-window',
     '.graphos-context-menu__item',
     '.graphos-context-menu__toggle',
     '.graphos-context-menu__swatch',
@@ -10992,13 +10987,19 @@ document.addEventListener('wheel', e => {
   }, 50);
 }, { passive: false });
 
+let touchX0 = 0;
 let touchY0 = 0;
 let touchNavLocked = false;
 let touchScrollableAncestor = null;
+let touchScrollableStartTop = 0;
+let touchStartedOnSlideNav = false;
 document.addEventListener('touchstart', e => {
   touchScrollableAncestor = getScrollableAncestor(e.target);
+  touchScrollableStartTop = touchScrollableAncestor ? touchScrollableAncestor.scrollTop : 0;
   touchNavLocked = shouldLockTouchNav(e.target);
+  touchStartedOnSlideNav = targetMatchesSelector(e.target, '#slide-nav, #nav-track, #nav-indicator');
   if (e.touches && e.touches[0]) {
+    touchX0 = e.touches[0].clientX;
     touchY0 = e.touches[0].clientY;
   }
 }, { passive: true });
@@ -11006,25 +11007,59 @@ document.addEventListener('touchend', e => {
   if (!e.changedTouches || !e.changedTouches[0]) {
     touchNavLocked = false;
     touchScrollableAncestor = null;
+    touchScrollableStartTop = 0;
+    touchStartedOnSlideNav = false;
     return;
   }
+  if (touchStartedOnSlideNav) {
+    touchNavLocked = false;
+    touchScrollableAncestor = null;
+    touchScrollableStartTop = 0;
+    touchStartedOnSlideNav = false;
+    return;
+  }
+  const diffX = touchX0 - e.changedTouches[0].clientX;
   const diff = touchY0 - e.changedTouches[0].clientY;
+  const absX = Math.abs(diffX);
+  const absY = Math.abs(diff);
+  if (absY < 38 || absY < absX * 1.18) {
+    touchNavLocked = false;
+    touchScrollableAncestor = null;
+    touchScrollableStartTop = 0;
+    touchStartedOnSlideNav = false;
+    return;
+  }
+  if (touchScrollableAncestor && Math.abs(touchScrollableAncestor.scrollTop - touchScrollableStartTop) > 1) {
+    touchNavLocked = false;
+    touchScrollableAncestor = null;
+    touchScrollableStartTop = 0;
+    touchStartedOnSlideNav = false;
+    return;
+  }
   if (touchScrollableAncestor && canElementScroll(touchScrollableAncestor, diff)) {
     touchNavLocked = false;
     touchScrollableAncestor = null;
+    touchScrollableStartTop = 0;
+    touchStartedOnSlideNav = false;
     return;
   }
   if (touchNavLocked) {
     touchNavLocked = false;
     touchScrollableAncestor = null;
+    touchScrollableStartTop = 0;
+    touchStartedOnSlideNav = false;
     return;
   }
-  if (Math.abs(diff) > 45) goTo(currentIndex + (diff > 0 ? 1 : -1));
+  goTo(currentIndex + (diff > 0 ? 1 : -1));
   touchScrollableAncestor = null;
+  touchScrollableStartTop = 0;
+  touchStartedOnSlideNav = false;
 }, { passive: true });
 document.addEventListener('touchcancel', () => {
   touchNavLocked = false;
   touchScrollableAncestor = null;
+  touchScrollableStartTop = 0;
+  touchStartedOnSlideNav = false;
 }, { passive: true });
 
 window.addEventListener('resize', () => {

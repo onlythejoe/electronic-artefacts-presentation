@@ -154,7 +154,9 @@ body[data-theme="light"] #mist-bg {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 1200;
+  pointer-events: auto;
+  isolation: isolate;
 }
 
 #nav-track {
@@ -6276,25 +6278,27 @@ body::after {
   #slide-nav {
     display: flex;
     position: fixed;
-    right: max(8px, env(safe-area-inset-right));
+    right: max(6px, env(safe-area-inset-right));
     top: 50%;
     transform: translateY(-50%);
-    width: 24px;
-    height: min(52svh, calc(var(--app-height) - 144px));
-    padding: 8px 5px;
-    z-index: 700;
+    width: 34px;
+    height: min(58svh, calc(var(--app-height) - 124px));
+    min-height: 220px;
+    padding: 10px 7px;
+    z-index: 5000;
     border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.085);
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
-      rgba(255,255,255,0.01);
-    backdrop-filter: blur(8px) saturate(110%);
-    -webkit-backdrop-filter: blur(8px) saturate(110%);
+      linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.025)),
+      rgba(8, 10, 13, 0.36);
+    backdrop-filter: blur(14px) saturate(124%);
+    -webkit-backdrop-filter: blur(14px) saturate(124%);
     box-shadow:
-      0 10px 22px rgba(0,0,0,0.10),
-      inset 0 1px 0 rgba(255,255,255,0.04);
+      0 18px 42px rgba(0,0,0,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.07);
     pointer-events: auto;
-    opacity: 0.58;
+    opacity: 0.82;
+    touch-action: none;
     transition:
       opacity 220ms var(--ease-out),
       transform 220ms var(--ease-out),
@@ -6306,16 +6310,16 @@ body::after {
   }
 
   #slide-nav.is-active {
-    width: 34px;
-    padding: 10px 6px;
+    width: 42px;
+    padding: 12px 8px;
     opacity: 1;
-    border-color: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.18);
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)),
-      rgba(255,255,255,0.03);
+      linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.055)),
+      rgba(8, 10, 13, 0.52);
     box-shadow:
-      0 14px 34px rgba(0,0,0,0.18),
-      inset 0 1px 0 rgba(255,255,255,0.08);
+      0 22px 52px rgba(0,0,0,0.36),
+      inset 0 1px 0 rgba(255,255,255,0.12);
   }
 
   #nav-track {
@@ -6324,6 +6328,7 @@ body::after {
     padding: 0;
     margin: 0;
     touch-action: none;
+    cursor: pointer;
   }
 
   #nav-track::before {
@@ -6338,11 +6343,11 @@ body::after {
   }
 
   #nav-indicator {
-    width: 5px;
-    height: 22px;
+    width: 6px;
+    height: 26px;
     border-radius: 999px;
-    box-shadow: 0 0 12px rgba(255,255,255,0.12);
-    opacity: 0.84;
+    box-shadow: 0 0 18px rgba(255,255,255,0.18);
+    opacity: 0.92;
   }
 
   #slide-nav.is-active #nav-track::before,
@@ -10161,8 +10166,11 @@ body[data-graphos-focus="action"] .graphos-tree__row[data-layer="action"] {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
   padding: calc(var(--u) * 0.38);
   margin: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
 
 .graphos-slide .graphos-explorer__extension-toggle {
@@ -10478,9 +10486,13 @@ body[data-graphos-focus="action"] .graphos-tree__row[data-layer="action"] {
     gap: 6px;
     overflow-x: auto;
     overflow-y: hidden;
+    overscroll-behavior-x: contain;
     padding: 5px;
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.22) transparent;
+    touch-action: pan-x;
   }
 
   .graphos-slide .graphos-explorer__extensions-title {
@@ -10496,6 +10508,27 @@ body[data-graphos-focus="action"] .graphos-tree__row[data-layer="action"] {
 
   .graphos-slide .graphos-explorer__detail {
     padding-right: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.24) transparent;
+  }
+
+  .graphos-slide .graphos-explorer__tree {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.24) transparent;
+  }
+
+  .graphos-slide .graphos-explorer__tree::-webkit-scrollbar,
+  .graphos-slide .graphos-explorer__detail::-webkit-scrollbar,
+  .graphos-slide .graphos-explorer__extensions::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  .graphos-slide .graphos-explorer__tree::-webkit-scrollbar-thumb,
+  .graphos-slide .graphos-explorer__detail::-webkit-scrollbar-thumb,
+  .graphos-slide .graphos-explorer__extensions::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.24);
+    border: 2px solid rgba(0,0,0,0.08);
   }
 
   .graphos-slide .graphos-explorer__preview-viewport {
