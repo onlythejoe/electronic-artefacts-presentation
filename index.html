@@ -35,7 +35,7 @@
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260530g" />
+  <link rel="stylesheet" href="style.css?v=20260530h" />
   <noscript>
     <style>
       html, body {
@@ -88,7 +88,7 @@
 <div id="slide-counter" role="status" aria-live="polite" aria-atomic="true">
   <span id="num-current">01</span>
   <span class="sep">/</span>
-  <span id="num-total">32</span>
+  <span id="num-total">33</span>
 </div>
 <nav id="slide-nav" aria-label="Slide navigation"></nav>
 <button id="slide-next-guard" class="slide-next-guard" type="button" aria-label="Arm next slide button">
@@ -306,7 +306,62 @@
     </div>
   </section>
 
-  <!-- 07 -->
+  <!-- 08 -->
+  <section class="slide has-canvas intelligence-slide" data-slide="intelligence">
+    <canvas class="slide-canvas" id="canvas-intelligence"></canvas>
+    <div class="slide-content intelligence-layout">
+      <div class="intelligence-copy">
+        <p class="tagline">Intelligence extension</p>
+        <h2>Talk to the graph.</h2>
+        <p class="intelligence-lead">Intelligence is not a chatbot beside the system. It is a capability activated on the graph, grounded in vertices, permissions, memory, and executable extensions.</p>
+        <p class="sub intelligence-summary">With Actor enabled, a model becomes a situated actor: it can read context, exchange with nodes, and operate only through the capabilities it has been granted.</p>
+      </div>
+
+      <div class="intelligence-console" aria-label="Intelligence graph interface">
+        <div class="intelligence-console__top">
+          <span>Intelligence + Actor</span>
+          <span>Graph resident</span>
+        </div>
+        <div class="intelligence-console__body">
+          <div class="intelligence-node" aria-hidden="true">
+            <span class="intelligence-node__core"></span>
+            <span class="intelligence-node__orbit intelligence-node__orbit--one"></span>
+            <span class="intelligence-node__orbit intelligence-node__orbit--two"></span>
+          </div>
+          <div class="intelligence-dialogue">
+            <span class="intelligence-dialogue__line intelligence-dialogue__line--user">Ask the graph about this workspace.</span>
+            <span class="intelligence-dialogue__line intelligence-dialogue__line--graph">I can answer from nodes, relations, assets, programs, and policy.</span>
+          </div>
+          <div class="intelligence-config">
+            <span>Bring your model</span>
+            <span>Permission scoped</span>
+            <span>Memory aware</span>
+            <span>Tool capable</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="intelligence-modes" aria-label="Intelligence modes">
+        <article>
+          <span>01</span>
+          <strong>Synapse</strong>
+          <p>Share signals between nodes and keep distributed context coherent.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <strong>Assistant</strong>
+          <p>Talk to a vertex, workspace, asset, relation, or surface directly.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <strong>Operator</strong>
+          <p>Let an actor execute approved actions inside the runtime.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 -->
   <section class="slide center has-canvas" data-slide="unification">
     <canvas class="slide-canvas" id="canvas-unification"></canvas>
     <div class="slide-content">
@@ -1200,6 +1255,6 @@
 
 </main>
 
-<script src="script.js?v=20260530g"></script>
+<script src="script.js?v=20260530h"></script>
 </body>
 </html>

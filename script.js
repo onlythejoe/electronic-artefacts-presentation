@@ -314,6 +314,7 @@ function getScrollableAncestor(target) {
     '.slide[data-slide="modules"] .slide-content, ' +
     '.slide[data-slide="build"] .slide-content, ' +
     '.slide[data-slide="infrastructure"] .slide-content, ' +
+    '.slide[data-slide="intelligence"] .slide-content, ' +
     '.slide[data-slide="horizon"] .slide-content, ' +
     '.brief-layout, .bridge-layout, .onboarding-layout, .composition-layout'
   );
@@ -10973,6 +10974,10 @@ const SCENE_MAP = {
   // VASTE graph demo — primitives, draggable window, and surface projection
   graphos:     [GraphOSLiveScene, null],
 
+  // Intelligence — model grounded in graph context, permissions, and actor capabilities
+  intelligence: [GraphScene,      { nodeCount: 24, speed: 0.38, thresh: 0.3,
+                                    edgeAlpha: 0.18, nodeAlpha: [0.22, 0.46], trails: true }],
+
   // Unification — gentle convergence
   unification: [ConvergenceScene, { cycleDur: 4.5, particles: 30, spread: 260, sharp: false }],
 
@@ -11030,6 +11035,7 @@ function initScenes() {
     bridge:      'canvas-bridge',
     vaste:       'canvas-vaste',
     graphos:     'canvas-graphos',
+    intelligence: 'canvas-intelligence',
     unification: 'canvas-unification',
     vestiges:    'canvas-vestiges',
     infrastructure: 'canvas-infrastructure',
