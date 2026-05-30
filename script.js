@@ -51,6 +51,8 @@ let selectedInfraLayer = null;
 let selectedGraphosLayer = null;
 let selectedBuildLayer = null;
 let navActivityTimer = null;
+let nextGuardArmed = false;
+let nextGuardTimer = null;
 let graphosMobileGesture = null;
 let lastInfraFocus = null;
 let lastInfraSelected = null;
@@ -216,6 +218,7 @@ const progressEl = document.getElementById('progress-bar');
 const numCurEl   = document.getElementById('num-current');
 const numTotEl   = document.getElementById('num-total');
 const navEl      = document.getElementById('slide-nav');
+const slideNextGuardEl = document.getElementById('slide-next-guard');
 const slideCounterEl = document.getElementById('slide-counter');
 const graphosWindowEl = document.querySelector('.graphos-window');
 const graphosWindowHandleEl = document.querySelector('.graphos-window__header');
@@ -1234,6 +1237,7 @@ function goTo(index, opts = {}) {
   }
 
   isAnimating = true;
+  disarmNextGuard();
   endGraphosWindowDrag();
 
   stopScene(slideEls[currentIndex].dataset.slide);
@@ -1296,6 +1300,10 @@ function initUI() {
   navEl.classList.remove('is-active');
   track.addEventListener('pointerdown', onNavPointerDown);
   track.addEventListener('keydown', onNavTrackKeydown);
+  if (slideNextGuardEl) {
+    slideNextGuardEl.addEventListener('click', onNextGuardClick);
+    slideNextGuardEl.addEventListener('pointerdown', e => e.stopPropagation());
+  }
   updateUI();
 }
 
@@ -1305,6 +1313,17 @@ function updateUI() {
   if (slideCounterEl) {
     slideCounterEl.setAttribute('aria-label', `Slide ${currentIndex + 1} of ${total}: ${slideTitle}`);
   }
+  if (slideNextGuardEl) {
+    const atLastSlide = currentIndex >= total - 1;
+    slideNextGuardEl.disabled = atLastSlide;
+    slideNextGuardEl.setAttribute('aria-disabled', atLastSlide ? 'true' : 'false');
+    if (atLastSlide) {
+      disarmNextGuard();
+      slideNextGuardEl.setAttribute('aria-label', 'Last slide');
+    } else if (!nextGuardArmed) {
+      slideNextGuardEl.setAttribute('aria-label', 'Arm next slide button');
+    }
+  }
   const progress = total > 1 ? currentIndex / (total - 1) : 1;
   progressEl.style.setProperty('--progress-scale', progress.toFixed(4));
   if (!navIndicatorEl || !navTrackEl) return;
@@ -1312,6 +1331,42 @@ function updateUI() {
   navTrackEl.setAttribute('aria-valuetext', slideTitle);
   const max = navTrackEl.offsetHeight - 14;
   navIndicatorEl.style.setProperty('--nav-y', (progress * max).toFixed(2) + 'px');
+}
+
+function disarmNextGuard() {
+  nextGuardArmed = false;
+  clearTimeout(nextGuardTimer);
+  nextGuardTimer = null;
+  if (!slideNextGuardEl) return;
+  slideNextGuardEl.classList.remove('is-armed');
+  slideNextGuardEl.setAttribute('aria-pressed', 'false');
+}
+
+function armNextGuard() {
+  if (!slideNextGuardEl || currentIndex >= total - 1) return;
+  nextGuardArmed = true;
+  slideNextGuardEl.classList.add('is-armed');
+  slideNextGuardEl.setAttribute('aria-pressed', 'true');
+  slideNextGuardEl.setAttribute('aria-label', 'Press again to go to next slide');
+  clearTimeout(nextGuardTimer);
+  nextGuardTimer = setTimeout(() => {
+    disarmNextGuard();
+    if (slideNextGuardEl && currentIndex < total - 1) {
+      slideNextGuardEl.setAttribute('aria-label', 'Arm next slide button');
+    }
+  }, 1800);
+}
+
+function onNextGuardClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!slideNextGuardEl || slideNextGuardEl.disabled || currentIndex >= total - 1) return;
+  if (!nextGuardArmed) {
+    armNextGuard();
+    return;
+  }
+  disarmNextGuard();
+  goTo(currentIndex + 1, { force: true });
 }
 
 function onNavTrackKeydown(e) {
@@ -2046,6 +2101,13 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('click', e => {
   if (!activeSlideEl || activeSlideEl.dataset.slide !== 'build') return;
+  const studioControl = e.target.closest('.build-studio-control, .build-studio-toggle');
+  if (studioControl && activeSlideEl.contains(studioControl)) {
+    e.preventDefault();
+    e.stopPropagation();
+    updateBuildStudioControl(studioControl);
+    return;
+  }
   const target = e.target.closest('.build-step, .build-card, .build-surface, .build-assets');
   if (!target || !activeSlideEl.contains(target)) return;
   toggleBuildSelection(target);
@@ -2054,11 +2116,49 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (!activeSlideEl || activeSlideEl.dataset.slide !== 'build') return;
   if (e.key !== 'Enter' && e.key !== ' ') return;
+  const studioControl = e.target.closest('.build-studio-control, .build-studio-toggle');
+  if (studioControl && activeSlideEl.contains(studioControl)) {
+    e.preventDefault();
+    updateBuildStudioControl(studioControl);
+    return;
+  }
   const target = e.target.closest('.build-step, .build-card, .build-surface, .build-assets');
   if (!target || !activeSlideEl.contains(target)) return;
   e.preventDefault();
   toggleBuildSelection(target);
 });
+
+function updateBuildStudioControl(control) {
+  const surface = control.closest('.build-surface');
+  if (!surface) return;
+  const key = control.dataset.studioControl;
+  const value = control.dataset.studioValue;
+  if (!key || !value) return;
+
+  if (key === 'background') {
+    surface.dataset.studioBg = value;
+    surface.querySelectorAll('[data-studio-control="background"]').forEach(button => {
+      button.classList.toggle('is-active', button === control);
+    });
+    return;
+  }
+
+  if (key === 'type') {
+    surface.dataset.studioType = value;
+    surface.querySelectorAll('[data-studio-control="type"]').forEach(button => {
+      button.classList.toggle('is-active', button === control);
+    });
+    return;
+  }
+
+  if (key === 'setting') {
+    const active = !control.classList.contains('is-active');
+    control.classList.toggle('is-active', active);
+    control.setAttribute('aria-pressed', active ? 'true' : 'false');
+    if (value === 'grid') surface.dataset.studioGrid = active ? 'true' : 'false';
+    if (value === 'live') surface.dataset.studioLive = active ? 'true' : 'false';
+  }
+}
 
 function animLoop(time) {
   if (!appAlive) return;
@@ -5277,12 +5377,14 @@ class UseCasesController {
     ];
     this.drumItems = [];
     this.fieldInner = null;
+    this.mobileDetail = null;
     this._init();
   }
 
   _init() {
     this.drumItems = [...(this.el.querySelectorAll('.uc-drum__item') || [])];
     this.fieldInner = this.el.querySelector('#uc-field-inner');
+    this.mobileDetail = this.el.querySelector('#uc-mobile-detail');
     if (!this.drumItems.length || !this.fieldInner) return;
 
     // Set initial CSS accent
@@ -5317,6 +5419,7 @@ class UseCasesController {
     }
 
     // Populate initial field without animation
+    this._updateMobileDetail(0);
     this._renderField(0, false);
   }
 
@@ -5343,6 +5446,24 @@ class UseCasesController {
     }
 
     this._renderField(index, prev !== index);
+    this._updateMobileDetail(index);
+  }
+
+  _updateMobileDetail(index) {
+    if (!this.mobileDetail) return;
+    const family = this.families[index];
+    if (!family) return;
+    const [r, g, b] = family.accent;
+    this.mobileDetail.style.setProperty('--uc-mobile-accent', `${r},${g},${b}`);
+    const title = this.mobileDetail.querySelector('.uc-mobile-detail__title');
+    const desc = this.mobileDetail.querySelector('.uc-mobile-detail__desc');
+    const count = this.mobileDetail.querySelector('.uc-mobile-detail__count');
+    if (title) title.textContent = family.title;
+    if (desc) desc.textContent = family.desc;
+    if (count) count.textContent = `${family.cases.length} domains`;
+    this.mobileDetail.classList.remove('is-pulsing');
+    void this.mobileDetail.offsetWidth;
+    this.mobileDetail.classList.add('is-pulsing');
   }
 
   _renderField(index, animate) {

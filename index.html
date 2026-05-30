@@ -35,7 +35,7 @@
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260530c" />
+  <link rel="stylesheet" href="style.css?v=20260530g" />
   <noscript>
     <style>
       html, body {
@@ -91,6 +91,9 @@
   <span id="num-total">32</span>
 </div>
 <nav id="slide-nav" aria-label="Slide navigation"></nav>
+<button id="slide-next-guard" class="slide-next-guard" type="button" aria-label="Arm next slide button">
+  <span class="slide-next-guard__glyph" aria-hidden="true"></span>
+</button>
 <aside id="hover-hud" aria-hidden="true">
   <span class="hover-hud__kicker">Hover</span>
   <strong class="hover-hud__title"></strong>
@@ -527,7 +530,7 @@
       </div>
 
       <div class="build-workbench">
-        <div class="build-surface" data-layer="surface" role="button" tabindex="0" aria-pressed="false">
+        <div class="build-surface" data-layer="surface" data-studio-bg="graphite" data-studio-type="balanced" data-studio-grid="true" data-studio-live="true" role="button" tabindex="0" aria-pressed="false">
           <div class="build-surface__top">
             <span>Studio</span>
             <span>Deployment surface</span>
@@ -539,18 +542,34 @@
                 <i></i>
                 <i></i>
               </span>
-              <span class="build-surface__url">studio / deploy</span>
+              <span class="build-surface__url">studio / presentation</span>
             </div>
             <div class="build-surface__viewport">
               <div class="build-surface__hero">
-                <span class="build-surface__kicker">Editing · deployment · hosting</span>
-                <strong>Design the visible layer</strong>
-                <p>Pages, apps, domains, published surfaces.</p>
+                <span class="build-surface__kicker">Active target · this deck</span>
+                <strong>Presentation runtime</strong>
+                <p>Typography, background, density, and publishing state are edited from Studio.</p>
+              </div>
+              <div class="build-studio-controls" aria-label="Presentation controls">
+                <div class="build-studio-controls__row" role="group" aria-label="Background color">
+                  <button class="build-studio-control build-studio-swatch is-active" type="button" data-studio-control="background" data-studio-value="graphite" aria-label="Graphite background"></button>
+                  <button class="build-studio-control build-studio-swatch build-studio-swatch--blue" type="button" data-studio-control="background" data-studio-value="blue" aria-label="Blue background"></button>
+                  <button class="build-studio-control build-studio-swatch build-studio-swatch--violet" type="button" data-studio-control="background" data-studio-value="violet" aria-label="Violet background"></button>
+                </div>
+                <div class="build-studio-controls__row build-studio-controls__row--segments" role="group" aria-label="Typography scale">
+                  <button class="build-studio-control" type="button" data-studio-control="type" data-studio-value="compact">A</button>
+                  <button class="build-studio-control is-active" type="button" data-studio-control="type" data-studio-value="balanced">A+</button>
+                  <button class="build-studio-control" type="button" data-studio-control="type" data-studio-value="editorial">A++</button>
+                </div>
+                <div class="build-studio-controls__row build-studio-controls__row--toggles" role="group" aria-label="Publishing controls">
+                  <button class="build-studio-toggle is-active" type="button" data-studio-control="setting" data-studio-value="grid" aria-pressed="true">Grid</button>
+                  <button class="build-studio-toggle is-active" type="button" data-studio-control="setting" data-studio-value="live" aria-pressed="true">Live</button>
+                </div>
               </div>
               <div class="build-surface__chips" aria-hidden="true">
-                <span>Studio</span>
-                <span>Hosting</span>
-                <span>Domains</span>
+                <span>Deck</span>
+                <span>Theme</span>
+                <span>Publish</span>
               </div>
             </div>
           </div>
@@ -685,6 +704,12 @@
       <div class="uc-field" id="uc-field" aria-live="polite" aria-label="Domain use cases">
         <div class="uc-field__inner" id="uc-field-inner"></div>
       </div>
+      <aside class="uc-mobile-detail" id="uc-mobile-detail" aria-live="polite" aria-atomic="true">
+        <span class="uc-mobile-detail__kicker">Active family</span>
+        <strong class="uc-mobile-detail__title">Operations</strong>
+        <p class="uc-mobile-detail__desc">Enterprise ops, logistics, support orchestration.</p>
+        <span class="uc-mobile-detail__count">11 domains</span>
+      </aside>
       <footer class="usecases-ft">
         <span class="usecases-ft__hint">Scroll on the selector · hover a domain for detail</span>
       </footer>
@@ -1175,6 +1200,6 @@
 
 </main>
 
-<script src="script.js?v=20260530c"></script>
+<script src="script.js?v=20260530g"></script>
 </body>
 </html>
